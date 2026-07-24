@@ -1,4 +1,4 @@
-abstract type AbstractPenalizedProblem{T,S} <: AbstractRegularizedNLPModel{T,S} end
+abstract type AbstractPenalizedProblem{T,S} <: AbstractNLPModel{T,S} end
 
 """
     penalty_problem = L2PenalizedProblem(nlp::AbstractNLPModel)

@@ -5,7 +5,6 @@ using CUTEst,
   NLPModels,
   NLPModelsModifiers,
   QuadraticModels,
-  RegularizedProblems,
   ShiftedProximalOperators,
   SolverCore,
   SparseMatricesCOO

@@ -9,7 +9,7 @@ Penelopt.jl: A Large-Scale Equality-Constrained Optimization Solver.
 module Penelopt
 
 using LinearAlgebra, Printf, SparseArrays
-using NLPModels, NLPModelsModifiers, RegularizedProblems
+using NLPModels, NLPModelsModifiers
 using LDLFactorizations,
   LinearOperators,
   ProximalOperators,

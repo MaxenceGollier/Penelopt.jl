@@ -16,7 +16,7 @@ mutable struct MoreSorensenSolver{
 end
 
 function MoreSorensenSolver(
-  reg_nlp::AbstractRegularizedNLPModel{T,V};
+  reg_nlp::AbstractShiftedPenalizedProblem{T,V};
   solver = :ldlt,
 ) where {T,V}
   x0 = reg_nlp.model.meta.x0
