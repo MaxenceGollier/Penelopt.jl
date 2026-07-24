@@ -24,7 +24,7 @@ solvers = Dict(
       rtol = 0.0,
       max_time = max_time,
       max_iter = typemax(Int),
-      linear_solver = "mumps"
+      linear_solver = "mumps",
     ),
 )
 

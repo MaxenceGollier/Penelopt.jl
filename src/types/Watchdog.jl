@@ -56,7 +56,9 @@ function watchdog_checkpoint(
   xk, ∇fk = similar(∇f_model), similar(∇f_model)
   ck, yk = similar(b_model), similar(b_model)
   Jkvals = similar(ψ.A.vals)
-  Hk = (isa(φ.data.H, AbstractLinearOperator) || O <: NullHessianModel) ? nothing : similar(φ.data.H)
+  Hk =
+    (isa(φ.data.H, AbstractLinearOperator) || O <: NullHessianModel) ? nothing :
+    similar(φ.data.H)
   return watchdog_checkpoint(
     xk,
     ∇fk,

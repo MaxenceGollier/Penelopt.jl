@@ -207,9 +207,9 @@ function SolverCore.solve!(
     # Compute a step 
     solver.subpb.model.data.σ = σk
     solve!(
-      solver.subsolver, 
-      solver.subpb, 
-      solver.substats; 
+      solver.subsolver,
+      solver.subpb,
+      solver.substats;
       verbose = ms_verbose,
       print_level = print_level - 1,
       max_iter = ms_max_iter,
@@ -305,7 +305,7 @@ function SolverCore.solve!(
         max_eval = max_eval,
         max_time = max_time,
         max_iter = max_iter,
-        small_step = all(i -> abs(s[i]) < tiny_step_tol * abs(x[i]), eachindex(s, x))
+        small_step = all(i -> abs(s[i]) < tiny_step_tol * abs(x[i]), eachindex(s, x)),
       ),
     )
 

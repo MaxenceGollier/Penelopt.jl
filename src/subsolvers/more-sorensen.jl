@@ -32,27 +32,35 @@ function MoreSorensenSolver(
   # Check for MUMPS
   mumps_loaded = !isnothing(Base.get_extension(@__MODULE__, :ExactPenaltyMUMPSExt))
   if !mumps_loaded && solver == :mumps
-    warning("ExactPenalty.jl: MUMPS extension is not loaded. Please install MPI.jl and MUMPS.jl. Switching to LDLFactorizations.jl...")
+    warning(
+      "ExactPenalty.jl: MUMPS extension is not loaded. Please install MPI.jl and MUMPS.jl. Switching to LDLFactorizations.jl...",
+    )
     solver = :ldlt
   end
 
   # Check for HSL
   hsl_loaded = !isnothing(Base.get_extension(@__MODULE__, :ExactPenaltyHSLExt))
   if !hsl_loaded && solver == :ma57
-    warning("ExactPenalty.jl: HSL extension is not loaded. Please install HSL.jl. Switching to LDLFactorizations.jl...")
+    warning(
+      "ExactPenalty.jl: HSL extension is not loaded. Please install HSL.jl. Switching to LDLFactorizations.jl...",
+    )
     solver = :ldlt
   end
 
   hsl_isfunctional = hsl_loaded && hsl_functional()
   if !hsl_isfunctional && solver == :ma57
-    warning("ExactPenalty.jl: HSL extension is not functional. Please check your license and make sure you have loaded HSL_jll.jl appropriately. Switching to LDLFactorizations.jl...")
+    warning(
+      "ExactPenalty.jl: HSL extension is not functional. Please check your license and make sure you have loaded HSL_jll.jl appropriately. Switching to LDLFactorizations.jl...",
+    )
     solver = :ldlt
   end
 
   # Check for Krylov
   krylov_loaded = !isnothing(Base.get_extension(@__MODULE__, :ExactPenaltyKrylovExt))
   if !krylov_loaded && solver == :minres_qlp
-    warning("ExactPenalty.jl: Krylov extension is not loaded. Please install Krylov.jl. Switching to LDLFactorizations.jl...")
+    warning(
+      "ExactPenalty.jl: Krylov extension is not loaded. Please install Krylov.jl. Switching to LDLFactorizations.jl...",
+    )
     solver = :ldlt
   end
 
@@ -174,7 +182,18 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   norm_x1 = norm(@view x1[(n+1):(n+m)])
 
   if print_level > 0 && stats.iter % verbose == 0
-    @info log_ms_iteration(stats, reg_nlp.model.data.σ, α, norm_x1, Δ, npos, nzero, nneg, status, is_descent)
+    @info log_ms_iteration(
+      stats,
+      reg_nlp.model.data.σ,
+      α,
+      norm_x1,
+      Δ,
+      npos,
+      nzero,
+      nneg,
+      status,
+      is_descent,
+    )
   end
 
   if norm_x1 <= Δ || (is_descent && accept_descent)
@@ -216,7 +235,18 @@ function SolverCore.solve!( #TODO add verbose and kwargs
       set_solver_specific!(stats, :alpha, α)
       set_iter!(stats, stats.iter + 1)
       if print_level > 0 && stats.iter % verbose == 0
-        @info log_ms_iteration(stats, reg_nlp.model.data.σ, α, norm_x1, Δ, npos, nzero, nneg, status, is_descent)
+        @info log_ms_iteration(
+          stats,
+          reg_nlp.model.data.σ,
+          α,
+          norm_x1,
+          Δ,
+          npos,
+          nzero,
+          nneg,
+          status,
+          is_descent,
+        )
       end
       print_level > 0 && @info conclusion_message(solver, stats)
       return
@@ -244,7 +274,18 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     set_time!(stats, time()-start_time)
 
     if print_level > 0 && stats.iter % verbose == 0
-      @info log_ms_iteration(stats, reg_nlp.model.data.σ, α, norm_x1, Δ, npos, nzero, nneg, status, is_descent)
+      @info log_ms_iteration(
+        stats,
+        reg_nlp.model.data.σ,
+        α,
+        norm_x1,
+        Δ,
+        npos,
+        nzero,
+        nneg,
+        status,
+        is_descent,
+      )
     end
 
     α == αmin && break
