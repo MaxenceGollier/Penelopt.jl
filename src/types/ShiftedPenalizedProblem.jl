@@ -211,8 +211,8 @@ end
 
 # Miscellaneous
 function set_penalty!(nlp::ShiftedL2PenalizedProblem{T}, τ::T) where {T}
-  nlp.h.h = NormL2(τ)
-  nlp.parent.h.h = NormL2(τ)
+  nlp.h.h.lambda = τ
+  nlp.parent.h.h.lambda = τ
 end
 
 function check_descent(

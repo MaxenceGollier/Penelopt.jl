@@ -12,9 +12,7 @@ using LinearAlgebra, Printf, SparseArrays
 using NLPModels, NLPModelsModifiers
 using LDLFactorizations,
   LinearOperators,
-  ProximalOperators,
   QuadraticModels,
-  ShiftedProximalOperators,
   SolverCore,
   SparseMatricesCOO
 
@@ -26,6 +24,8 @@ include("PeneloptExecutionStats.jl")
 
 include("types/quasi-newton/NullHessian.jl")
 include("types/quasi-newton/CompactBFGS.jl")
+
+include("types/norm/NormL2.jl")
 
 include("linear_algebra/K2.jl")
 include("linear_algebra/construct_workspace.jl")

@@ -20,7 +20,7 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
 
   # if τ = Inf, assuming full row rankness of A, then the solution of the prox is given by
   # y = (AAᵀ)^{-1}(-A∇f) -> corresponds to the least-square multipliers.
-  ψ.h = NormL2(Inf)
+  ψ.h.lambda = Inf
   solver.temp_b .= ψ.b
   ψ.b .= 0
   solver.∇fk .*= -1
@@ -28,7 +28,7 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
   solver.∇fk .*= -1
 
   # Reset old value
-  ψ.h = NormL2(lambda_temp)
+  ψ.h.lambda = lambda_temp
   ψ.b .= solver.temp_b
 
   set_solver_specific!(solver.substats, sigma_symbol, T(1))
