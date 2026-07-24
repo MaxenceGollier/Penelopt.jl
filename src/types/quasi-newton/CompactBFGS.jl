@@ -3,6 +3,9 @@ export CompactBFGS, CompactBFGSModel
 mutable struct CompactBFGS{T,V<:AbstractVector{T},MT<:AbstractMatrix{T}} <:
                AbstractMatrix{T}
   const scaling::Bool
+  const damped::Bool
+  σ₂::Float64
+  σ₃::Float64
   ξ::T
   Sk::MT # n x p
   Yk::MT # n x p
@@ -13,6 +16,7 @@ mutable struct CompactBFGS{T,V<:AbstractVector{T},MT<:AbstractMatrix{T}} <:
   Uk::MT # n x p
   Vk::MT # n x p
   _y::V  # p
+  _Bs::V # n
   _mem::Int
   _insert::Int
   _nskip::Int
@@ -31,6 +35,9 @@ function CompactBFGS(
 ) where {I<:Integer}
   return CompactBFGS{T,Vector{T},Matrix{T}}(
     scaling,
+    damped,
+    σ₂,
+    σ₃,
     one(T),
     zeros(T, n, mem),
     zeros(T, n, mem),
@@ -41,6 +48,7 @@ function CompactBFGS(
     zeros(T, n, mem),
     zeros(T, n, mem),
     zeros(T, mem),
+    zeros(T, n),
     mem,
     1,
     0,
@@ -109,7 +117,30 @@ function Base.push!(op::CompactBFGS{T,V,MT}, s::V, y::V) where {T,V,MT}
 
   sy = dot(s, y)
 
+  if op.damped
+    # Damped BFGS update
+    Bs, σ₂, σ₃ = op._Bs, op.σ₂, op.σ₃
+
+    mul!(Bs, op, s) # Bs = Bₖy
+    sBs = dot(s, Bs)
+
+    damp = false
+    if sy < (1 - σ₂) * sBs
+      θ = σ₂ * sBs / (sBs - sy)
+      damp = true
+    elseif sy > (1 + σ₃) * sBs
+      θ = σ₃ * sBs / (sy - sBs)
+      damp = true
+    end
+    if damp
+      println("damp!")
+      y .= θ .* y .+ (1 - θ) .* Bs
+      sy = θ * sy + (1 - θ) * sBs
+    end
+  end
+
   if sy <= eps(T)
+    println("skip!")
     op._nskip = op._nskip + 1
     if op._nskip > op._max_skip
       NLPModels.reset!(op)
@@ -200,6 +231,9 @@ end
 function Base.similar(op::CompactBFGS{T,V,MT}) where {T,V,MT}
   return CompactBFGS(
     op.scaling,
+    op.damped,
+    op.σ₂,
+    op.σ₃,
     op.ξ,
     similar(op.Sk),
     similar(op.Yk),
@@ -210,6 +244,7 @@ function Base.similar(op::CompactBFGS{T,V,MT}) where {T,V,MT}
     similar(op.Uk),
     similar(op.Vk),
     similar(op._y),
+    similar(op._Bs),
     op._mem,
     op._insert,
     op._nskip,
