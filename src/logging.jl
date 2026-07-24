@@ -14,12 +14,11 @@ function get_linear_solver(
 end
 
 function decode_mumps_version(v::NTuple)
-    bytes = collect(UInt8.(v))
-    i = findfirst(iszero, bytes)
+    i = findfirst(==(0), v)
     if i === nothing
-        return String(bytes)
+        return String(collect(UInt8.(v)))
     else
-        return String(bytes[1:i-1])
+        return String(collect(UInt8.(v[1:i-1])))
     end
 end
 
