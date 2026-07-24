@@ -18,8 +18,8 @@ makedocs(;
     "Home" => "index.md",
     "Options" => "options.md",
     "Outputs" => "outputs.md",
-    "Callbacks" => "callbacks.md",
     "Performance" => "performance.md",
+    "Callbacks" => "callbacks.md",
     "Tutorials" => [
       "AMPL" => "tutorials/AMPL.md",
       "CUTEst" => "tutorials/CUTEst.md",
