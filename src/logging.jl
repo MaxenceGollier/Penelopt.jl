@@ -25,7 +25,7 @@ end
 function introduction_message(solver::L2PenaltySolver, nlp::AbstractNLPModel)
   return """
 
-  This is ExactPenalty.jl v$(pkgversion(@__MODULE__)).
+  This is Penelopt.jl v$(pkgversion(@__MODULE__)).
   Running with linear solver $(get_linear_solver(solver)).
 
   $nlp

@@ -1,4 +1,4 @@
-# ExactPenalty.jl: A Large-Scale Equality-Constrained Optimization Solver 
+# Penelopt.jl: A Large-Scale Equality-Constrained Optimization Solver 
 
 | **License** | **Documentation** | **CI** | **Coverage** | **Contributors** | **doi** |
 |:-----------:|:-----------------:|:------:|:------------:|:----------------:|:-------:|
@@ -6,23 +6,23 @@
 
 
 [license-img]:     https://img.shields.io/badge/License-MPL--2.0-blue
-[license-url]:     https://github.com/MaxenceGollier/ExactPenalty.jl/blob/main/LICENSE
+[license-url]:     https://github.com/MaxenceGollier/Penelopt.jl/blob/main/LICENSE
 [docs-stable-img]:  https://img.shields.io/badge/docs-stable-blue.svg
-[docs-stable-url]:  https://MaxenceGollier.github.io/ExactPenalty.jl/stable
+[docs-stable-url]:  https://MaxenceGollier.github.io/Penelopt.jl/stable
 [docs-dev-img]:     https://img.shields.io/badge/docs-dev-purple.svg
-[docs-dev-url]:     https://MaxenceGollier.github.io/ExactPenalty.jl/dev
-[ci-test-img]:      https://github.com/MaxenceGollier/ExactPenalty.jl/actions/workflows/Test.yml/badge.svg?branch=main
-[ci-test-url]:      https://github.com/MaxenceGollier/ExactPenalty.jl/actions/workflows/Test.yml?query=branch%3Amain
-[coverage-img]:     https://codecov.io/gh/MaxenceGollier/ExactPenalty.jl/branch/main/graph/badge.svg
-[coverage-url]:     https://codecov.io/gh/MaxenceGollier/ExactPenalty.jl
+[docs-dev-url]:     https://MaxenceGollier.github.io/Penelopt.jl/dev
+[ci-test-img]:      https://github.com/MaxenceGollier/Penelopt.jl/actions/workflows/Test.yml/badge.svg?branch=main
+[ci-test-url]:      https://github.com/MaxenceGollier/Penelopt.jl/actions/workflows/Test.yml?query=branch%3Amain
+[coverage-img]:     https://codecov.io/gh/MaxenceGollier/Penelopt.jl/branch/main/graph/badge.svg
+[coverage-url]:     https://codecov.io/gh/MaxenceGollier/Penelopt.jl
 [doi-img]:          https://zenodo.org/badge/DOI/FIXME
 [doi-url]:          https://doi.org/FIXME
-[contributors-img]: https://img.shields.io/github/all-contributors/MaxenceGollier/ExactPenalty.jl?labelColor=5e1ec7&color=c0ffee&style=flat-square
+[contributors-img]: https://img.shields.io/github/all-contributors/MaxenceGollier/Penelopt.jl?labelColor=5e1ec7&color=c0ffee&style=flat-square
 [contributors-url]: #contributors
 
 ## Content
 
-ExactPenalty.jl is a software package for large-scale, equality-constrained, [nonlinear programming](https://en.wikipedia.org/wiki/Nonlinear_programming).
+Penelopt.jl is a software package for large-scale, equality-constrained, [nonlinear programming](https://en.wikipedia.org/wiki/Nonlinear_programming).
 It is designed to find (local) solutions of mathematical optimization problems of the form
 ```math
     \min f(x) \quad \text{s.t.} \ c(x) = 0.
@@ -35,10 +35,10 @@ The solver is based on the exact [penalty algorithm](https://en.wikipedia.org/wi
 
 ## How to Cite
 
-If you use ExactPenalty.jl in your work, please cite using the reference given in [CITATION.cff](https://github.com/MaxenceGollier/ExactPenalty.jl/blob/main/CITATION.cff).
+If you use Penelopt.jl in your work, please cite using the reference given in [CITATION.cff](https://github.com/MaxenceGollier/Penelopt.jl/blob/main/CITATION.cff).
 
 ## Contributing
 
-If you want to make contributions of any kind, please first that a look into our [contributing guide directly on GitHub](docs/src/90-contributing.md) or the [contributing page on the website](https://MaxenceGollier.github.io/ExactPenalty.jl/dev/90-contributing/)
+If you want to make contributions of any kind, please first that a look into our [contributing guide directly on GitHub](docs/src/90-contributing.md) or the [contributing page on the website](https://MaxenceGollier.github.io/Penelopt.jl/dev/90-contributing/)
 
 ---

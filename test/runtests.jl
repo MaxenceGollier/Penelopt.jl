@@ -1,4 +1,4 @@
-using ExactPenalty
+using Penelopt
 using CUTEst,
   Krylov,
   LinearOperators,
@@ -12,7 +12,7 @@ using CUTEst,
 
 using LinearAlgebra, Random, SparseArrays, Test
 
-import ExactPenalty: solve!
+import Penelopt: solve!
 
 Random.seed!(0)
 
@@ -30,12 +30,12 @@ end
 end
 
 @testset "CUTEst-default" begin
-  @test isnothing(Base.get_extension(ExactPenalty, :ExactPenaltyMUMPSExt)) # Check that the extension is not loaded.
+  @test isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) # Check that the extension is not loaded.
   include("test-cutest.jl")
 end
 
 using MPI, MUMPS
 @testset "CUTEst-MUMPS" begin
-  @test !isnothing(Base.get_extension(ExactPenalty, :ExactPenaltyMUMPSExt))
+  @test !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt))
   include("test-cutest.jl")
 end

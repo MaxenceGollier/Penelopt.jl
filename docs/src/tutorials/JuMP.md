@@ -1,10 +1,10 @@
 # [JuMP tutorial](@id jump-tutorial)
 
-This tutorial shows how to solve a model written in [JuMP](https://jump.dev/JuMP.jl/stable/) with `ExactPenalty.jl`, 
+This tutorial shows how to solve a model written in [JuMP](https://jump.dev/JuMP.jl/stable/) with `Penelopt.jl`, 
 using [NLPModelsJuMP.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl).
 
 !!! warning "Inequality Constraints"
-    `ExactPenalty.jl` solves problems of the form `minimize f(x) s.t. c(x) = 0`.
+    `Penelopt.jl` solves problems of the form `minimize f(x) s.t. c(x) = 0`.
     If your JuMP model has inequality constraints, the solver will fail.
 
 ## 1. Build the JuMP model
@@ -35,10 +35,10 @@ nlp = MathOptNLPModel(model)
 nothing # hide
 ```
 
-## 3. Solve with ExactPenalty
+## 3. Solve with Penelopt
 
 ```@example jump
-using ExactPenalty
+using Penelopt
 
 stats = L2Penalty(nlp; print_level = 1)
 

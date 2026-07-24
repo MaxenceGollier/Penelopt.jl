@@ -13,6 +13,6 @@ Pages = ["95-reference.md"]
 ```
 
 ```@autodocs
-Modules = [ExactPenalty]
+Modules = [Penelopt]
 Order = [:type, :function, :macro, :constant]
 ```

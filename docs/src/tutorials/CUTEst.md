@@ -2,10 +2,10 @@
 
 This tutorial shows how to solve a problem from
 [CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl)
-with `ExactPenalty.jl`.
+with `Penelopt.jl`.
 
 !!! warning "Inequality Constraints"
-    `ExactPenalty.jl` solves problems of the form
+    `Penelopt.jl` solves problems of the form
     `minimize f(x) s.t. c(x) = 0`.
     Therefore, choose a CUTEst problem containing only equality
     constraints.
@@ -22,10 +22,10 @@ nlp = CUTEstModel("HS6")
 nothing # hide
 ```
 
-## 2. Solve with ExactPenalty
+## 2. Solve with Penelopt
 
 ```@example cutest
-using ExactPenalty
+using Penelopt
 
 stats = L2Penalty(nlp; print_level = 1)
 

@@ -8,8 +8,8 @@ julia> nlp = ...
 
 # Install
 julia> using Pkg
-julia> Pkg.add("ExactPenalty")
-julia> using ExactPenalty
+julia> Pkg.add("Penelopt")
+julia> using Penelopt
 
 # Solve with a specified option
 julia> L2Penalty(nlp, option = value)
@@ -23,7 +23,7 @@ Therefore, following the Julia syntax, we present each parameter as
 !!! note "Parametric Types"
     Some option types are [parametric](https://docs.julialang.org/en/v1/manual/types/#Parametric-Types).
     The [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) API that we use to represent the nonlinear programming problem allow users to choose for a [floating point format](https://en.wikipedia.org/wiki/Computer_number_format) when making the representation.
-    In ExactPenalty.jl, the (parametric) scalar type of the problem is `T` and the (parametric) vector type is `V`.
+    In Penelopt.jl, the (parametric) scalar type of the problem is `T` and the (parametric) vector type is `V`.
     By default, you can consider that `T == Float64` and `V == Vector{Float64}`.
 
     To acount for the parametric nature of the problem, default values are often a function of `eps(T)` which represents the [machine epsilon](https://en.wikipedia.org/wiki/Machine_epsilon) of `T`. Again, by default you can consider that
@@ -70,7 +70,7 @@ Therefore, it calls a *linear solver*, such as MUMPS.
 Schematically, the structure looks like this.
 ```
 ┌──────────────────┐
-│ ExactPenalty     │
+│ Penelopt     │
 └──────────────────┘
           │
           ▼

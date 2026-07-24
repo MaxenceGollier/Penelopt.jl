@@ -1,11 +1,11 @@
 # [AMPL tutorial](@id ampl-tutorial)
 
 This tutorial shows how to solve a model written in [AMPL](https://ampl.com)
-with `ExactPenalty.jl`, using
+with `Penelopt.jl`, using
 [AmplNLReader.jl](https://github.com/JuliaSmoothOptimizers/AmplNLReader.jl).
 
 !!! warning "Inequality Constraints"
-    `ExactPenalty.jl` solves problems of the form `minimize f(x) s.t. c(x) = 0`.
+    `Penelopt.jl` solves problems of the form `minimize f(x) s.t. c(x) = 0`.
     If your AMPL model has inequality constraints, the solver will fail.
 
 ## 1. The AMPL model
@@ -44,10 +44,10 @@ nlp = AmplModel(joinpath(@__DIR__, "assets", "hs6.nl"))
 nothing # hide
 ```
 
-## 4. Solve with ExactPenalty
+## 4. Solve with Penelopt
 
 ```@example ampl
-using ExactPenalty
+using Penelopt
 
 stats = L2Penalty(nlp; print_level = 1)
 

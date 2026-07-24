@@ -93,7 +93,7 @@ For advanced usage, first define a solver "L2PenaltySolver" to preallocate the m
     solver = L2PenaltySolver(nlp)
     solve!(solver, nlp)
 
-    stats = ExactPenaltyExecutionStats(nlp)
+    stats = PeneloptExecutionStats(nlp)
     solver = L2PenaltySolver(nlp)
     solve!(solver, nlp, stats)
 
@@ -164,7 +164,7 @@ function L2Penalty(
   solver =
     L2PenaltySolver(nlp; r2n_m_monotone = r2n_m_monotone, linear_solver = linear_solver)
 
-  stats = ExactPenaltyExecutionStats(nlp)
+  stats = PeneloptExecutionStats(nlp)
   solve!(solver, nlp, stats; kwargs...)
   return stats
 end

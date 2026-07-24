@@ -1,10 +1,10 @@
 # [MUMPS tutorial](@id mumps-tutorial)
 
 This tutorial shows how to use the [MUMPS](https://mumps-solver.org/index.php?page=doc) linear solver to solve a problem from the
-[CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl) (see [this](CUTEst.md) tutorial) collection with `ExactPenalty.jl`.
+[CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl) (see [this](CUTEst.md) tutorial) collection with `Penelopt.jl`.
 
 !!! warning "Extensions"
-    `ExactPenalty.jl` uses an [extension](https://docs.julialang.org/en/v1/manual/code-loading/#man-extensions) to load the [MUMPS](https://mumps-solver.org/index.php?page=doc) linear solver. Therefore, you **need** to load both [MPI.jl](https://github.com/JuliaParallel/MPI.jl) and [MUMPS.jl](https://github.com/JuliaSmoothOptimizers/MUMPS.jl). Our algorithm will throw a warning and switch to the default [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl) package if you try to use MUMPS without loading the required packages.
+    `Penelopt.jl` uses an [extension](https://docs.julialang.org/en/v1/manual/code-loading/#man-extensions) to load the [MUMPS](https://mumps-solver.org/index.php?page=doc) linear solver. Therefore, you **need** to load both [MPI.jl](https://github.com/JuliaParallel/MPI.jl) and [MUMPS.jl](https://github.com/JuliaSmoothOptimizers/MUMPS.jl). Our algorithm will throw a warning and switch to the default [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl) package if you try to use MUMPS without loading the required packages.
 
 ## 1. Load a CUTEst problem
 
@@ -24,10 +24,10 @@ nothing # hide
 using MPI, MUMPS
 ```
 
-## 3. Solve with ExactPenalty
+## 3. Solve with Penelopt
 
 ```@example mumps
-using ExactPenalty
+using Penelopt
 
 stats = L2Penalty(nlp; linear_solver = "mumps", print_level = 1)
 

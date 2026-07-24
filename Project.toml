@@ -1,4 +1,4 @@
-name = "ExactPenalty"
+name = "Penelopt"
 uuid = "9416bf39-c24a-5b52-a5c2-6dfe9a752fef"
 version = "0.1.0"
 authors = ["Maxence Gollier maxence-2.gollier@polymtl.ca"]
@@ -26,9 +26,9 @@ MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
 MUMPS = "55d2b088-9f4e-11e9-26c0-150b02ea6a46"
 
 [extensions]
-ExactPenaltyHSLExt = "HSL"
-ExactPenaltyKrylovExt = "Krylov"
-ExactPenaltyMUMPSExt = ["MPI", "MUMPS"]
+PeneloptHSLExt = "HSL"
+PeneloptKrylovExt = "Krylov"
+PeneloptMUMPSExt = ["MPI", "MUMPS"]
 
 [compat]
 CUTEst = "1.3.6"

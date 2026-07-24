@@ -1,7 +1,7 @@
 [deps]
 CUTEst = "1b53aba6-35b6-5f92-a507-53c67d53f819"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-ExactPenalty = "9416bf39-c24a-5b52-a5c2-6dfe9a752fef"
+Penelopt = "9416bf39-c24a-5b52-a5c2-6dfe9a752fef"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
 MUMPS = "55d2b088-9f4e-11e9-26c0-150b02ea6a46"
@@ -14,4 +14,4 @@ ShiftedProximalOperators = "d4fd37fa-580c-4e43-9b30-361c21aae263"
 SolverBenchmark = "581a75fa-a23a-52d0-a590-d6201de2218a"
 
 [sources]
-ExactPenalty = {path = ".."}
+Penelopt = {path = ".."}

@@ -1,15 +1,15 @@
-using ExactPenalty
+using Penelopt
 using Documenter
 
-DocMeta.setdocmeta!(ExactPenalty, :DocTestSetup, :(using ExactPenalty); recursive = true)
+DocMeta.setdocmeta!(Penelopt, :DocTestSetup, :(using Penelopt); recursive = true)
 
 makedocs(;
-  modules = [ExactPenalty],
+  modules = [Penelopt],
   authors = "Maxence Gollier maxence-2.gollier@polymtl.ca",
-  repo = "https://github.com/MaxenceGollier/ExactPenalty.jl/blob/{commit}{path}#{line}",
-  sitename = "ExactPenalty.jl",
+  repo = "https://github.com/MaxenceGollier/Penelopt.jl/blob/{commit}{path}#{line}",
+  sitename = "Penelopt.jl",
   format = Documenter.HTML(;
-    canonical = "https://MaxenceGollier.github.io/ExactPenalty.jl",
+    canonical = "https://MaxenceGollier.github.io/Penelopt.jl",
     assets = ["assets/link-icons.css"],
     collapselevel = 1,
   ),
@@ -32,4 +32,4 @@ makedocs(;
   ],
 )
 
-deploydocs(; repo = "github.com/MaxenceGollier/ExactPenalty.jl", push_preview = true)
+deploydocs(; repo = "github.com/MaxenceGollier/Penelopt.jl", push_preview = true)

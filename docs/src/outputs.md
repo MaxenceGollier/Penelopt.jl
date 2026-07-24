@@ -1,6 +1,6 @@
 # Outputs
 
-Our solver returns a `GenericExecutionStats` object, defined in [SolverCore.jl](https://github.com/JuliaSmoothOptimizers/SolverCore.jl). This section describes the fields of that object populated by `ExactPenalty.jl`, as well as the console output produced when `print_level > 0`.
+Our solver returns a `GenericExecutionStats` object, defined in [SolverCore.jl](https://github.com/JuliaSmoothOptimizers/SolverCore.jl). This section describes the fields of that object populated by `Penelopt.jl`, as well as the console output produced when `print_level > 0`.
 
 ```{julia}
 julia> stats = L2Penalty(nlp)
@@ -84,7 +84,7 @@ For the outer loop logger, the logger prints the following columns:
 
 For example,
 ```@example output-print-level-1
-  using CUTEst, ExactPenalty
+  using CUTEst, Penelopt
 
   nlp = CUTEstModel("BT7")
   stats = L2Penalty(nlp; print_level = 1)
@@ -106,7 +106,7 @@ For the inner loop logger, the logger prints the following columns:
 
 For example,
 ```@example output-print-level-1
-  using CUTEst, ExactPenalty
+  using CUTEst, Penelopt
 
   nlp = CUTEstModel("BT7")
   stats = L2Penalty(nlp; print_level = 2)
@@ -132,7 +132,7 @@ For the Moré–Sorensen loop logger, the logger prints the following columns:
 
 For example,
 ```@example output-print-level-1
-  using CUTEst, ExactPenalty
+  using CUTEst, Penelopt
 
   nlp = CUTEstModel("BT7")
   stats = L2Penalty(nlp; print_level = 3)

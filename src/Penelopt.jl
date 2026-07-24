@@ -1,12 +1,12 @@
 @doc """
-ExactPenalty.jl: A Large-Scale Equality-Constrained Optimization Solver.
+Penelopt.jl: A Large-Scale Equality-Constrained Optimization Solver.
 
-* 📖 Documentation: [https://MaxenceGollier.github.io/ExactPenalty.jl/stable](https://MaxenceGollier.github.io/ExactPenalty.jl/stable)
-* 🗂️ Repository: [github.com/MaxenceGollier/ExactPenalty.jl](https://github.com/MaxenceGollier/ExactPenalty.jl)
-* 💬 Discussions: [github.com/MaxenceGollier/ExactPenalty.jl/discussions](https://github.com/MaxenceGollier/ExactPenalty.jl/discussions)
-* 🎯 Issues: [github.com/MaxenceGollier/ExactPenalty.jl/issues](https://github.com/MaxenceGollier/ExactPenalty.jl/issues)
+* 📖 Documentation: [https://MaxenceGollier.github.io/Penelopt.jl/stable](https://MaxenceGollier.github.io/Penelopt.jl/stable)
+* 🗂️ Repository: [github.com/MaxenceGollier/Penelopt.jl](https://github.com/MaxenceGollier/Penelopt.jl)
+* 💬 Discussions: [github.com/MaxenceGollier/Penelopt.jl/discussions](https://github.com/MaxenceGollier/Penelopt.jl/discussions)
+* 🎯 Issues: [github.com/MaxenceGollier/Penelopt.jl/issues](https://github.com/MaxenceGollier/Penelopt.jl/issues)
 """
-module ExactPenalty
+module Penelopt
 
 using LinearAlgebra, Printf, SparseArrays
 using NLPModels, NLPModelsModifiers, RegularizedProblems
@@ -22,7 +22,7 @@ import SolverCore.reset!
 
 abstract type AbstractPenalizedProblemSolver <: AbstractOptimizationSolver end
 
-include("ExactPenaltyExecutionStats.jl")
+include("PeneloptExecutionStats.jl")
 
 include("types/quasi-newton/NullHessian.jl")
 include("types/quasi-newton/CompactBFGS.jl")
