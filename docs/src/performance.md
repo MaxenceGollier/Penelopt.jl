@@ -2,7 +2,7 @@
 
 ## Preallocation
 
-When calling our solver, `ExactPenalty.jl` starts with an *allocation* phase where all of the vectors, matrices, and sub-solvers needed to run the algorithm are built.
+When calling our solver, `Penelopt.jl` starts with an *allocation* phase where all of the vectors, matrices, and sub-solvers needed to run the algorithm are built.
 The workspace is allocated in a [struct](https://docs.julialang.org/en/v1/manual/types/#Composite-Types) called `L2PenaltySolver`.
 Our solver then proceeds to solve the provided `nlp`, in an allocation-free function named `solve!`.
 
@@ -20,17 +20,17 @@ julia> stats = L2Penalty(nlp)
 internally does exactly the following:
 ```{julia}
 julia> solver = L2PenaltySolver(nlp)
-julia> stats = ExactPenaltyExecutionStats(nlp)
+julia> stats = PeneloptExecutionStats(nlp)
 julia> solve!(solver, nlp, stats)
 ```
 Separating these steps is the key to avoiding allocations: `L2PenaltySolver(nlp)` performs *all* the allocations up front (workspaces, factorization buffers, sub-solver states, etc.), and every subsequent call to `solve!` reuses that memory in place.
 
 ```{julia}
-julia> using ExactPenalty
+julia> using Penelopt
 
 # Allocate the solver and the stats object once.
 julia> solver = L2PenaltySolver(nlp)
-julia> stats = ExactPenaltyExecutionStats(nlp)
+julia> stats = PeneloptExecutionStats(nlp)
 
 # Solve as many times as needed;
 julia> solve!(solver, nlp, stats)
@@ -112,11 +112,11 @@ solves, following the same two-call pattern described above.
 
 If the Hessian of the Lagrangian of your nonlinear programming problem is dense, ill-conditionned, expensive to compute, or inaccessible, you may be interested in replacing it with a quasi-Newton approximation.
 
-`ExactPenalty.jl` offers you the possibility to run the optimization process with a [Limited-memory BFGS](https://en.wikipedia.org/wiki/Limited-memory_BFGS) approximation.
+`Penelopt.jl` offers you the possibility to run the optimization process with a [Limited-memory BFGS](https://en.wikipedia.org/wiki/Limited-memory_BFGS) approximation.
 You simply need to call the function `CompactBFGSModel` on your `nlp`!
 
 ```@example bfgs
-using CUTEst, ExactPenalty
+using CUTEst, Penelopt
 
 # Construct your NLP model
 nlp = CUTEstModel("HS6")

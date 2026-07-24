@@ -32,7 +32,7 @@ function test_problem(
 
     # Test stability and allocations
     solver = L2PenaltySolver(null_model)
-    stats_optimized = ExactPenaltyExecutionStats(null_model)
+    stats_optimized = PeneloptExecutionStats(null_model)
     @test @wrappedallocs(
       solve!(solver, null_model, stats_optimized, atol = 1e-3, rtol = 1e-3)
     ) == 0
@@ -68,7 +68,7 @@ function test_problem(
     # Test stability and allocations
     NLPModels.reset!(LBFGS_model)
     solver = L2PenaltySolver(LBFGS_model, linear_solver = linear_solver)
-    stats_optimized = ExactPenaltyExecutionStats(LBFGS_model)
+    stats_optimized = PeneloptExecutionStats(LBFGS_model)
     solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3)
 
     # Test that the second calling form gives the same output
@@ -102,7 +102,7 @@ function test_problem(
 
     # Test stability and allocations
     solver = L2PenaltySolver(nlp, linear_solver = linear_solver)
-    stats_optimized = ExactPenaltyExecutionStats(nlp)
+    stats_optimized = PeneloptExecutionStats(nlp)
     @test @wrappedallocs(solve!(solver, nlp, stats_optimized, atol = 1e-3, rtol = 1e-3)) ==
           0
 
@@ -124,7 +124,7 @@ end
   primal_solution = [1, 0]
   dual_solution = [-99.5]
   linear_solver =
-    !isnothing(Base.get_extension(ExactPenalty, :ExactPenaltyMUMPSExt)) ? "mumps" : "ldlt"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
   test_problem(
     "BT1",
     primal_solution,
@@ -139,7 +139,7 @@ end
   primal_solution = [1, 0]
   dual_solution = [0.499999]
   linear_solver =
-    !isnothing(Base.get_extension(ExactPenalty, :ExactPenaltyMUMPSExt)) ? "mumps" : "ldlt"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
   test_problem(
     "MARATOS",
     primal_solution,
@@ -151,7 +151,7 @@ end
 
 # Test an infeasible problem
 @testset "VANDANIUMS" begin
-  if isnothing(Base.get_extension(ExactPenalty, :ExactPenaltyMUMPSExt))
+  if isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt))
     test_problem("VANDANIUMS", Float64[], Float64[], :infeasible)
   end
 end

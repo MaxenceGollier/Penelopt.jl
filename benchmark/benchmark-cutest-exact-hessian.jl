@@ -1,7 +1,7 @@
 using JLD2
 
 using MPI, MUMPS
-using CUTEst, ExactPenalty, NLPModelsModifiers, SolverBenchmark
+using CUTEst, Penelopt, NLPModelsModifiers, SolverBenchmark
 
 nmax = 10000
 problem_names = CUTEst.select_sif_problems(

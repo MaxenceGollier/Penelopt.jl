@@ -30,7 +30,7 @@ JuliaMinVersion: lts
 License: MPL-2.0
 LicenseCopyrightHolders: Maxence Gollier maxence-2.gollier@polymtl.ca
 MarkdownIndentation: 2
-PackageName: ExactPenalty
+PackageName: Penelopt
 PackageOwner: JuliaSmoothOptimizers
 PackageUUID: 9416bf39-c24a-5b52-a5c2-6dfe9a752fef
 RunJuliaNightlyOnCI: true

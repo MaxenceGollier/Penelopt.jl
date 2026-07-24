@@ -20,21 +20,21 @@ hsl_functional() = _HSL_AVAILABLE[]
 _set_hsl_available(flag::Bool) = (_HSL_AVAILABLE[] = flag)
 
 function construct_ma57_workspace(H, u1, n, m)
-  error("MA57 not available. Load ExactPenaltyHSLExt.")
+  error("MA57 not available. Load PeneloptHSLExt.")
 end
 
 abstract type AbstractHSLWorkspace <: PenaltyDirectWorkspace end
 
 # Krylov Misc.
 function construct_minres_qlp_workspace(H, u1, n, m)
-  error("MINRES-QLP not available. Load ExactPenaltyKrylovExt.")
+  error("MINRES-QLP not available. Load PeneloptKrylovExt.")
 end
 
 abstract type AbstractKrylovWorkspace <: PenaltyIterativeWorkspace end
 
 # MUMPS Misc.
 function construct_mumps_workspace(H, u1, n, m)
-  error("MUMPS not available. Load ExactPenaltyMUMPSExt.")
+  error("MUMPS not available. Load PeneloptMUMPSExt.")
 end
 
 abstract type AbstractMUMPSWorkspace <: PenaltyDirectWorkspace end

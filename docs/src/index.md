@@ -1,14 +1,14 @@
-# Welcome to ExactPenalty.jl
+# Welcome to Penelopt.jl
 
 ```@meta
-CurrentModule = ExactPenalty
+CurrentModule = Penelopt
 ```
 
 ```@docs
-ExactPenalty.ExactPenalty
+Penelopt.Penelopt
 ```
 
-ExactPenalty.jl is a software package for large-scale, equality-constrained, [nonlinear programming](https://en.wikipedia.org/wiki/Nonlinear_programming).
+Penelopt.jl is a software package for large-scale, equality-constrained, [nonlinear programming](https://en.wikipedia.org/wiki/Nonlinear_programming).
 It is designed to find (local) solutions of mathematical optimization problems of the form
 ```math
     \underset{x \in \mathbb{R}^n}{\textup{minimize}} \ f(x) \quad \textup{subject to} \ c(x) = 0,
@@ -35,21 +35,21 @@ On a practical level, the package uses the standardized [NLPModels.jl](https://g
     * [JuMP](https://jump.dev/JuMP.jl/stable/): Use [NLPModelsJuMP.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl). You should read [this tutorial](tutorials/JuMP.md).
     * [CUTEst](https://link.springer.com/article/10.1007/s10589-014-9687-3): Use [CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl). You should read [this tutorial](tutorials/CUTEst.md).
 
-Once the problem has been modeled, you can simply install ExactPenalty.jl and solve your problem! 🚀
+Once the problem has been modeled, you can simply install Penelopt.jl and solve your problem! 🚀
 ```{julia}
 # Interface your problem with the NLPModels.jl API
 julia> nlp = ...
 
 # Install
 julia> using Pkg
-julia> Pkg.add("ExactPenalty")
-julia> using ExactPenalty
+julia> Pkg.add("Penelopt")
+julia> using Penelopt
 
 # Solve
 julia> L2Penalty(nlp)
 ```
 The example above uses the solver with its default settings.
-ExactPenalty.jl also provides a variety of [options](options.md) for customizing the optimization process, and returns a [result object](outputs.md) containing the computed solution together with diagnostic information. 📖
+Penelopt.jl also provides a variety of [options](options.md) for customizing the optimization process, and returns a [result object](outputs.md) containing the computed solution together with diagnostic information. 📖
 
 For more advanced use cases, you can monitor or customize the optimization process through [callbacks](callbacks.md). 🔧
 
