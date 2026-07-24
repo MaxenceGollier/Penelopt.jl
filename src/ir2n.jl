@@ -84,6 +84,7 @@ function SolverCore.solve!(
   σmin::T = eps(T),
   η1::T = √√eps(T),
   η2::T = T(0.1),
+  η3::T = T(0.9),
   γ::T = T(3),
   watchdog_max_iter::Int = 10,
   watchdog_η0::T = √eps(T),
@@ -246,8 +247,12 @@ function SolverCore.solve!(
 
     end
 
-    if η2 ≤ ρk < Inf
+    if η2 ≤ ρk < η3
       σk = σk / γ
+    end
+
+    if η3 ≤ ρk < Inf
+      σk = σk / γ^4
     end
 
     if ρk < η1 || ρk == Inf
