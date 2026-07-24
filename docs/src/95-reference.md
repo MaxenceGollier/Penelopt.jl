@@ -14,4 +14,5 @@ Pages = ["95-reference.md"]
 
 ```@autodocs
 Modules = [ExactPenalty]
+Order = [:type, :function, :macro, :constant]
 ```

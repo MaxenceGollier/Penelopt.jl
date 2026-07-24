@@ -23,8 +23,8 @@ end
 
 function PenaltyR2NSolver(
   penalty_nlp::AbstractPenalizedProblem{T,V};
-  subsolver = MoreSorensenSolver,
   m_monotone::Int = 12,
+  linear_solver::String = "ldlt",
 ) where {T,V}
   x0 = penalty_nlp.model.meta.x0
 
@@ -40,7 +40,7 @@ function PenaltyR2NSolver(
   subpb = shifted(penalty_nlp, xk, ∇f = ∇fk)
   substats = GenericExecutionStats(subpb, solver_specific = Dict{Symbol,T}())
   set_solver_specific!(substats, :alpha, 0)
-  subsolver = subsolver(subpb)
+  subsolver = MoreSorensenSolver(subpb; solver = Symbol(linear_solver))
 
   checkpoint = watchdog_checkpoint(subpb; m_monotone = m_monotone)
 
@@ -74,8 +74,10 @@ function SolverCore.solve!(
   x::V = reg_nlp.model.meta.x0,
   atol::T = √eps(T),
   rtol::T = √eps(T),
+  print_level::Int = 0,
   verbose::Int = 0,
   max_iter::Int = 1000,
+  ms_max_iter::Int = 10,
   max_time::Float64 = 30.0,
   max_eval::Int = -1,
   σk::T = eps(T)^(1 / 5),
@@ -83,9 +85,23 @@ function SolverCore.solve!(
   η1::T = √√eps(T),
   η2::T = T(0.1),
   γ::T = T(3),
+  watchdog_max_iter::Int = 10,
+  watchdog_η0::T = √eps(T),
+  tiny_step_tol::T = eps(T),
   is_shifted::Bool = false,
   primal_decrease::Bool = false,
   first_increase::Bool = true,
+
+  ## MS Specific arguments
+  ms_verbose::Int = 1,
+  ms_accept_descent::Bool = true,
+  ms_σmax::T = 1/eps(T),
+  ms_tol::T = eps(T)^(0.6),
+  ms_μα::T = T(0.1),
+  ms_μσ::T = T(10),
+  ms_α0::T = eps(T),
+  ms_αmin1::T = eps(T)^(0.8),
+  ms_αmin2::T = eps(T)^(0.6),
 ) where {T,V}
   reset!(stats)
 
@@ -123,6 +139,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
   set_solver_specific!(stats, :sigma, σk)
+  set_solver_specific!(stats, :rho, T(0))
   m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone-1)+1] = fk + hk)
 
   solved = false
@@ -140,36 +157,13 @@ function SolverCore.solve!(
     ),
   )
 
-  # Logging
-  if verbose > 0
-    @info log_header(
-      [:outer, :inner, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :arrow],
-      [Int, Int, T, T, T, T, T, T, T, Char],
-      hdr_override = Dict{Symbol,String}(
-        :fx => "f(x)",
-        :hx => "h(x)",
-        :xi => "du_feas",
-        :normx => "‖x‖",
-        :norms => "‖s‖",
-        :arrow => "PenaltyR2N",
-      ),
-      colsep = 1,
-    )
-    @info log_row(
-      Any[
-        stats.iter,
-        solver.substats.iter,
-        fk,
-        hk,
-        stats.dual_feas,
-        ρk,
-        σk,
-        norm(xk),
-        norm(s),
-        (η2 ≤ ρk < Inf) ? '↘' : (ρk < η1 ? '↗' : '='),
-      ],
-      colsep = 1,
-    )
+  ## Logging
+  if print_level > 0
+    @info introduction_message(solver, nlp, stats)
+    @info separator(type = :inner_loop)
+    @info header_message(type = :inner_loop)
+    @info separator(type = :inner_loop)
+    @info log_iteration(solver, nlp, stats; type = :inner_loop)
   end
 
   callback(reg_nlp, solver, stats)
@@ -200,9 +194,9 @@ function SolverCore.solve!(
     end
 
     # Check the watchdog
-    if check_watchdog!(watchdog_checkpoint, stats, mk, xk, η1^2)
+    if check_watchdog!(watchdog_checkpoint, stats, mk, xk, watchdog_max_iter, watchdog_η0)
       fallback!(mk, xk, y, watchdog_checkpoint)
-      φ.data.σ *= γ^10
+      φ.data.σ *= γ^watchdog_max_iter
       σk = φ.data.σ
       hk, fk = watchdog_checkpoint.hk, watchdog_checkpoint.fk
       m_fh_hist .= watchdog_checkpoint.m_fh_hist
@@ -212,7 +206,22 @@ function SolverCore.solve!(
 
     # Compute a step 
     solver.subpb.model.data.σ = σk
-    solve!(solver.subsolver, solver.subpb, solver.substats;)
+    solve!(
+      solver.subsolver, 
+      solver.subpb, 
+      solver.substats; 
+      verbose = ms_verbose,
+      print_level = print_level - 1,
+      max_iter = ms_max_iter,
+      accept_descent = ms_accept_descent,
+      σmax = ms_σmax,
+      atol = ms_tol,
+      μα = ms_μα,
+      μσ = ms_μσ,
+      α0 = ms_α0,
+      αmin1 = ms_αmin1,
+      αmin2 = ms_αmin2,
+    )
     get_primal_dual_sol!(s, y, solver.subsolver)
     σk = solver.subpb.model.data.σ
 
@@ -280,6 +289,7 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :smooth_obj, fk)
     set_solver_specific!(stats, :nonsmooth_obj, hk)
     set_solver_specific!(stats, :sigma, σk)
+    set_solver_specific!(stats, :rho, ρk)
     set_solver_specific!(stats, :n_fact, get_n_fact(solver.subsolver.workspace))
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
@@ -295,40 +305,27 @@ function SolverCore.solve!(
         max_eval = max_eval,
         max_time = max_time,
         max_iter = max_iter,
+        small_step = all(i -> abs(s[i]) < tiny_step_tol * abs(x[i]), eachindex(s, x))
       ),
     )
 
-    # Logging
-    verbose > 0 &&
-      stats.iter % verbose == 0 &&
-      @info log_row(
-        Any[
-          stats.iter,
-          solver.substats.iter,
-          fk,
-          hk,
-          stats.dual_feas,
-          ρk,
-          σk,
-          norm(xk),
-          norm(s),
-          is_active(watchdog_checkpoint) ? 'w' :
-          (η2 ≤ ρk < Inf) ? '↘' : (ρk < η1 ? '↗' : '='),
-        ],
-        colsep = 1,
-      )
+    ## Log status
+    if print_level > 0 && stats.iter % verbose == 0
+      if stats.iter % (20 * verbose) == 0 && stats.iter > 0
+        @info separator(type = :inner_loop)
+        @info header_message(type = :inner_loop)
+        @info separator(type = :inner_loop)
+      end
+      @info log_iteration(solver, nlp, stats; type = :inner_loop)
+    end
 
     callback(reg_nlp, solver, stats)
 
     done = stats.status != :unknown
   end
 
-  if verbose > 0 && stats.status == :first_order
-    @info log_row(
-      Any[stats.iter, 0, fk, hk, stats.dual_feas, ρk, σk, norm(xk), norm(s), ""],
-      colsep = 1,
-    )
-    @info "PenaltyR2N: terminating with √(ξ1/ν) = $(stats.dual_feas)"
+  if print_level > 0
+    @info conclusion_message(solver, nlp, stats; type = :inner_loop)
   end
 
   set_solution!(stats, xk)

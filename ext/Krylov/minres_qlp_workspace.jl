@@ -1,4 +1,4 @@
-struct PenaltyKrylovWorkspace{WP<:KrylovWorkspace,OP<:OpK2} <: PenaltyIterativeWorkspace
+struct PenaltyKrylovWorkspace{WP<:KrylovWorkspace,OP<:OpK2} <: AbstractKrylovWorkspace
   M::WP
   H::OP
   n::Int

@@ -1,5 +1,3 @@
-export PenaltyWorkspace, PenaltyDirectWorkspace, PenaltyIterativeWorkspace
-
 abstract type PenaltyWorkspace end
 abstract type PenaltyDirectWorkspace <: PenaltyWorkspace end
 abstract type PenaltyIterativeWorkspace <: PenaltyWorkspace end
@@ -25,15 +23,21 @@ function construct_ma57_workspace(H, u1, n, m)
   error("MA57 not available. Load ExactPenaltyHSLExt.")
 end
 
+abstract type AbstractHSLWorkspace <: PenaltyDirectWorkspace end
+
 # Krylov Misc.
 function construct_minres_qlp_workspace(H, u1, n, m)
   error("MINRES-QLP not available. Load ExactPenaltyKrylovExt.")
 end
 
+abstract type AbstractKrylovWorkspace <: PenaltyIterativeWorkspace end
+
 # MUMPS Misc.
 function construct_mumps_workspace(H, u1, n, m)
   error("MUMPS not available. Load ExactPenaltyMUMPSExt.")
 end
+
+abstract type AbstractMUMPSWorkspace <: PenaltyDirectWorkspace end
 
 get_n_fact(workspace::PenaltyIterativeWorkspace) = 0
 get_n_fact(workspace::PenaltyDirectWorkspace) = workspace._n_fact

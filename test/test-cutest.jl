@@ -3,7 +3,7 @@ expected_status = [:first_order, :first_order, :infeasible, :infeasible]
 
 tol = 1e-3
 
-function test_problem(name, primal_solution, dual_solution, expected_status)
+function test_problem(name, primal_solution, dual_solution, expected_status; linear_solver::String = "ldlt")
   nlp = CUTEstModel(name)
 
   # Test with R2
@@ -44,7 +44,7 @@ function test_problem(name, primal_solution, dual_solution, expected_status)
   # Test with BFGS
   @testset "BFGS" begin
     LBFGS_model = CompactBFGSModel(nlp)
-    stats = L2Penalty(LBFGS_model, atol = tol, rtol = tol)
+    stats = L2Penalty(LBFGS_model, atol = tol, rtol = tol; linear_solver = linear_solver)
 
     @test stats.status == expected_status
     if expected_status == :first_order
@@ -61,7 +61,7 @@ function test_problem(name, primal_solution, dual_solution, expected_status)
 
     # Test stability and allocations
     NLPModels.reset!(LBFGS_model)
-    solver = L2PenaltySolver(LBFGS_model)
+    solver = L2PenaltySolver(LBFGS_model, linear_solver = linear_solver)
     stats_optimized = ExactPenaltyExecutionStats(LBFGS_model)
     solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3)
 
@@ -78,7 +78,7 @@ function test_problem(name, primal_solution, dual_solution, expected_status)
 
   @testset "Exact" begin
 
-    stats = L2Penalty(nlp, atol = tol, rtol = tol)
+    stats = L2Penalty(nlp, atol = tol, rtol = tol; linear_solver = linear_solver)
 
     # Test whether the outputs are well defined
     @test stats.status == expected_status
@@ -95,7 +95,7 @@ function test_problem(name, primal_solution, dual_solution, expected_status)
     @test stats.solver_specific[:n_fact] > 0
 
     # Test stability and allocations
-    solver = L2PenaltySolver(nlp)
+    solver = L2PenaltySolver(nlp, linear_solver = linear_solver)
     stats_optimized = ExactPenaltyExecutionStats(nlp)
     @test @wrappedallocs(solve!(solver, nlp, stats_optimized, atol = 1e-3, rtol = 1e-3)) ==
           0
@@ -117,16 +117,16 @@ end
 @testset "BT1" begin
   primal_solution = [1, 0]
   dual_solution = [-99.5]
-
-  test_problem("BT1", primal_solution, dual_solution, :first_order)
+  linear_solver = !isnothing(Base.get_extension(ExactPenalty, :ExactPenaltyMUMPSExt)) ? "mumps" : "ldlt"
+  test_problem("BT1", primal_solution, dual_solution, :first_order; linear_solver = linear_solver)
 end
 
 # Test a problem where the function f is unbounded from below
 @testset "MARATOS" begin
   primal_solution = [1, 0]
   dual_solution = [0.499999]
-
-  test_problem("MARATOS", primal_solution, dual_solution, :first_order)
+  linear_solver = !isnothing(Base.get_extension(ExactPenalty, :ExactPenaltyMUMPSExt)) ? "mumps" : "ldlt"
+  test_problem("MARATOS", primal_solution, dual_solution, :first_order; linear_solver = linear_solver)
 end
 
 # Test an infeasible problem

@@ -19,11 +19,12 @@ solvers = Dict(
   :l2penalty_exact =>
     nlp -> L2Penalty(
       nlp,
-      verbose = 0,
+      print_level = 0,
       atol = tol,
       rtol = 0.0,
       max_time = max_time,
       max_iter = typemax(Int),
+      linear_solver = "mumps"
     ),
 )
 

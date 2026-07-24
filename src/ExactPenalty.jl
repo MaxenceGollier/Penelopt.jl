@@ -1,6 +1,14 @@
+@doc """
+ExactPenalty.jl: A Large-Scale Equality-Constrained Optimization Solver.
+
+* 📖 Documentation: [https://MaxenceGollier.github.io/ExactPenalty.jl/stable](https://MaxenceGollier.github.io/ExactPenalty.jl/stable)
+* 🗂️ Repository: [github.com/MaxenceGollier/ExactPenalty.jl](https://github.com/MaxenceGollier/ExactPenalty.jl)
+* 💬 Discussions: [github.com/MaxenceGollier/ExactPenalty.jl/discussions](https://github.com/MaxenceGollier/ExactPenalty.jl/discussions)
+* 🎯 Issues: [github.com/MaxenceGollier/ExactPenalty.jl/issues](https://github.com/MaxenceGollier/ExactPenalty.jl/issues)
+"""
 module ExactPenalty
 
-using LinearAlgebra, SparseArrays
+using LinearAlgebra, Printf, SparseArrays
 using NLPModels, NLPModelsModifiers, RegularizedProblems
 using LDLFactorizations,
   LinearOperators,

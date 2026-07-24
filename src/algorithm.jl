@@ -22,7 +22,11 @@ mutable struct L2PenaltySolver{
   substats::GenericExecutionStats{T,V,V,T}
 end
 
-function L2PenaltySolver(nlp::AbstractNLPModel{T,V}) where {T,V}
+function L2PenaltySolver(
+  nlp::AbstractNLPModel{T,V};
+  r2n_m_monotone::Int=12,
+  linear_solver::String="ldlt",
+) where {T,V}
   x0 = nlp.meta.x0
   x, xn, s, s0 = similar(x0), similar(x0), similar(x0), zero(x0)
   temp_b = similar(x0, nlp.meta.ncon)
@@ -33,11 +37,14 @@ function L2PenaltySolver(nlp::AbstractNLPModel{T,V}) where {T,V}
 
   penalty_subproblem = L2PenalizedProblem(nlp) # f(x) + τ‖c(x)‖₂
   substats = GenericExecutionStats(penalty_subproblem, solver_specific = Dict{Symbol,T}())
-  solver = PenaltyR2NSolver(penalty_subproblem)
+  solver = PenaltyR2NSolver(penalty_subproblem; m_monotone = r2n_m_monotone, linear_solver = linear_solver)
 
   set_solver_specific!(substats, :primal_ktol, T(0))
   set_solver_specific!(substats, :dual_ktol, T(0))
   set_solver_specific!(substats, :n_fact, T(0))
+  set_solver_specific!(substats, :tau, T(0))
+  set_solver_specific!(substats, :sigma, T(0))
+  set_solver_specific!(substats, :rho, T(0))
 
   return L2PenaltySolver(
     x,
@@ -58,6 +65,8 @@ end
 function SolverCore.reset!(solver::L2PenaltySolver)
   SolverCore.reset!(solver.subsolver)
 end
+
+include("logging.jl")
 
 """
     L2Penalty(nlp; kwargs…)
@@ -137,11 +146,23 @@ Notably, you can access, and modify, the following:
   - `stats.elapsed_time`: elapsed time in seconds.
 You can also use the `sub_callback` keyword argument which has exactly the same structure and in sent to `R2`.
 """
-function L2Penalty(nlp::AbstractNLPModel{T,V}; kwargs...) where {T<:Real,V}
+function L2Penalty(
+  nlp::AbstractNLPModel{T,V};
+  r2n_m_monotone::Int=12,
+  linear_solver::String="ldlt",
+  kwargs...
+) where {T<:Real,V}
+
   if !equality_constrained(nlp)
     error("L2Penalty: This algorithm only works for equality contrained problems.")
   end
-  solver = L2PenaltySolver(nlp)
+
+  solver = L2PenaltySolver(
+    nlp;
+    r2n_m_monotone=r2n_m_monotone,
+    linear_solver=linear_solver,
+  )
+
   stats = ExactPenaltyExecutionStats(nlp)
   solve!(solver, nlp, stats; kwargs...)
   return stats
@@ -153,20 +174,49 @@ function SolverCore.solve!(
   stats::GenericExecutionStats{T,V,V};
   callback = (args...) -> nothing,
   x::V = nlp.meta.x0,
+
+  ## Termination arguments
   atol::T = √eps(T),
   rtol::T = √eps(T),
-  sub_rtol = 1e-2,
-  sub_atol = zero(T),
-  infeasible_tol = T(1e-2),
-  infeasible_iter = 3,
-  max_iter::Int = 1000,
-  sub_max_iter::Int = 1000,
-  max_time::T = T(30.0),
+  dual_inf_atol::T = zero(T),
+  dual_inf_rtol::T = zero(T),
+  primal_inf_atol::T = zero(T),
+  primal_inf_rtol::T = zero(T),
   max_eval::Int = -1,
-  sub_max_eval::Int = -1,
+  max_time::Float64 = 30.0,
+  max_iter::Int = 100,
+  r2n_max_iter::Int = 1000,
+  ms_max_iter::Int = 10,
+  μ::T = T(1e-2),
+  infeasible_tol::T = T(1e-2),
+  infeasible_iter::Int = 3,
+  
+  ## Logging arguments
+  print_level::Int = 0,
+  verbose::Int = 1,
+  r2n_verbose::Int = 1,
+  ms_verbose::Int = 1,
+
+  ## R2N Specific arguments
+  r2n_η1::T = √√eps(T),
+  r2n_η2::T = isa(nlp, QuasiNewtonModel) ? T(0.9) : T(0.1),
+  r2n_γ::T = T(3),
+  r2n_watchdog_max_iter::Int = 10,
+  r2n_watchdog_η0::T = √eps(T),
+  r2n_tiny_step_tol::T = eps(T),
+
+  ## MS Specific arguments
+  ms_accept_descent::Bool = true,
+  ms_σmax::T = 1/eps(T),
+  ms_tol::T = eps(T)^(0.6),
+  ms_μα::T = T(0.1),
+  ms_μσ::T = T(10),
+  ms_α0::T = eps(T),
+  ms_αmin1::T = isa(nlp, QuasiNewtonModel) ? eps(T)^(0.6) : eps(T)^(0.8),
+  ms_αmin2::T = eps(T)^(0.6),
+
+  ## Other arguments
   max_decreas_iter::Int = 10,
-  verbose::Int = 0,
-  sub_verbose::Int = 0,
   τ::T = T(100),
   β1::T = T(1),
   β3::T = 1e-4/τ,
@@ -186,25 +236,6 @@ function SolverCore.solve!(
   fx = obj(nlp, x)
   hx = norm(ψ.b)
 
-  if verbose > 0
-    @info log_header(
-      [:iter, :sub_iter, :fx, :pr_feas, :pr_feas_k, :du_feas, :du_feas_k, :tau, :normx],
-      [Int, Int, Float64, Float64, Float64, Float64, Float64, Float64, Float64],
-      hdr_override = Dict{Symbol,String}(   # TODO: Add this as constant dict elsewhere
-        :iter => "outer",
-        :sub_iter => "inner",
-        :fx => "f(x)",
-        :pr_feas => "pr_feas",
-        :pr_feas_k => "pεₖ",
-        :du_feas => "du_feas",
-        :du_feas_k => "dεₖ",
-        :tau => "τ",
-        :normx => "‖x‖",
-      ),
-      colsep = 1,
-    )
-  end
-
   set_iter!(stats, 0)
   rem_eval = max_eval
   start_time = time()
@@ -221,15 +252,16 @@ function SolverCore.solve!(
   dual_feas = least_square_dual_feas!(solver)
   solver.subsolver.y .= solver.y
 
-  primal_tol = atol + rtol * primal_feas
-  dual_tol = atol + rtol * dual_feas
+  primal_tol = max(primal_inf_atol, atol) + max(primal_inf_rtol, rtol) * primal_feas
+  dual_tol = max(dual_inf_atol, atol) + max(dual_inf_rtol, rtol) * dual_feas
 
   primal_ktol = one(primal_tol)
-  dual_ktol = min(one(dual_tol), max(sub_rtol * dual_feas + sub_atol, dual_tol))
+  dual_ktol = min(one(dual_tol), max(μ * dual_feas, dual_tol))
   dual_krtol = T(0)
 
   set_solver_specific!(solver.substats, :primal_ktol, primal_ktol)
   set_solver_specific!(solver.substats, :dual_ktol, dual_ktol)
+  set_residuals!(stats, dual_feas, primal_feas)
 
   solved = dual_feas ≤ dual_tol && primal_feas ≤ primal_tol
 
@@ -237,6 +269,16 @@ function SolverCore.solve!(
   τ = max(norm(solver.y, 1), T(1))
   set_penalty!(mk, τ)
   νsub = 1 / β4
+  set_solver_specific!(solver.substats, :tau, τ)
+
+  ## Logging
+  if print_level > 0
+    @info introduction_message(solver, nlp)
+    @info separator()
+    @info header_message()
+    @info separator()
+    @info log_iteration(solver, nlp, stats)
+  end
 
   ## Initialize Model
   shift!(mk, x, ∇f = solver.∇fk, y = y)
@@ -277,13 +319,20 @@ function SolverCore.solve!(
       x = x,
       atol = dual_ktol,
       rtol = dual_krtol,
-      verbose = sub_verbose,
-      max_iter = sub_max_iter,
+      print_level = print_level - 1,
+      verbose = r2n_verbose,
+      max_iter = r2n_max_iter,
+      ms_max_iter = ms_max_iter,
       max_time = max_time - stats.elapsed_time,
-      max_eval = min(rem_eval, sub_max_eval),
+      max_eval = rem_eval,
       σmin = β4,
       σk = 1 / νsub,
-      η2 = isa(nlp, QuasiNewtonModel) ? T(0.9) : T(0.1),
+      η1 = r2n_η1,
+      η2 = r2n_η2,
+      γ = r2n_γ,
+      watchdog_max_iter = r2n_watchdog_max_iter,
+      watchdog_η0 = r2n_watchdog_η0,
+      tiny_step_tol = r2n_tiny_step_tol,
       is_shifted = true,
       primal_decrease = primal_decrease,
       first_increase = first_increase,
@@ -313,24 +362,6 @@ function SolverCore.solve!(
     primal_feas = kkt_primal_feas!(solver)
     dual_feas = kkt_dual_feas!(solver)
 
-    ## Log status
-    verbose > 0 &&
-      stats.iter % verbose == 0 &&
-      @info log_row(
-        Any[
-          stats.iter,
-          solver.substats.iter,
-          fx,
-          primal_feas,
-          primal_ktol,
-          dual_feas,
-          dual_ktol,
-          τ,
-          norm(x),
-        ],
-        colsep = 1,
-      )
-
     if primal_feas > primal_ktol || (dual_ktol ≤ dual_tol && primal_feas > primal_tol)
       # Update penalty parameter
       τ₊ = max(τ + β1, norm(y, 1))
@@ -357,11 +388,12 @@ function SolverCore.solve!(
       # Add a relative tolerance for the subsolver
       dual_ktol = dual_tol
       set_solver_specific!(solver.substats, :dual_ktol, dual_ktol)
-      dual_krtol = sub_rtol
+      set_solver_specific!(solver.substats, :tau, τ)
+      dual_krtol = μ
     else
       # Tighten tolerances
-      primal_ktol = max(sub_rtol*primal_feas + sub_atol, primal_tol)
-      dual_ktol = max(sub_rtol*dual_feas + sub_atol, dual_tol)
+      primal_ktol = max(μ*primal_feas, primal_tol)
+      dual_ktol = max(μ*dual_feas, dual_tol)
       dual_krtol = T(0)
       set_solver_specific!(solver.substats, :primal_ktol, primal_ktol)
       set_solver_specific!(solver.substats, :dual_ktol, dual_ktol)
@@ -416,6 +448,7 @@ function SolverCore.solve!(
         optimal = solved,
         infeasible = infeasible,
         not_desc = not_desc,
+        small_step = solver.substats.status == :small_step,
         max_eval = max_eval,
         max_time = max_time,
         max_iter = max_iter,
@@ -423,9 +456,23 @@ function SolverCore.solve!(
       ),
     )
 
+    ## Log status
+    if print_level > 0 && stats.iter % verbose == 0
+      if stats.iter % (20 * verbose) == 0 && stats.iter > 0
+        @info separator()
+        @info header_message()
+        @info separator()
+      end
+      @info log_iteration(solver, nlp, stats)
+    end
+
     callback(nlp, solver, stats)
 
     done = stats.status != :unknown
+  end
+
+  if print_level > 0
+    @info conclusion_message(solver, nlp, stats)
   end
 
   set_solution!(stats, x)
@@ -440,6 +487,7 @@ function get_status(
   unbounded = false,
   infeasible = false,
   not_desc = false,
+  small_step = false,
   n_iter_since_decrease = 0,
   max_eval = Inf,
   max_time = Inf,
@@ -454,6 +502,8 @@ function get_status(
     :unbounded
   elseif not_desc
     :not_desc
+  elseif small_step
+    :small_step
   elseif iter >= max_iter
     :max_iter
   elseif elapsed_time >= max_time

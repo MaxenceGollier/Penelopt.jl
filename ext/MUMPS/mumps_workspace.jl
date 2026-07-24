@@ -3,7 +3,7 @@ mutable struct PenaltyMUMPSWorkspace{
   K2<:AbstractMatrix,
   V<:AbstractVector,
   T<:Real,
-} <: PenaltyDirectWorkspace
+} <: AbstractMUMPSWorkspace
   M::WP
   H::K2
   x::V

@@ -3,7 +3,7 @@ mutable struct PenaltyMA57Workspace{
   K2<:AbstractMatrix,
   V<:AbstractVector,
   T<:Real,
-} <: PenaltyDirectWorkspace
+} <: AbstractHSLWorkspace
   M::WP
   H::K2
   x::V

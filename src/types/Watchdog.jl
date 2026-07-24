@@ -56,7 +56,7 @@ function watchdog_checkpoint(
   xk, ∇fk = similar(∇f_model), similar(∇f_model)
   ck, yk = similar(b_model), similar(b_model)
   Jkvals = similar(ψ.A.vals)
-  Hk = isa(φ.data.H, AbstractLinearOperator) ? nothing : similar(φ.data.H)
+  Hk = (isa(φ.data.H, AbstractLinearOperator) || O <: NullHessianModel) ? nothing : similar(φ.data.H)
   return watchdog_checkpoint(
     xk,
     ∇fk,
@@ -172,6 +172,7 @@ function check_watchdog!(
   stats,
   mk,
   xk,
+  watchdog_max_iter,
   η0,
 ) where {T,V}
   s, v = checkpoint.s, checkpoint.v
@@ -185,7 +186,7 @@ function check_watchdog!(
   achieve_reduction =
     (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*sHs) ||
     (stats.dual_feas < (1-η0)*checkpoint.dual_feas)
-  max_iter = stats.iter - checkpoint.iter > 10
+  max_iter = stats.iter - checkpoint.iter > watchdog_max_iter
 
   if !is_active(checkpoint)
     return false
@@ -204,6 +205,7 @@ function check_watchdog!(
   stats,
   mk,
   xk,
+  watchdog_max_iter,
   η0,
 ) where {T,V,HV<:CompactBFGS}
   s, v = checkpoint.s, checkpoint.v
@@ -214,7 +216,7 @@ function check_watchdog!(
   achieve_reduction =
     (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*sHs) ||
     (stats.dual_feas < (1-η0)*checkpoint.dual_feas)
-  max_iter = stats.iter - checkpoint.iter > 10
+  max_iter = stats.iter - checkpoint.iter > watchdog_max_iter
 
   if !is_active(checkpoint)
     return false
@@ -233,6 +235,7 @@ function check_watchdog!(
   stats,
   mk,
   xk,
+  watchdog_max_iter,
   η0,
 ) where {T,V,HV<:Nothing}
   s, v = checkpoint.s, checkpoint.v
@@ -242,7 +245,7 @@ function check_watchdog!(
   achieve_reduction =
     (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*sHs) ||
     (stats.dual_feas < (1-η0)*checkpoint.dual_feas)
-  max_iter = stats.iter - checkpoint.iter > 10
+  max_iter = stats.iter - checkpoint.iter > watchdog_max_iter
 
   if !is_active(checkpoint)
     return false
