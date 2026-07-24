@@ -25,7 +25,7 @@ mutable struct ShiftedL2PenalizedProblem{
   H<:ShiftedCompositeNormL2,
   P<:Union{Nothing,L2PenalizedProblem},
   SN<:Union{Nothing,S},
-  meta<:AbstractNLPModelMeta
+  meta<:AbstractNLPModelMeta,
 } <: AbstractShiftedPenalizedProblem{T,S}
   model::M
   h::H

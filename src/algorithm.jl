@@ -24,8 +24,8 @@ end
 
 function L2PenaltySolver(
   nlp::AbstractNLPModel{T,V};
-  r2n_m_monotone::Int=12,
-  linear_solver::String="ldlt",
+  r2n_m_monotone::Int = 12,
+  linear_solver::String = "ldlt",
 ) where {T,V}
   x0 = nlp.meta.x0
   x, xn, s, s0 = similar(x0), similar(x0), similar(x0), zero(x0)
@@ -37,7 +37,11 @@ function L2PenaltySolver(
 
   penalty_subproblem = L2PenalizedProblem(nlp) # f(x) + τ‖c(x)‖₂
   substats = GenericExecutionStats(penalty_subproblem, solver_specific = Dict{Symbol,T}())
-  solver = PenaltyR2NSolver(penalty_subproblem; m_monotone = r2n_m_monotone, linear_solver = linear_solver)
+  solver = PenaltyR2NSolver(
+    penalty_subproblem;
+    m_monotone = r2n_m_monotone,
+    linear_solver = linear_solver,
+  )
 
   set_solver_specific!(substats, :primal_ktol, T(0))
   set_solver_specific!(substats, :dual_ktol, T(0))
@@ -148,20 +152,17 @@ You can also use the `sub_callback` keyword argument which has exactly the same 
 """
 function L2Penalty(
   nlp::AbstractNLPModel{T,V};
-  r2n_m_monotone::Int=12,
-  linear_solver::String="ldlt",
-  kwargs...
+  r2n_m_monotone::Int = 12,
+  linear_solver::String = "ldlt",
+  kwargs...,
 ) where {T<:Real,V}
 
   if !equality_constrained(nlp)
     error("L2Penalty: This algorithm only works for equality contrained problems.")
   end
 
-  solver = L2PenaltySolver(
-    nlp;
-    r2n_m_monotone=r2n_m_monotone,
-    linear_solver=linear_solver,
-  )
+  solver =
+    L2PenaltySolver(nlp; r2n_m_monotone = r2n_m_monotone, linear_solver = linear_solver)
 
   stats = ExactPenaltyExecutionStats(nlp)
   solve!(solver, nlp, stats; kwargs...)
@@ -190,7 +191,7 @@ function SolverCore.solve!(
   μ::T = T(1e-2),
   infeasible_tol::T = T(1e-2),
   infeasible_iter::Int = 3,
-  
+
   ## Logging arguments
   print_level::Int = 0,
   verbose::Int = 1,

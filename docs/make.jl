@@ -11,7 +11,7 @@ makedocs(;
   format = Documenter.HTML(;
     canonical = "https://MaxenceGollier.github.io/ExactPenalty.jl",
     assets = ["assets/link-icons.css"],
-    collapselevel = 1
+    collapselevel = 1,
   ),
   workdir = joinpath(@__DIR__, "src"),
   pages = [
@@ -27,10 +27,8 @@ makedocs(;
       "HSL" => "tutorials/HSL.md",
       "MUMPS" => "tutorials/MUMPS.md",
     ],
-    "Developers" => [
-      "Contributing" => "90-contributing.md",
-      "Developing" => "91-developer.md",
-    ]
+    "Developers" =>
+      ["Contributing" => "90-contributing.md", "Developing" => "91-developer.md"],
   ],
 )
 

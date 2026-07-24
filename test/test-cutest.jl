@@ -3,7 +3,13 @@ expected_status = [:first_order, :first_order, :infeasible, :infeasible]
 
 tol = 1e-3
 
-function test_problem(name, primal_solution, dual_solution, expected_status; linear_solver::String = "ldlt")
+function test_problem(
+  name,
+  primal_solution,
+  dual_solution,
+  expected_status;
+  linear_solver::String = "ldlt",
+)
   nlp = CUTEstModel(name)
 
   # Test with R2
@@ -117,16 +123,30 @@ end
 @testset "BT1" begin
   primal_solution = [1, 0]
   dual_solution = [-99.5]
-  linear_solver = !isnothing(Base.get_extension(ExactPenalty, :ExactPenaltyMUMPSExt)) ? "mumps" : "ldlt"
-  test_problem("BT1", primal_solution, dual_solution, :first_order; linear_solver = linear_solver)
+  linear_solver =
+    !isnothing(Base.get_extension(ExactPenalty, :ExactPenaltyMUMPSExt)) ? "mumps" : "ldlt"
+  test_problem(
+    "BT1",
+    primal_solution,
+    dual_solution,
+    :first_order;
+    linear_solver = linear_solver,
+  )
 end
 
 # Test a problem where the function f is unbounded from below
 @testset "MARATOS" begin
   primal_solution = [1, 0]
   dual_solution = [0.499999]
-  linear_solver = !isnothing(Base.get_extension(ExactPenalty, :ExactPenaltyMUMPSExt)) ? "mumps" : "ldlt"
-  test_problem("MARATOS", primal_solution, dual_solution, :first_order; linear_solver = linear_solver)
+  linear_solver =
+    !isnothing(Base.get_extension(ExactPenalty, :ExactPenaltyMUMPSExt)) ? "mumps" : "ldlt"
+  test_problem(
+    "MARATOS",
+    primal_solution,
+    dual_solution,
+    :first_order;
+    linear_solver = linear_solver,
+  )
 end
 
 # Test an infeasible problem

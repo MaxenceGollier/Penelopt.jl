@@ -1,6 +1,6 @@
 function get_linear_solver(
-  solver::L2PenaltySolver{T, V, S, PB}
-) where{T, V, H, WP, MSS <: MoreSorensenSolver{T, V, H, WP},S <: PenaltyR2NSolver{T, V, MSS}, PB}
+  solver::L2PenaltySolver{T,V,S,PB},
+) where {T,V,H,WP,MSS<:MoreSorensenSolver{T,V,H,WP},S<:PenaltyR2NSolver{T,V,MSS},PB}
   if WP <: PenaltyLDLTWorkspace
     return "LDLFactorizations.jl v$(pkgversion(LDLFactorizations))"
   elseif WP <: AbstractMUMPSWorkspace
@@ -14,12 +14,12 @@ function get_linear_solver(
 end
 
 function decode_mumps_version(v::NTuple)
-    i = findfirst(==(0), v)
-    if i === nothing
-        return String(collect(UInt8.(v)))
-    else
-        return String(collect(UInt8.(v[1:i-1])))
-    end
+  i = findfirst(==(0), v)
+  if i === nothing
+    return String(collect(UInt8.(v)))
+  else
+    return String(collect(UInt8.(v[1:(i-1)])))
+  end
 end
 
 function introduction_message(solver::L2PenaltySolver, nlp::AbstractNLPModel)
@@ -32,30 +32,37 @@ function introduction_message(solver::L2PenaltySolver, nlp::AbstractNLPModel)
   """
 end
 
-function introduction_message(solver::PenaltyR2NSolver, nlp::AbstractNLPModel, stats::GenericExecutionStats)
-  return separator(type = :inner_loop) *
-  @sprintf("\n            |  Solving subproblem minₓ f(x) + %-3.2e ‖c(x)‖₂ with tolerance %-3.2e...", 
-  stats.solver_specific[:tau], stats.solver_specific[:dual_ktol])
+function introduction_message(
+  solver::PenaltyR2NSolver,
+  nlp::AbstractNLPModel,
+  stats::GenericExecutionStats,
+)
+  return separator(type = :inner_loop) * @sprintf(
+    "\n            |  Solving subproblem minₓ f(x) + %-3.2e ‖c(x)‖₂ with tolerance %-3.2e...",
+    stats.solver_specific[:tau],
+    stats.solver_specific[:dual_ktol]
+  )
 end
 
 function introduction_message(solver::MoreSorensenSolver, Δ)
-  return separator(type = :ms_loop) *
-  @sprintf("\n                  |  Computing step ( H + σI    Jᵀ )(s) = -(∇f)
-                  |                 ( J        -αI )(y) = -(c ), with ‖y‖ ≤ %-3.2e...",
-  Δ)
+  return separator(type = :ms_loop) * @sprintf(
+    "\n                  |  Computing step ( H + σI    Jᵀ )(s) = -(∇f)
+           |                 ( J        -αI )(y) = -(c ), with ‖y‖ ≤ %-3.2e...",
+    Δ
+  )
 end
 
 
-const W_ITER  = 7
+const W_ITER = 7
 const W_LARGE = 16
-const W_MED   = 12
+const W_MED = 12
 const W_SMALL = 8
 
-const FMT_OBJ   = "%+-16.7e"
-const FMT_MED   = "%-12.2e"
+const FMT_OBJ = "%+-16.7e"
+const FMT_MED = "%-12.2e"
 const FMT_SMALL = "%+-8.1f"
 
-function separator(;type = :outer_loop)
+function separator(; type = :outer_loop)
   if type == :outer_loop
     return repeat("-", textwidth(header_message(type = type)))
   elseif type == :inner_loop
@@ -68,41 +75,67 @@ end
 function header_message(; type = :outer_loop)
   if type == :outer_loop
     return @sprintf(
-        "%-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s",
-        W_ITER,  "Iter",
-        W_ITER,  "sIter",
-        W_LARGE, "Objective",
-        W_MED,   "pfeas",
-        W_MED,   "dfeas",
-        W_MED,   "τ",
-        W_MED,   "ptol",
-        W_MED,   "dtol",
-        W_MED,   "‖x‖",
+      "%-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s",
+      W_ITER,
+      "Iter",
+      W_ITER,
+      "sIter",
+      W_LARGE,
+      "Objective",
+      W_MED,
+      "pfeas",
+      W_MED,
+      "dfeas",
+      W_MED,
+      "τ",
+      W_MED,
+      "ptol",
+      W_MED,
+      "dtol",
+      W_MED,
+      "‖x‖",
     )
   elseif type == :inner_loop
     return @sprintf(
-        "      | %-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s",
-        W_ITER,  "Iter",
-        W_ITER,  "sIter",
-        W_LARGE, "Objective",
-        W_MED,   "pfeas",
-        W_MED,   "dfeas",
-        W_MED,   "σ",
-        W_MED,   "ρ",
-        W_MED,   "‖x‖",
-        W_MED,   "‖s‖",
+      "      | %-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s",
+      W_ITER,
+      "Iter",
+      W_ITER,
+      "sIter",
+      W_LARGE,
+      "Objective",
+      W_MED,
+      "pfeas",
+      W_MED,
+      "dfeas",
+      W_MED,
+      "σ",
+      W_MED,
+      "ρ",
+      W_MED,
+      "‖x‖",
+      W_MED,
+      "‖s‖",
     )
   elseif type == :ms_loop
     return @sprintf(
-        "            | %-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s",
-        W_ITER,  "Iter",
-        W_MED,   "σ",
-        W_MED,   "α",
-        W_MED,   "‖y‖",
-        W_MED,   "Δ",
-        W_MED,   "inertia",
-        W_MED,   "lsolve",
-        W_MED,   "descent",
+      "            | %-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s",
+      W_ITER,
+      "Iter",
+      W_MED,
+      "σ",
+      W_MED,
+      "α",
+      W_MED,
+      "‖y‖",
+      W_MED,
+      "Δ",
+      W_MED,
+      "inertia",
+      W_MED,
+      "lsolve",
+      W_MED,
+      "descent",
     )
   end
 end
@@ -163,13 +196,14 @@ end
 function conclusion_message(solver::MoreSorensenSolver, stats; type = :ms_loop)
   return "            |
                   |  Step computed with status $(stats.status) after $(stats.iter) iterations." *
-            "\n      " * separator(type = type)
+         "\n      " *
+         separator(type = type)
 end
 
 function conclusion_message(solver, nlp, stats; type = :outer_loop)
   if type == :outer_loop
     log = "\n"
-    log *=          "Number of Iterations: $(stats.iter)\n"
+    log *= "Number of Iterations: $(stats.iter)\n"
     log *= "\n\n"
     log *= @sprintf("Objective...........: %-+16.15e\n", stats.objective)
     log *= @sprintf("Primal Feasibility..:  %16.15e\n", stats.primal_feas)
