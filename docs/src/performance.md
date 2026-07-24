@@ -138,6 +138,6 @@ finalize(nlp) # hide
 !!! tip "L-BFGS options"
     The `CompactBFGSModel` constructor supports keyword arguments to customize your approximation.
     Those are
-    * `mem::Int = 5`: memory parameter for the limited-memory approximation.
+    * `mem::Int = 6`: memory parameter for the limited-memory approximation.
     * `scaling::Bool = true`: whether we scale $B_0 = \gamma I$ with $\gamma = y^Ty / s^T y$, where $s$ is the step and $y$ is the difference of the two last gradients of the Lagrangian.
     * `max_skip::Int = 2` (*advanced*): if we skipped a pair $(s, y)$ more than `max_skip` times in a row, we reset the approximation. 
