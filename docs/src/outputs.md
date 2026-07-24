@@ -1,6 +1,6 @@
 # Outputs
 
-Our solver returns a `GenericExecutionStats` object, as defined in [SolverCore.jl](https://github.com/JuliaSmoothOptimizers/SolverCore.jl). This section describes the fields of that object as populated by `ExactPenalty.jl`, as well as the console output produced when `print_level > 0`.
+Our solver returns a `GenericExecutionStats` object, defined in [SolverCore.jl](https://github.com/JuliaSmoothOptimizers/SolverCore.jl). This section describes the fields of that object populated by `ExactPenalty.jl`, as well as the console output produced when `print_level > 0`.
 
 ```{julia}
 julia> stats = L2Penalty(nlp)
@@ -28,9 +28,6 @@ julia> stats = L2Penalty(nlp)
 
 ### `solver_specific` Entries
 
-!!! note "Terminology"
-    See the [terminology](options.md#Terminology) section of the options page for an explanation of the *outer*, *R2N*, and *Moré-Sorensen* loops.
-
 * `:n_fact::Int`: the cumulative number of matrix factorizations performed by the linear solver over the whole solve.
 
 ## Status
@@ -48,7 +45,7 @@ julia> stats = L2Penalty(nlp)
 | `:max_iter` | The iteration limit `max_iter` was reached.|
 | `:max_time` | The time limit  `max_time` was reached. |
 | `:max_eval` | The objective evaluation limit `max_eval` was reached. |
-| `:exception`| An internal exception occurred (e.g., the Moré–Sorensen regularization parameter exceeded `ms_σmax`). |
+| `:exception`| An internal exception occurred (e.g., the regularization parameter exceeded `ms_σmax`). |
 | `:unknown` | The algorithm has not (yet) satisfied any stopping criterion; this should not appear in a returned `stats` object. |
 
 !!! warning "Infeasibility is a Heuristic"

@@ -26,7 +26,6 @@ makedocs(;
       "JuMP" => "tutorials/JuMP.md",
       "HSL" => "tutorials/HSL.md",
       "MUMPS" => "tutorials/MUMPS.md",
-      "Multiprecision" => "tutorials/multiprecision.md",
     ],
     "Developers" => [
       "Contributing" => "90-contributing.md",

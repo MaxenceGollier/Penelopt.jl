@@ -59,8 +59,8 @@ Finally, if performance is critical, you can find tips in the [performance secti
     Our algorithm solves multiple [linear systems](https://en.wikipedia.org/wiki/System_of_linear_equations).
     By default, the linear system solver we use is [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl).
     Our solver is interfaced with the following solvers too:
-    * [MUMPS](https://mumps-solver.org/index.php?page=doc). You should read [this tutorial](tutorials/MUMPS.md).
-    * [HSL-MA57](https://www.hsl.rl.ac.uk/catalogue/ma57.html). You should read [this tutorial](tutorials/HSL.md).
+    * [MUMPS](https://mumps-solver.org/index.php?page=doc): you should read [this tutorial](tutorials/MUMPS.md) to use it.
+    * [HSL-MA57](https://www.hsl.rl.ac.uk/catalogue/ma57.html): you should read [this tutorial](tutorials/HSL.md) to use it.
 
 ## Credit
 

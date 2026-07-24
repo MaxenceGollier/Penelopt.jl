@@ -51,7 +51,7 @@ julia> solve!(solver, nlp, stats; x = x2)
     ```
 
 !!! warning "Keyword arguments"
-    Some [options](options.md) passed require allocations and are therefore passed to the solver structure construction call.
+    Some [options](options.md) require allocations and are therefore passed to the solver structure construction call.
     The following options **need** to be passed to the solver constructor (passing them to `solve!` will cause failure).
     * `r2n_m_monotone::Int = 12`;
     * `linear_solver::Sring = "ldlt"`.

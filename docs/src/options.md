@@ -22,9 +22,8 @@ Therefore, following the Julia syntax, we present each parameter as
 
 !!! note "Parametric Types"
     Some option types are [parametric](https://docs.julialang.org/en/v1/manual/types/#Parametric-Types).
-    The [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) API that we use to represent the nonlinear programming problem allow users to choose for their [floating point format](https://en.wikipedia.org/wiki/Computer_number_format) when making the representation.
+    The [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) API that we use to represent the nonlinear programming problem allow users to choose for a [floating point format](https://en.wikipedia.org/wiki/Computer_number_format) when making the representation.
     In ExactPenalty.jl, the (parametric) scalar type of the problem is `T` and the (parametric) vector type is `V`.
-    You can find more information in [this tutorial](tutorials/multiprecision.md).
     By default, you can consider that `T == Float64` and `V == Vector{Float64}`.
 
     To acount for the parametric nature of the problem, default values are often a function of `eps(T)` which represents the [machine epsilon](https://en.wikipedia.org/wiki/Machine_epsilon) of `T`. Again, by default you can consider that
@@ -60,7 +59,7 @@ The process of solving one penalized problem is called the *R2N loop* or *inner 
 
 Basically, the *R2N* solver starts with an initial iterate $x_0 \in \mathbb{R}^n$.
 Then, it computes a *step* $s_0$ and updates $x_1 := x_0 + s_0$.
-It then proceeds with $x_2 := x_1 + s_1$, etc.
+It then proceeds with $x_2 := x_1 + s_1$, etc. until it converges to a solution of the *penalized* problem.
 
 To compute a *step*, we use an **iterative subsolver** based on the method of Moré and Sorensen.
 The process of computing a step for *R2N* is called the *Moré-Sorensen loop* or *MS loop*.
@@ -147,6 +146,10 @@ We define $\epsilon_P$ and $\epsilon_D$ as
 * `ms_max_iter::Int = 10` (*advanced*): Maximum number of *ms-loop* iterations.
   > Each run of the *ms-loop* stops when the number of iterations exceeds `ms_max_iter`.
 
+## Initialization
+
+* `x::V = nlp.meta.x0`: Initial point for the optimizer.
+
 ## Logging
 We refer to the [outputs](outputs.md#console-output) section for an explanation of the logger output.
 
@@ -154,8 +157,7 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
     >   The larger this value the more detailed is the output. The valid range is `0 ≤ print_level ≤ 4`. **Warning**: large values can potentially print a lot of information, we recommend to start with a value of `1`. The value of `print_level` corresponds to the depth of the loop that will be printed. That is 
     >   - `print_level = 1`: Prints the information relative to the *penalty loop*,
     >   - `print_level = 2`: Prints the information relative to the *r2n loop*,
-    >   - `print_level = 3`: Prints the information relative to the *ms loop*,
-    >   - `print_level = 4`: Prints the information relative to the *linear solver* (not implemented yet).
+    >   - `print_level = 3`: Prints the information relative to the *ms loop*.
 
  * `verbose::Int = 1`: Frequency (in iterations) at which information is printed.
     > `verbose = 1` prints every iteration (of the outer loop), `verbose = 10` prints every ten iteration (of the outer loop). If `print_level < 1`, this parameter is ignored.
@@ -165,6 +167,11 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
  
  * `ms_verbose::Int = 1`: Frequency (in iterations) at which information is printed.
    > `ms_verbose = 1` prints every iteration (of the ms loop), `ms_verbose = 10` prints every ten iteration (of the ms loop). If `print_level < 3`, this parameter is ignored.
+
+## Customization
+
+ * `callback::Function = (args...) -> nothing`: callback function.
+   > We have a dedicated [section](callbacks.md) for this option.
 
 ## R2N Specific
 
@@ -198,7 +205,7 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
      > When inertia corrections are performed within the ms loop, we increase the quadratic regularization parameter `σ` by a factor `ms_μσ` (see `ms_μσ`) until either the inertia is $(n, 0, m)$ or `σ` reaches `ms_σmax`. In the latter case, the solver stops and returns an error message. When `T == Float64`, the default value is $\approx 10^{16}$.
 
  * `ms_tol::T = eps(T)^(0.6)`, (*advanced*): tolerance for the MS loop (absolute).
-     > Tolerance for Newton's method applied to the *secular* equation. For completeness, the MS loop terminates when $| \|y\| - Δ | \leq \text{ms\_tol}$. When `T == Float64`, the default value is $\approx 10^{-10}$.
+     > Tolerance for Newton's method applied to the *secular* equation. For completeness, the MS loop terminates when $| \|y\|_2 - Δ | \leq \text{ms\_tol}$. When `T == Float64`, the default value is $\approx 10^{-10}$.
 
  * `ms_μα::T = 0.1`, (*advanced*): dual inertia decrease factor.
      > When the Newton's method applied to the *secular* equation produces a negative value of `α`, the iterate is reduced instead by a factor `ms_μα`. This is $\mu_{\alpha}$ in the implementation paper.

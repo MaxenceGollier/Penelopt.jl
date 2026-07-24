@@ -96,6 +96,6 @@ available through `nlp`, `solver`, and `stats`.
 In particular:
 
 * `nlp`: the [`AbstractNLPModel`](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) object that contains information relative to the nonlinear program solved by `ExactPenalty.jl`. You can for example access the [problem meta](https://jso.dev/NLPModels.jl/stable/reference/#NLPModels.NLPModelMeta) or the [problem counters](https://jso.dev/NLPModels.jl/stable/tools/#Functions-evaluations) in the callback.
-* `solver`: the `ExactPenaltySolver` structure containing all allocated objects used during the optimization process. Refer to the [performance](performance.md) section of the documentation for a detailed list of information that you can access through this structure.
+* `solver`: the `ExactPenaltySolver` structure containing all allocated objects used during the optimization process. Refer to the [performance](performance.md) section of the documentation for a list of information that you can access through this structure.
 * `stats`: the [`GenericExecutionStats`](https://github.com/JuliaSmoothOptimizers/SolverCore.jl)
   object that will eventually be returned by `L2Penalty`. You can refer to [this section](outputs.md#the-genericexecutionstats-object) for a list of the information contained in this object.
