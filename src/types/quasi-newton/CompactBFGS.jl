@@ -120,7 +120,7 @@ function Base.push!(op::CompactBFGS{T,V,MT}, s::V, y::V) where {T,V,MT}
   end
 
   if op.scaling
-    ξ = op.ξ = dot(y, y) / sy
+    ξ = op.ξ = sy / dot(s, s)
   end
 
   # Shift
