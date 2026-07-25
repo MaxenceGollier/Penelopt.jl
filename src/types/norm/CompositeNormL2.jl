@@ -1,3 +1,5 @@
+abstract type AbstractCompositeNorm end
+
 @doc raw"""
     CompositeNormL2(λ, c!, J!, A, b; store_previous_jacobian::Bool = false)
 
@@ -70,3 +72,8 @@ fun_expr(
   M <: AbstractMatrix{T},
   V <: AbstractVector{T},
 } = "x ↦ λ ‖c(x)‖₂"
+
+function (ψ::AbstractCompositeNorm)(y)
+  ψ.c!(ψ.b, y)
+  ψ.h(ψ.b)
+end

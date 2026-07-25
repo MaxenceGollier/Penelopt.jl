@@ -1,3 +1,5 @@
+abstract type AbstractShiftedCompositeNorm end
+
 @doc raw"""
     ShiftedCompositeNormL2(h, c!, J!, A, b; store_previous_jacobian::Bool = false)
 
@@ -31,21 +33,14 @@ mutable struct ShiftedCompositeNormL2{
   M <: AbstractMatrix{T},
   N <: Union{Nothing, M},
   V <: AbstractVector{T},
-} <: ShiftedCompositeProximableFunction
+} <: AbstractShiftedCompositeNorm
   h::NormL2{T}
   c!::F0
   J!::F1
   A::M
   A_prev::N # (Optional) can be used to store the previous Jacobian, useful for quasi-Newton approximations
-  shifted_spmat::qrm_shifted_spmat{T}
-  spfct::qrm_spfct{T}
   b::V
-  g::V  # Preallocated vector used either to compute A*y + b when we call ψ(y) or the RHS of the dual of the proximal problem.
-  q::V  # Preallocated solution vector of the dual of the proximal problem.
-  dq::V # Preallocated vector to refine the q solution.
-  p::V  # Preallocated vector used to compute s(α)ᵀ∇s(α) for the secular equation.
-  dp::V # Preallocated vector used to refine the p vector.
-  full_row_rank::Bool # Boolean that tells whether A has full row rank or not. Is updated on each call to `prox!`
+  g::V
   function ShiftedCompositeNormL2(
     λ::T,
     c!::Function,
@@ -54,11 +49,6 @@ mutable struct ShiftedCompositeNormL2{
     b::AbstractVector{T};
     store_previous_jacobian::Bool = false,
   ) where {T <: Real}
-    p = similar(b, A.n + A.m)
-    dp = similar(b, A.n + A.m)
-    g = similar(b)
-    q = similar(b)
-    dq = similar(b)
     if length(b) != size(A, 1)
       error(
         "ShiftedCompositeNormL2: Wrong input dimensions, there should be as many constraints as rows in the Jacobian",
@@ -66,10 +56,7 @@ mutable struct ShiftedCompositeNormL2{
     end
 
     A_prev = store_previous_jacobian ? copy(A) : nothing
-
-    spmat = qrm_spmat_init(A; sym = false)
-    shifted_spmat = qrm_shift_spmat(spmat)
-    spfct = qrm_spfct_init(spmat)
+    g = similar(b)
 
     new{T, typeof(c!), typeof(J!), typeof(A), typeof(A_prev), typeof(b)}(
       NormL2(λ),
@@ -77,15 +64,8 @@ mutable struct ShiftedCompositeNormL2{
       J!,
       A,
       A_prev,
-      shifted_spmat,
-      spfct,
       b,
-      g,
-      q,
-      dq,
-      p,
-      dp,
-      false,
+      g
     )
   end
 end
@@ -117,3 +97,16 @@ end
 fun_name(ψ::ShiftedCompositeNormL2) = "shifted `ℓ₂` norm"
 fun_expr(ψ::ShiftedCompositeNormL2) = "t ↦ ‖c(xk) + J(xk)t‖₂"
 fun_params(ψ::ShiftedCompositeNormL2) = "c(xk) = $(ψ.b)\n" * " "^14 * "J(xk) = $(ψ.A)\n"
+
+function (ψ::AbstractShiftedCompositeNorm)(y)
+  mul!(ψ.g, ψ.A, y)
+  ψ.g .+= ψ.b
+  return ψ.h(ψ.g)
+end
+
+function shift!(ψ::AbstractShiftedCompositeNorm, shift::AbstractVector{R}) where {R <: Real}
+  !isnothing(ψ.A_prev) && (ψ.A_prev.vals .= ψ.A.vals) # Update previous Jacobian if necessary
+  ψ.c!(ψ.b, shift)
+  ψ.J!(ψ.A, shift)
+  return ψ
+end

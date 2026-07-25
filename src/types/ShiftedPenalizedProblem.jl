@@ -15,7 +15,7 @@ construct the shifted L2 penalty problem around the point `x`:
 
 The L2PenalizedProblem is made of the following components:
 - `model`: the quadratic model of the original NLP model `nlp` around the point `x`;
-- `h`: the shifted penalty term, which is a `ShiftedCompositeNormL2` object, see `ShiftedProximalOperators.jl`.
+- `h`: the shifted penalty term, which is a `ShiftedCompositeNormL2` object, see `jl`.
 - `parent`: the original `L2PenalizedProblem` model `nlp`.
 """
 mutable struct ShiftedL2PenalizedProblem{
@@ -97,7 +97,7 @@ function ShiftedL2PenalizedProblem(
 end
 
 # ShiftedProximalOperators API
-function ShiftedProximalOperators.shifted(
+function shifted(
   penalty_nlp::L2PenalizedProblem{T,V,M},
   x::V;
   ∇f::VN1 = nothing,
@@ -105,7 +105,7 @@ function ShiftedProximalOperators.shifted(
   return ShiftedL2PenalizedProblem(penalty_nlp, x; ∇f = ∇f)
 end
 
-function ShiftedProximalOperators.shifted(
+function shifted(
   penalty_nlp::L2PenalizedProblem{T,V,M},
   x::V;
   ∇f::VN1 = nothing,
@@ -114,7 +114,7 @@ function ShiftedProximalOperators.shifted(
   return ShiftedL2PenalizedProblem(penalty_nlp, x; ∇f = ∇f, y = y)
 end
 
-function ShiftedProximalOperators.shift!(
+function shift!(
   shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
   x::V;
   ∇f::VN1 = nothing,
@@ -138,7 +138,7 @@ function ShiftedProximalOperators.shift!(
   shift!(ψ, x)
 end
 
-function ShiftedProximalOperators.shift!(
+function shift!(
   shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
   x::V;
   ∇f::VN1 = nothing,
@@ -188,7 +188,7 @@ function ShiftedProximalOperators.shift!(
 
 end
 
-function ShiftedProximalOperators.shift!(
+function shift!(
   shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
   x::V;
   ∇f::VN1 = nothing,

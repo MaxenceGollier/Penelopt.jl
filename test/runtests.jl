@@ -10,7 +10,7 @@ using CUTEst,
 
 using LinearAlgebra, Random, SparseArrays, Test
 
-import Penelopt: solve!
+import Penelopt: solve!, ShiftedCompositeNormL2
 
 Random.seed!(0)
 

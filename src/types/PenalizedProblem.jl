@@ -13,7 +13,7 @@ construct the L2 penalty problem
 
 The L2PenalizedProblem is made of the following components:
 - `model`: the original NLP model `nlp`;
-- `h`: the penalty term, which is a `CompositeNormL2` object, see `ShiftedProximalOperators.jl`.
+- `h`: the penalty term, which is a `CompositeNormL2` object, see `jl`.
 """
 mutable struct L2PenalizedProblem{
   T,
