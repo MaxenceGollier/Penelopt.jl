@@ -3,7 +3,8 @@
 
   # Test pushing without scaling
   n = nlp.meta.nvar
-  compact_bfgs_nlp = CompactBFGSModel(nlp, mem = 5, scaling = false, max_skip = typemax(Int))
+  compact_bfgs_nlp =
+    CompactBFGSModel(nlp, mem = 5, scaling = false, max_skip = typemax(Int))
   bfgs_op_nlp = LBFGSModel(nlp, scaling = false)
 
   for _ = 1:100
