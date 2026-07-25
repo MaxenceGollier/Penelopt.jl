@@ -429,8 +429,8 @@ function SolverCore.solve!(
 
       infeasible =
         hx > primal_tol &&
-        sqrt(max(θ, 0))/hx < infeasible_tol &&
-        sqrt(max(θ, 0)) < primal_ktol
+        θ/hx < infeasible_tol &&
+        θ < primal_ktol
     end
 
     set_iter!(stats, stats.iter + 1)
