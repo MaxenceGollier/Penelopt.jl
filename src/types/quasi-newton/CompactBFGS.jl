@@ -22,7 +22,7 @@ end
 function CompactBFGS(
   T::Type,
   n::I;
-  mem::I = 5,
+  mem::I = 6,
   scaling::Bool = true,
   damped::Bool = false,
   σ₂::Float64 = 0.99,
