@@ -2,7 +2,7 @@ function compute_θ!(solver::L2PenaltySolver{T}) where {T}
   # Computes a model decrease for the feasbility problem minₓ ‖c(x)‖₂
 
   ## Retrieve workspace
-  r2n_solver = solver.subsolver
+  r2n_solver, r2n_stats = solver.subsolver, solver.substats
     
   ms_problem, ms_solver, ms_stats = r2n_solver.subpb, r2n_solver.subsolver, r2n_solver.substats
   ls_workspace = ms_solver.workspace
@@ -32,6 +32,9 @@ function compute_θ!(solver::L2PenaltySolver{T}) where {T}
   norm_y = norm(y, 2)
   θ = iszero(norm_y) ? zero(T) : norm(s, 2) / norm_y
 
+  # Set factorization counters
+  set_solver_specific!(r2n_stats, :n_fact, get_n_fact(ls_workspace))
+
   return θ
 end
 
@@ -42,7 +45,7 @@ end
 function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
 
   ## Retrieve workspace
-  r2n_solver = solver.subsolver
+  r2n_solver, r2n_stats = solver.subsolver, solver.substats
     
   ms_problem, ms_solver, ms_stats = r2n_solver.subpb, r2n_solver.subsolver, r2n_solver.substats
   ls_workspace = ms_solver.workspace
@@ -84,6 +87,9 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
   # Step 3: Extract the solution
   s, y = view(x1, 1:n), view(x1, (n+1):(n+m))
   solver.y .= y
+
+  # Set factorization counters
+  set_solver_specific!(r2n_stats, :n_fact, get_n_fact(ls_workspace))
 end
 
 function update_constraint_multipliers!(solver::L2PenaltySolver{T}) where {T}

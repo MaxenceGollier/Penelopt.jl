@@ -309,48 +309,6 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   end
 end
 
-function SolverCore.solve!(
-  solver::MoreSorensenSolver{T,V},
-  reg_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
-  stats::GenericExecutionStats{T,V,V};
-  x = reg_nlp.model.meta.x0,
-  print_level::Int = 0,
-  verbose::Int = 1,
-  atol::T = eps(T)^(0.6),
-  max_time::T = T(30),
-  max_iter::Int = 10,
-  μα::T = T(0.1),
-  μσ::T = T(10),
-  α0::T = eps(T),
-  αmin1::T = eps(T)^(0.8),
-  αmin2::T = eps(T)^(0.6),
-  σmax::T = 1 / eps(T),
-  accept_descent::Bool = true, # Whether we accept inexact steps that decrease the quadratic model.
-) where {T,V,M,H,O<:NullHessianModel,P<:L2PenalizedProblem{T,V,O}}
-
-  n = reg_nlp.model.meta.nvar
-  ψ = reg_nlp.h
-  u1, x1 = solver.u1, solver.x1
-
-  ν = 1 / reg_nlp.model.data.σ
-  @. u1[1:n] = - ν * reg_nlp.model.data.c
-
-  @views prox!(
-    x1[1:n],
-    ψ,
-    u1[1:n],
-    ν,
-    max_iter = max_iter,
-    max_time = max_time,
-    atol = atol,
-  )
-
-  @. x1[(n+1):end] = - ψ.q / ν
-  set_solution!(stats, @view x1[1:n])
-  set_status!(stats, :first_order)
-  !check_descent(reg_nlp, @view x1[1:n]) && set_status!(stats, :not_desc)
-end
-
 function get_primal_dual_sol!(s, y, solver::MoreSorensenSolver)
   n = length(s)
   s .= @view solver.x1[1:n]

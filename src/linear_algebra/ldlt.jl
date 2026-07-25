@@ -136,6 +136,7 @@ function update_workspace!(
   σ,
   α,
 )
+  # Warning: Considers tht B is a zero matrix.
   n, m = solver_workspace.n, solver_workspace.m
   H = get_H(solver_workspace)
 
