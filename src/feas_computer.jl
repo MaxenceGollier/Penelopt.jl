@@ -8,6 +8,7 @@ function compute_θ!(solver::L2PenaltySolver{T}) where {T}
   ls_workspace = ms_solver.workspace
   u1, x1 = ms_solver.u1, ms_solver.x1
   nlp, ψ = ms_problem.model, ms_problem.h
+  τ = ψ.h.lambda
   n, m = nlp.meta.nvar, length(ψ.b)
 
   # Step 1: Compute
@@ -16,7 +17,7 @@ function compute_θ!(solver::L2PenaltySolver{T}) where {T}
   @. u1[1:n] = 0
   @. u1[(n+1):(n+m)] = - ψ.b
 
-  σ, α = one(T), sqrt(eps(T))
+  σ, α = one(T), one(T)
   update_workspace!(
     ls_workspace,
     ψ.A,
@@ -28,9 +29,11 @@ function compute_θ!(solver::L2PenaltySolver{T}) where {T}
   get_solution!(x1, ls_workspace)
   s, y = view(x1, 1:n), view(x1, (n+1):(n+m))
 
-  # Step 2: Compute θ = (‖s‖₂/‖y‖₂)
+  # Step 2: Compute θ = (ψ(0; x) - ψ(s; x)) / (τ * ‖y‖₂)
   norm_y = norm(y, 2)
-  θ = iszero(norm_y) ? zero(T) : norm(s, 2) / norm_y
+  iszero(norm_y) && return zero(T)
+
+  θ = (ψ(solver.s0) - ψ(s)) / τ 
 
   # Set factorization counters
   set_solver_specific!(r2n_stats, :n_fact, get_n_fact(ls_workspace))
