@@ -25,11 +25,11 @@ Moreover, if you want shifted instances of the operator to store the previous Ja
 This is particularly useful for quasi-Newton updates in the context of constrained optimization.
 """
 mutable struct CompositeNormL2{
-  T <: Real,
-  F0 <: Function,
-  F1 <: Function,
-  M <: AbstractMatrix{T},
-  V <: AbstractVector{T},
+  T<:Real,
+  F0<:Function,
+  F1<:Function,
+  M<:AbstractMatrix{T},
+  V<:AbstractVector{T},
 } <: AbstractCompositeNorm
   h::NormL2{T}
   c!::F0
@@ -45,12 +45,12 @@ mutable struct CompositeNormL2{
     A::AbstractMatrix{T},
     b::AbstractVector{T};
     store_previous_jacobian::Bool = false,
-  ) where {T <: Real}
+  ) where {T<:Real}
     λ > 0 || error("CompositeNormL2: λ should be positive")
     length(b) == size(A, 1) || error(
       "Composite Norm L2: Wrong input dimensions, the length of c(x) should be the same as the number of rows of J(x)",
     )
-    new{T, typeof(c!), typeof(J!), typeof(A), typeof(b)}(
+    new{T,typeof(c!),typeof(J!),typeof(A),typeof(b)}(
       NormL2(λ),
       c!,
       J!,
@@ -64,13 +64,13 @@ end
 fun_name(f::CompositeNormL2) = "ℓ₂ norm of the function c"
 fun_dom(f::CompositeNormL2) = "AbstractVector{Real}"
 fun_expr(
-  f::CompositeNormL2{T, F0, F1, M, V},
+  f::CompositeNormL2{T,F0,F1,M,V},
 ) where {
-  T <: Real,
-  F0 <: Function,
-  F1 <: Function,
-  M <: AbstractMatrix{T},
-  V <: AbstractVector{T},
+  T<:Real,
+  F0<:Function,
+  F1<:Function,
+  M<:AbstractMatrix{T},
+  V<:AbstractVector{T},
 } = "x ↦ λ ‖c(x)‖₂"
 
 function (ψ::AbstractCompositeNorm)(y)

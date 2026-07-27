@@ -3,8 +3,9 @@ function compute_θ!(solver::L2PenaltySolver{T}) where {T}
 
   ## Retrieve workspace
   r2n_solver, r2n_stats = solver.subsolver, solver.substats
-    
-  ms_problem, ms_solver, ms_stats = r2n_solver.subpb, r2n_solver.subsolver, r2n_solver.substats
+
+  ms_problem, ms_solver, ms_stats =
+    r2n_solver.subpb, r2n_solver.subsolver, r2n_solver.substats
   ls_workspace = ms_solver.workspace
   u1, x1 = ms_solver.u1, ms_solver.x1
   nlp, ψ = ms_problem.model, ms_problem.h
@@ -18,12 +19,7 @@ function compute_θ!(solver::L2PenaltySolver{T}) where {T}
   @. u1[(n+1):(n+m)] = - ψ.b
 
   σ, α = one(T), one(T)
-  update_workspace!(
-    ls_workspace,
-    ψ.A,
-    σ,
-    α,
-  )
+  update_workspace!(ls_workspace, ψ.A, σ, α)
 
   solve_system!(ls_workspace, u1)
   get_solution!(x1, ls_workspace)
@@ -44,7 +40,7 @@ function compute_θ!(solver::L2PenaltySolver{T}) where {T}
   norm_y = norm(y, 2)
   iszero(norm_y) && return zero(T)
 
-  θ = σ * (ψ(solver.s0) - ψ(s)) / (τ * norm_y) 
+  θ = σ * (ψ(solver.s0) - ψ(s)) / (τ * norm_y)
 
   set_solver_specific!(r2n_stats, :n_fact, get_n_fact(ls_workspace))
 
@@ -59,8 +55,9 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
 
   ## Retrieve workspace
   r2n_solver, r2n_stats = solver.subsolver, solver.substats
-    
-  ms_problem, ms_solver, ms_stats = r2n_solver.subpb, r2n_solver.subsolver, r2n_solver.substats
+
+  ms_problem, ms_solver, ms_stats =
+    r2n_solver.subpb, r2n_solver.subsolver, r2n_solver.substats
   ls_workspace = ms_solver.workspace
   u1, x1 = ms_solver.u1, ms_solver.x1
   nlp, ψ = ms_problem.model, ms_problem.h
@@ -73,12 +70,7 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
   @. u1[(n+1):(n+m)] = 0
 
   σ, α = one(T), eps(T)
-  update_workspace!(
-    ls_workspace,
-    ψ.A,
-    σ,
-    α,
-  )
+  update_workspace!(ls_workspace, ψ.A, σ, α)
 
   solve_system!(ls_workspace, u1)
   get_solution!(x1, ls_workspace)
@@ -97,12 +89,7 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
   status = get_status(ls_workspace)
   if status != :success
     α = eps(T)^(0.8)
-    update_workspace!(
-      ls_workspace,
-      ψ.A,
-      σ,
-      α,
-    )
+    update_workspace!(ls_workspace, ψ.A, σ, α)
     solve_system!(ls_workspace, u1)
     get_solution!(x1, ls_workspace)
 
@@ -116,12 +103,7 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
   status = get_status(ls_workspace)
   if status != :success
     α = eps(T)^(0.6)
-    update_workspace!(
-      ls_workspace,
-      ψ.A,
-      σ,
-      α,
-    )
+    update_workspace!(ls_workspace, ψ.A, σ, α)
     solve_system!(ls_workspace, u1)
     get_solution!(x1, ls_workspace)
 
