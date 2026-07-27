@@ -247,12 +247,14 @@ function SolverCore.solve!(
 
     end
 
-    if η2 ≤ ρk < η3
+    if η2 ≤ ρk < Inf
       σk = σk / γ
     end
 
-    if η3 ≤ ρk < Inf
-      σk = σk / γ^4
+    if η3 ≤ ρk < Inf && stats.dual_feas < 1
+      dual_res .= ∇fk
+      mul!(dual_res, ψ.A', y, one(T), one(T))
+      σk = σk * min(sqrt(norm(dual_res, 2)), 1)
     end
 
     if ρk < η1 || ρk == Inf
