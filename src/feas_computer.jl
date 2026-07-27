@@ -72,7 +72,7 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
   @. u1[1:n] = - solver.∇fk
   @. u1[(n+1):(n+m)] = 0
 
-  σ, α = one(T), zero(T)
+  σ, α = one(T), eps(T)
   update_workspace!(
     ls_workspace,
     ψ.A,
@@ -96,6 +96,25 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
   # Step 2: Check Jacobian full row rank and recompute if necessary
   status = get_status(ls_workspace)
   if status != :success
+    α = eps(T)^(0.8)
+    update_workspace!(
+      ls_workspace,
+      ψ.A,
+      σ,
+      α,
+    )
+    solve_system!(ls_workspace, u1)
+    get_solution!(x1, ls_workspace)
+
+    if isa(ls_workspace.H, CompactBFGSK2)
+      # ( (1 + ξ)I     Jᵀ )( s ) = - ( 0 )
+      # ( J           -αI )( y ) = - ( c )
+      x1 .= ls_workspace.H.x1
+    end
+  end
+
+  status = get_status(ls_workspace)
+  if status != :success
     α = eps(T)^(0.6)
     update_workspace!(
       ls_workspace,
@@ -110,7 +129,6 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
       # ( (1 + ξ)I     Jᵀ )( s ) = - ( 0 )
       # ( J           -αI )( y ) = - ( c )
       x1 .= ls_workspace.H.x1
-      σ = (1 + ls_workspace.H.B.ξ)
     end
   end
 
