@@ -384,7 +384,7 @@ function SolverCore.solve!(
       νsub = 1 / solver.substats.solver_specific[:sigma]
 
       # Subsolver: Activate the aggressive regularization parameter update if sigma is too small
-      first_increase = true
+      first_increase = false
 
       # Add a relative tolerance for the subsolver
       dual_ktol = dual_tol
