@@ -27,15 +27,25 @@ function compute_θ!(solver::L2PenaltySolver{T}) where {T}
 
   solve_system!(ls_workspace, u1)
   get_solution!(x1, ls_workspace)
+
+  # With a CompactBFGSK2, solve_system! automatically performs the Sherman-Morrison update.
+  # x1 is the preallocated space for the solution of the linear system with a block identity.
+  # Refer to the CompactBFGSK2 code.
+  if isa(ls_workspace.H, CompactBFGSK2)
+    # ( (1 + ξ)I     Jᵀ )( s ) = - ( 0 )
+    # ( J           -αI )( y ) = - ( c )
+    x1 .= ls_workspace.H.x1
+    σ = (1 + ls_workspace.H.B.ξ)
+  end
+
   s, y = view(x1, 1:n), view(x1, (n+1):(n+m))
 
-  # Step 2: Compute θ = (ψ(0; x) - ψ(s; x)) / (τ * ‖y‖₂)
+  # Step 2: Compute θ = σ * (ψ(0; x) - ψ(s; x)) / (τ * ‖y‖₂)
   norm_y = norm(y, 2)
   iszero(norm_y) && return zero(T)
 
-  θ = (ψ(solver.s0) - ψ(s)) / τ 
+  θ = σ * (ψ(solver.s0) - ψ(s)) / (τ * norm_y) 
 
-  # Set factorization counters
   set_solver_specific!(r2n_stats, :n_fact, get_n_fact(ls_workspace))
 
   return θ
@@ -73,10 +83,20 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
   solve_system!(ls_workspace, u1)
   get_solution!(x1, ls_workspace)
 
+  # With a CompactBFGSK2, solve_system! automatically performs the Sherman-Morrison update.
+  # x1 is the preallocated space for the solution of the linear system with a block identity.
+  # Refer to the CompactBFGSK2 code.
+  if isa(ls_workspace.H, CompactBFGSK2)
+    # ( (1 + ξ)I     Jᵀ )( s ) = - ( 0 )
+    # ( J           -αI )( y ) = - ( c )
+    x1 .= ls_workspace.H.x1
+    σ = (1 + ls_workspace.H.B.ξ)
+  end
+
   # Step 2: Check Jacobian full row rank and recompute if necessary
   status = get_status(ls_workspace)
   if status != :success
-    α = sqrt(eps(T))
+    α = eps(T)^(0.6)
     update_workspace!(
       ls_workspace,
       ψ.A,
@@ -85,6 +105,13 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
     )
     solve_system!(ls_workspace, u1)
     get_solution!(x1, ls_workspace)
+
+    if isa(ls_workspace.H, CompactBFGSK2)
+      # ( (1 + ξ)I     Jᵀ )( s ) = - ( 0 )
+      # ( J           -αI )( y ) = - ( c )
+      x1 .= ls_workspace.H.x1
+      σ = (1 + ls_workspace.H.B.ξ)
+    end
   end
 
   # Step 3: Extract the solution
