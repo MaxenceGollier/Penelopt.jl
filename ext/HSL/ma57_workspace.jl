@@ -104,12 +104,7 @@ function update_workspace!(
   solver_workspace.factorized = false
 end
 
-function update_workspace!(
-  solver_workspace::PenaltyMA57Workspace,
-  A,
-  σ,
-  α,
-)
+function update_workspace!(solver_workspace::PenaltyMA57Workspace, A, σ, α)
   # Warning: Considers tht B is a zero matrix.
   n, m = solver_workspace.n, solver_workspace.m
   nnz_A = length(A.vals)

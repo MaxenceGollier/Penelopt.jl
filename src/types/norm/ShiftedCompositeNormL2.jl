@@ -27,12 +27,12 @@ In this case, each time a shift is performed, the previous Jacobian is stored in
 This is particularly useful for quasi-Newton updates in the context of constrained optimization.
 """
 mutable struct ShiftedCompositeNormL2{
-  T <: Real,
-  F0 <: Function,
-  F1 <: Function,
-  M <: AbstractMatrix{T},
-  N <: Union{Nothing, M},
-  V <: AbstractVector{T},
+  T<:Real,
+  F0<:Function,
+  F1<:Function,
+  M<:AbstractMatrix{T},
+  N<:Union{Nothing,M},
+  V<:AbstractVector{T},
 } <: AbstractShiftedCompositeNorm
   h::NormL2{T}
   c!::F0
@@ -48,7 +48,7 @@ mutable struct ShiftedCompositeNormL2{
     A::AbstractMatrix{T},
     b::AbstractVector{T};
     store_previous_jacobian::Bool = false,
-  ) where {T <: Real}
+  ) where {T<:Real}
     if length(b) != size(A, 1)
       error(
         "ShiftedCompositeNormL2: Wrong input dimensions, there should be as many constraints as rows in the Jacobian",
@@ -58,41 +58,36 @@ mutable struct ShiftedCompositeNormL2{
     A_prev = store_previous_jacobian ? copy(A) : nothing
     g = similar(b)
 
-    new{T, typeof(c!), typeof(J!), typeof(A), typeof(A_prev), typeof(b)}(
+    new{T,typeof(c!),typeof(J!),typeof(A),typeof(A_prev),typeof(b)}(
       NormL2(λ),
       c!,
       J!,
       A,
       A_prev,
       b,
-      g
+      g,
     )
   end
 end
 
 shifted(
-  ψ::CompositeNormL2{T, F0, F1, M, V},
+  ψ::CompositeNormL2{T,F0,F1,M,V},
   xk::AbstractVector{T},
-) where {
-  T <: Real,
-  F0 <: Function,
-  F1 <: Function,
-  M <: AbstractMatrix{T},
-  V <: AbstractVector{T},
-} = begin
-  b = similar(ψ.b)
-  ψ.c!(b, xk)
-  A = similar(ψ.A)
-  ψ.J!(A, xk)
-  ShiftedCompositeNormL2(
-    ψ.h.lambda,
-    ψ.c!,
-    ψ.J!,
-    A,
-    b,
-    store_previous_jacobian = ψ.store_previous_jacobian,
-  )
-end
+) where {T<:Real,F0<:Function,F1<:Function,M<:AbstractMatrix{T},V<:AbstractVector{T}} =
+  begin
+    b = similar(ψ.b)
+    ψ.c!(b, xk)
+    A = similar(ψ.A)
+    ψ.J!(A, xk)
+    ShiftedCompositeNormL2(
+      ψ.h.lambda,
+      ψ.c!,
+      ψ.J!,
+      A,
+      b,
+      store_previous_jacobian = ψ.store_previous_jacobian,
+    )
+  end
 
 fun_name(ψ::ShiftedCompositeNormL2) = "shifted `ℓ₂` norm"
 fun_expr(ψ::ShiftedCompositeNormL2) = "t ↦ ‖c(xk) + J(xk)t‖₂"
@@ -104,7 +99,7 @@ function (ψ::AbstractShiftedCompositeNorm)(y)
   return ψ.h(ψ.g)
 end
 
-function shift!(ψ::AbstractShiftedCompositeNorm, shift::AbstractVector{R}) where {R <: Real}
+function shift!(ψ::AbstractShiftedCompositeNorm, shift::AbstractVector{R}) where {R<:Real}
   !isnothing(ψ.A_prev) && (ψ.A_prev.vals .= ψ.A.vals) # Update previous Jacobian if necessary
   ψ.c!(ψ.b, shift)
   ψ.J!(ψ.A, shift)

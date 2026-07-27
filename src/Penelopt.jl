@@ -10,11 +10,7 @@ module Penelopt
 
 using LinearAlgebra, Printf, SparseArrays
 using NLPModels, NLPModelsModifiers
-using LDLFactorizations,
-  LinearOperators,
-  QuadraticModels,
-  SolverCore,
-  SparseMatricesCOO
+using LDLFactorizations, LinearOperators, QuadraticModels, SolverCore, SparseMatricesCOO
 
 import SolverCore.reset!
 

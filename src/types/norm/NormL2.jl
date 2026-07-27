@@ -7,7 +7,7 @@ f(x) = λ\\cdot\\sqrt{x_1^2 + … + x_n^2}.
 ```
 """
 mutable struct NormL2{T}
-  lambda::T 
+  lambda::T
 end
 
 (f::NormL2)(x) = f.lambda * norm(x)
