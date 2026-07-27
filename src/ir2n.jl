@@ -6,7 +6,7 @@ mutable struct PenaltyR2NSolver{
   T<:Real,
   V<:AbstractVector{T},
   ST<:AbstractOptimizationSolver,
-  PB<:AbstractRegularizedNLPModel,
+  PB<:AbstractShiftedPenalizedProblem,
   WC<:watchdog_checkpoint,
 } <: AbstractOptimizationSolver
   xk::V
@@ -68,7 +68,7 @@ SolverCore.reset!(solver::PenaltyR2NSolver, model) = SolverCore.reset!(solver)
 
 function SolverCore.solve!(
   solver::PenaltyR2NSolver{T,V},
-  reg_nlp::AbstractRegularizedNLPModel{T,V},
+  reg_nlp::AbstractPenalizedProblem{T,V},
   stats::GenericExecutionStats{T,V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,

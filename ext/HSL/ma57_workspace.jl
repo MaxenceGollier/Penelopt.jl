@@ -106,6 +106,27 @@ end
 
 function update_workspace!(
   solver_workspace::PenaltyMA57Workspace,
+  A,
+  σ,
+  α,
+)
+  # Warning: Considers tht B is a zero matrix.
+  n, m = solver_workspace.n, solver_workspace.m
+  nnz_A = length(A.vals)
+  H = get_H(solver_workspace)
+  nnz_B = length(H.vals) - nnz_A - n - m
+
+  H.vals .= 0
+  H.vals[(nnz_B+1):(nnz_B+nnz_A)] .= A.vals
+  H.vals[(nnz_B+nnz_A+1):(nnz_B+nnz_A+n)] .= σ
+  H.vals[(nnz_B+nnz_A+n+1):(nnz_B+nnz_A+n+m)] .= -α
+
+  solver_workspace.σ = σ
+  solver_workspace.factorized = false
+end
+
+function update_workspace!(
+  solver_workspace::PenaltyMA57Workspace,
   B::M,
   A,
   σ,

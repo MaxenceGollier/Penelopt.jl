@@ -1,9 +1,53 @@
 function compute_θ!(solver::L2PenaltySolver{T}) where {T}
-  ## Computes a model decrease for the feasbility problem minₓ ‖c(x)‖₂
-  ψ = solver.subsolver.subpb.h
-  norm_cx = ψ.h(ψ.b)
-  prox!(solver.s, ψ, solver.s0, 1/ψ.h.lambda)
-  θ = (norm_cx - ψ(solver.s))/ψ.h.lambda
+  # Computes a model decrease for the feasbility problem minₓ ‖c(x)‖₂
+
+  ## Retrieve workspace
+  r2n_solver, r2n_stats = solver.subsolver, solver.substats
+    
+  ms_problem, ms_solver, ms_stats = r2n_solver.subpb, r2n_solver.subsolver, r2n_solver.substats
+  ls_workspace = ms_solver.workspace
+  u1, x1 = ms_solver.u1, ms_solver.x1
+  nlp, ψ = ms_problem.model, ms_problem.h
+  τ = ψ.h.lambda
+  n, m = nlp.meta.nvar, length(ψ.b)
+
+  # Step 1: Compute
+  # ( I     Jᵀ )( s ) = - ( 0 )
+  # ( J    -αI )( y ) = - ( c )
+  @. u1[1:n] = 0
+  @. u1[(n+1):(n+m)] = - ψ.b
+
+  σ, α = one(T), one(T)
+  update_workspace!(
+    ls_workspace,
+    ψ.A,
+    σ,
+    α,
+  )
+
+  solve_system!(ls_workspace, u1)
+  get_solution!(x1, ls_workspace)
+
+  # With a CompactBFGSK2, solve_system! automatically performs the Sherman-Morrison update.
+  # x1 is the preallocated space for the solution of the linear system with a block identity.
+  # Refer to the CompactBFGSK2 code.
+  if isa(ls_workspace.H, CompactBFGSK2)
+    # ( (1 + ξ)I     Jᵀ )( s ) = - ( 0 )
+    # ( J           -αI )( y ) = - ( c )
+    x1 .= ls_workspace.H.x1
+    σ = (1 + ls_workspace.H.B.ξ)
+  end
+
+  s, y = view(x1, 1:n), view(x1, (n+1):(n+m))
+
+  # Step 2: Compute θ = σ * (ψ(0; x) - ψ(s; x)) / (τ * ‖y‖₂)
+  norm_y = norm(y, 2)
+  iszero(norm_y) && return zero(T)
+
+  θ = σ * (ψ(solver.s0) - ψ(s)) / (τ * norm_y) 
+
+  set_solver_specific!(r2n_stats, :n_fact, get_n_fact(ls_workspace))
+
   return θ
 end
 
@@ -12,27 +56,88 @@ function kkt_primal_feas!(solver::L2PenaltySolver{T}) where {T}
 end
 
 function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
-  s = solver.subsolver.s
-  sigma_symbol = isa(solver.subsolver, PenaltyR2NSolver) ? :sigma_cauchy : :sigma
-  ψ = solver.subsolver.subpb.h
 
-  lambda_temp = ψ.h.lambda
+  ## Retrieve workspace
+  r2n_solver, r2n_stats = solver.subsolver, solver.substats
+    
+  ms_problem, ms_solver, ms_stats = r2n_solver.subpb, r2n_solver.subsolver, r2n_solver.substats
+  ls_workspace = ms_solver.workspace
+  u1, x1 = ms_solver.u1, ms_solver.x1
+  nlp, ψ = ms_problem.model, ms_problem.h
+  n, m = nlp.meta.nvar, length(ψ.b)
 
-  # if τ = Inf, assuming full row rankness of A, then the solution of the prox is given by
-  # y = (AAᵀ)^{-1}(-A∇f) -> corresponds to the least-square multipliers.
-  ψ.h = NormL2(Inf)
-  solver.temp_b .= ψ.b
-  ψ.b .= 0
-  solver.∇fk .*= -1
-  prox!(s, ψ, solver.∇fk, T(1))
-  solver.∇fk .*= -1
+  # Step 1: Compute
+  # ( I     Jᵀ )( s ) = - ( ∇f )
+  # ( J     0I )( y ) = - ( 0  )
+  @. u1[1:n] = - solver.∇fk
+  @. u1[(n+1):(n+m)] = 0
 
-  # Reset old value
-  ψ.h = NormL2(lambda_temp)
-  ψ.b .= solver.temp_b
+  σ, α = one(T), eps(T)
+  update_workspace!(
+    ls_workspace,
+    ψ.A,
+    σ,
+    α,
+  )
 
-  set_solver_specific!(solver.substats, sigma_symbol, T(1))
-  @. solver.y = - ψ.q
+  solve_system!(ls_workspace, u1)
+  get_solution!(x1, ls_workspace)
+
+  # With a CompactBFGSK2, solve_system! automatically performs the Sherman-Morrison update.
+  # x1 is the preallocated space for the solution of the linear system with a block identity.
+  # Refer to the CompactBFGSK2 code.
+  if isa(ls_workspace.H, CompactBFGSK2)
+    # ( (1 + ξ)I     Jᵀ )( s ) = - ( 0 )
+    # ( J           -αI )( y ) = - ( c )
+    x1 .= ls_workspace.H.x1
+    σ = (1 + ls_workspace.H.B.ξ)
+  end
+
+  # Step 2: Check Jacobian full row rank and recompute if necessary
+  status = get_status(ls_workspace)
+  if status != :success
+    α = eps(T)^(0.8)
+    update_workspace!(
+      ls_workspace,
+      ψ.A,
+      σ,
+      α,
+    )
+    solve_system!(ls_workspace, u1)
+    get_solution!(x1, ls_workspace)
+
+    if isa(ls_workspace.H, CompactBFGSK2)
+      # ( (1 + ξ)I     Jᵀ )( s ) = - ( 0 )
+      # ( J           -αI )( y ) = - ( c )
+      x1 .= ls_workspace.H.x1
+    end
+  end
+
+  status = get_status(ls_workspace)
+  if status != :success
+    α = eps(T)^(0.6)
+    update_workspace!(
+      ls_workspace,
+      ψ.A,
+      σ,
+      α,
+    )
+    solve_system!(ls_workspace, u1)
+    get_solution!(x1, ls_workspace)
+
+    if isa(ls_workspace.H, CompactBFGSK2)
+      # ( (1 + ξ)I     Jᵀ )( s ) = - ( 0 )
+      # ( J           -αI )( y ) = - ( c )
+      x1 .= ls_workspace.H.x1
+    end
+  end
+
+  # Step 3: Extract the solution
+  s, y = view(x1, 1:n), view(x1, (n+1):(n+m))
+  solver.y .= y
+
+  # Set factorization counters
+  set_solver_specific!(r2n_stats, :n_fact, get_n_fact(ls_workspace))
 end
 
 function update_constraint_multipliers!(solver::L2PenaltySolver{T}) where {T}

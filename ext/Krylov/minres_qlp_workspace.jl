@@ -16,6 +16,13 @@ function update_workspace!(solver_workspace::PenaltyKrylovWorkspace, B, A, σ, �
   solver_workspace.H.σ = σ
 end
 
+function update_workspace!(solver_workspace::PenaltyKrylovWorkspace, A, σ::T, α::T) where{T}
+  solver_workspace.H.B = opZeros(T, solver_workspace.n, solver_workspace.n)
+  solver_workspace.H.A = A
+  solver_workspace.H.α = α
+  solver_workspace.H.σ = σ
+end
+
 function set_dual_inertia!(solver_workspace::PenaltyKrylovWorkspace, α)
   solver_workspace.H.α = α
 end

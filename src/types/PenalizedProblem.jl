@@ -1,4 +1,4 @@
-abstract type AbstractPenalizedProblem{T,S} <: AbstractRegularizedNLPModel{T,S} end
+abstract type AbstractPenalizedProblem{T,S} <: AbstractNLPModel{T,S} end
 
 """
     penalty_problem = L2PenalizedProblem(nlp::AbstractNLPModel)
@@ -13,7 +13,7 @@ construct the L2 penalty problem
 
 The L2PenalizedProblem is made of the following components:
 - `model`: the original NLP model `nlp`;
-- `h`: the penalty term, which is a `CompositeNormL2` object, see `ShiftedProximalOperators.jl`.
+- `h`: the penalty term, which is a `CompositeNormL2` object, see `jl`.
 """
 mutable struct L2PenalizedProblem{
   T,
@@ -61,5 +61,5 @@ end
 
 # Miscellaneous
 function set_penalty!(nlp::L2PenalizedProblem{T}, τ::T) where {T}
-  nlp.h.h = NormL2(τ)
+  nlp.h.h.lambda = τ
 end

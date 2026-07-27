@@ -132,6 +132,34 @@ end
 
 function update_workspace!(
   solver_workspace::PenaltyLDLTWorkspace,
+  A,
+  σ,
+  α,
+)
+  # Warning: Considers tht B is a zero matrix.
+  n, m = solver_workspace.n, solver_workspace.m
+  H = get_H(solver_workspace)
+
+  H.nzval .= 0
+
+  @inbounds for i = 1:n
+    H[i, i] = σ
+  end
+
+  @inbounds for i = 1:length(A.vals)
+    H[A.cols[i], n+A.rows[i]] = A.vals[i]
+  end
+
+  @inbounds for i = 1:m
+    H[n+i, n+i] = -α
+  end
+
+  solver_workspace.σ = σ
+  solver_workspace.M.__factorized = false
+end
+
+function update_workspace!(
+  solver_workspace::PenaltyLDLTWorkspace,
   B::M,
   A,
   σ,
