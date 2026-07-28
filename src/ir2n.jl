@@ -84,7 +84,7 @@ function SolverCore.solve!(
   σmin::T = eps(T),
   η1::T = √√eps(T),
   η2::T = T(0.1),
-  η3::T = T(0.9),
+  η3::T = T(0.95),
   γ::T = T(3),
   watchdog_max_iter::Int = 10,
   watchdog_η0::T = √eps(T),
@@ -251,10 +251,11 @@ function SolverCore.solve!(
       σk = σk / γ
     end
 
-    if η3 ≤ ρk < Inf && stats.dual_feas < 1
-      dual_res .= ∇fk
-      mul!(dual_res, ψ.A', y, one(T), one(T))
-      σk = σk * min(sqrt(norm(dual_res, 2)), 1)
+    if η3 ≤ ρk < Inf
+      if norm(y) <= ψ.h.lambda
+        σk = σk * min(max(sqrt(stats.dual_feas), 1 / γ), 1)
+      end
+
     end
 
     if ρk < η1 || ρk == Inf
