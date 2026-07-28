@@ -253,13 +253,13 @@ function SolverCore.solve!(
 
     if η3 ≤ ρk < Inf
       if norm(y) <= ψ.h.lambda
-        σk = σk * min(max(sqrt(stats.dual_feas), 1 / γ), 1)
+        σk = σk * clamp(sqrt(stats.dual_feas), 1 / γ, 1)
       end
 
     end
 
     if ρk < η1 || ρk == Inf
-      if first_increase && ρk < 0
+      if first_increase
         σk = max(sqrt(stats.dual_feas), σk * γ)
         first_increase = false
       elseif ρk < 0 && !is_active(watchdog_checkpoint) && !isa(nlp, NullHessianModel) # Watchdog procedure
