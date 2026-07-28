@@ -271,7 +271,7 @@ function SolverCore.solve!(
           (fk - fkn + max(1, abs(fk)) * 10 * eps())/(
             -d∇fks + max(1, abs(fk)) * 10 * eps()
           ) : zero(T)
-        if η2 ≤ fρk < Inf # Activate watchdog
+        if η3 ≤ fρk < Inf # Activate watchdog
           activate!(watchdog_checkpoint)
           save!(watchdog_checkpoint, mk, xk, y, stats)
           watchdog_checkpoint.m_fh_hist .= m_fh_hist
@@ -286,7 +286,14 @@ function SolverCore.solve!(
           σk = σk * γ
         end
       else
-        σk = σk * γ
+        σms = more_sorensen_sigma!(
+          solver.subsolver,
+          solver.subpb,
+          solver.substats;
+          Δ = norm(s) / γ,
+        )
+        σms = σk - σms
+        σk = clamp(σms, σk * sqrt(γ), σk * γ^2)
       end
     end
 
