@@ -85,7 +85,12 @@ function SolverCore.solve!(
   η1::T = √√eps(T),
   η2::T = T(0.1),
   η3::T = T(0.95),
-  γ::T = T(3),
+  γ0::T = sqrt(3),
+  γ1::T = T(9),
+  γ2::T = T(3),
+  γ3::T = T(1 / 3),
+  γ4::T = T(1 / 3),
+  γtr::T = T(1 / 3),
   watchdog_max_iter::Int = 10,
   watchdog_η0::T = √eps(T),
   tiny_step_tol::T = eps(T),
@@ -197,7 +202,7 @@ function SolverCore.solve!(
     # Check the watchdog
     if check_watchdog!(watchdog_checkpoint, stats, mk, xk, watchdog_max_iter, watchdog_η0)
       fallback!(mk, xk, y, watchdog_checkpoint)
-      φ.data.σ *= γ^watchdog_max_iter
+      φ.data.σ *= γ2^watchdog_max_iter
       σk = φ.data.σ
       hk, fk = watchdog_checkpoint.hk, watchdog_checkpoint.fk
       m_fh_hist .= watchdog_checkpoint.m_fh_hist
@@ -248,19 +253,19 @@ function SolverCore.solve!(
     end
 
     if η2 ≤ ρk < Inf
-      σk = σk / γ
+      σk = σk * γ3
     end
 
     if η3 ≤ ρk < Inf
       if norm(y) <= ψ.h.lambda
-        σk = σk * clamp(sqrt(stats.dual_feas), 1 / γ, 1)
+        σk = σk * clamp(sqrt(stats.dual_feas), γ4, 1)
       end
 
     end
 
     if ρk < η1 || ρk == Inf
       if first_increase
-        σk = max(sqrt(stats.dual_feas), σk * γ)
+        σk = max(sqrt(stats.dual_feas), σk * γ2)
         first_increase = false
       elseif ρk < 0 && !is_active(watchdog_checkpoint) && !isa(nlp, NullHessianModel) # Watchdog procedure
 
@@ -283,17 +288,17 @@ function SolverCore.solve!(
           shift!(mk, xk, y = y)
 
         else
-          σk = σk * γ
+          σk = σk * γ2
         end
       else
         σms = more_sorensen_sigma!(
           solver.subsolver,
           solver.subpb,
           solver.substats;
-          Δ = norm(s) / γ,
+          Δ = norm(s) * γtr,
         )
-        σms = σk - σms
-        σk = clamp(σms, σk * sqrt(γ), σk * γ^2)
+        σms = σk + σms
+        σk = clamp(σms, σk * γ0, σk * γ1)
       end
     end
 

@@ -181,8 +181,26 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
  * `r2n_η2::T = 0.1` (*advanced*): strong Armijo sufficient decrease threshold.
     > In addition to being accepted, when the ratio of the actual decrease and the first-order decrease is larger than `r2n_η2`, the quadratic regularization parameter is decreased by some constant factor (see `r2n_γ`). This is $\eta_2$ in the implementation paper. Note that `r2n_η2 ≥ r2n_η1` should hold. When using quasi-Newton approximations, the default value becomes `r2n_η2::T = 0.9`.
 
- * `r2n_γ::T = 3` (*advanced*): decrease/increase factor for quadratic regularization parameter.
-    > When a step is rejected, the quadratic regularization paramater $\sigma_l$ is increased by a factor `r2n_γ`, when a step is "strongly" accepted (see `r2n_η2`), the quadratic regularization parameter is decreased by a factor `1/r2n_γ`. Note that `r2n_γ > 1` should hold.
+ * `r2n_η3::T = 0.95` (*advanced*): extreme Armijo sufficient decrease threshold.
+    > In addition to decreasing the quadratic regularization parameter by some constant factor (see `r2n_γ`), when the ratio of the actual decrease and the first-order decrease is larger than `r2n_η3`, the quadratic regularization parameter is decreased more aggressively if local convergence is detected. This is $\eta_3$ in the implementation paper. Note that `r2n_η3 ≥ r2n_η2` should hold.
+
+ * `r2n_γ0::T = sqrt(3)` (*advanced*): minimum increase factor for quadratic regularization parameter.
+    > When a step is rejected, the quadratic regularization paramater $\sigma_l$ is increased by a factor at least `r2n_γ0`. This is $\gamma_0$ in the implementation paper. Note that `r2n_γ0 > 1` should hold.
+
+* `r2n_γ1::T = 9` (*advanced*): maximum increase factor for quadratic regularization parameter.
+    > When a step is rejected, the quadratic regularization paramater $\sigma_l$ is increased by a factor at most `r2n_γ1`. This is $\gamma_1$ in the implementation paper. Note that `r2n_γ1 > 1` should hold.
+    
+ * `r2n_γ2::T = 3` (*advanced*): medium increase factor for quadratic regularization parameter.
+    > When a step is rejected, and when the agreement between the actual decrease and the first order decrease is poor, the quadratic regularization paramater $\sigma_l$ is increased by a factor `r2n_γ2`. This is $\gamma_2$ in the implementation paper. Note that `r2n_γ2 > 1` should hold.
+
+ * `r2n_γ3::T = 1/3` (*advanced*): decrease factor for quadratic regularization parameter.
+    > When a step is "strongly" accepted (see `r2n_η2`), the quadratic regularization parameter is decreased by a factor `1 / r2n_γ3`. This is $\gamma_3$ in the implementation paper. Note that `r2n_γ3 < 1` should hold.
+
+ * `r2n_γ4::T = 1/3` (*advanced*): aggressive decrease factor for quadratic regularization parameter.
+    > When a step is extremely "strongly" accepted (see `r2n_η3`), the quadratic regularization parameter is decreased by a factor at most `1/ (r2n_γ3 * r2n_γ4)`. This is $\gamma_4$ in the implementation paper. Note that `r2n_γ4 < 1` should hold.
+
+ * `r2n_γtr::T = 1/3` (*advanced*): implicit trust region decrease factor for quadratic regularization parameter.
+    > When a step is rejected, the solver aims to satisfy $\|s_{l+1}\|_2 \approx \gamma_{tr} \|s_{l}\|_2$ where $s_{trial}$ is current step and $s_{l+1}$ is the step at the next iteration. This is $\gamma_{tr}$ in the implementation paper. Note that `r2n_γtr < 1` should hold.
 
  * `r2n_m_monotone::Int = 12` (*advanced*): non-monotone memory parameter.
     > When computing the ratio of the actual decrease and the first-order decrease (see `r2n_η1`), the decrease is computed with respect to the maximum of the last `r2n_m_monotone` values of the objective.
