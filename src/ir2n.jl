@@ -88,9 +88,9 @@ function SolverCore.solve!(
   γ0::T = sqrt(3),
   γ1::T = T(9),
   γ2::T = T(3),
-  γ3::T = T(1 / 3),
-  γ4::T = T(1 / 3),
-  γtr::T = T(1 / 3),
+  γ3::T = T(3),
+  γ4::T = T(3),
+  γtr::T = T(3),
   watchdog_max_iter::Int = 10,
   watchdog_η0::T = √eps(T),
   tiny_step_tol::T = eps(T),
@@ -253,12 +253,12 @@ function SolverCore.solve!(
     end
 
     if η2 ≤ ρk < Inf
-      σk = σk * γ3
+      σk = σk / γ3
     end
 
     if η3 ≤ ρk < Inf
       if norm(y) <= ψ.h.lambda
-        σk = σk * clamp(sqrt(stats.dual_feas), γ4, 1)
+        σk = σk * clamp(sqrt(stats.dual_feas), 1 / γ4, 1)
       end
 
     end
@@ -295,7 +295,7 @@ function SolverCore.solve!(
           solver.subsolver,
           solver.subpb,
           solver.substats;
-          Δ = norm(s) * γtr,
+          Δ = norm(s) / γtr,
         )
         σms = σk + σms
         σk = clamp(σms, σk * γ0, σk * γ1)
