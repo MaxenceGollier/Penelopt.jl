@@ -258,14 +258,14 @@ function SolverCore.solve!(
 
     if η3 ≤ ρk < Inf
       if norm(y) <= ψ.h.lambda
-        σk = σk * clamp(sqrt(stats.dual_feas), 1 / γ4, 1)
+        σk = σk * clamp(max(stats.dual_feas, stats.primal_feas), 0, 1)
       end
 
     end
 
     if ρk < η1 || ρk == Inf
       if first_increase
-        σk = max(sqrt(stats.dual_feas), σk * γ2)
+        σk = max(max(stats.dual_feas, stats.primal_feas), σk * γ2)
         first_increase = false
       elseif ρk < 0 && !is_active(watchdog_checkpoint) && !isa(nlp, NullHessianModel) # Watchdog procedure
 
@@ -291,14 +291,7 @@ function SolverCore.solve!(
           σk = σk * γ2
         end
       else
-        σms = more_sorensen_sigma!(
-          solver.subsolver,
-          solver.subpb,
-          solver.substats;
-          Δ = norm(s) / γtr,
-        )
-        σms = σk + σms
-        σk = clamp(σms, σk * γ0, σk * γ1)
+        σk = σk * γ2
       end
     end
 
