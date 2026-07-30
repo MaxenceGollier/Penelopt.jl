@@ -91,6 +91,7 @@ function SolverCore.solve!(
   γ3::T = T(3),
   γ4::T = T(3),
   γtr::T = T(3),
+  γmin::T = sqrt(eps(T)),
   watchdog_max_iter::Int = 10,
   watchdog_η0::T = √eps(T),
   tiny_step_tol::T = eps(T),
@@ -258,7 +259,7 @@ function SolverCore.solve!(
 
     if η3 ≤ ρk < Inf
       if norm(y) <= ψ.h.lambda
-        σk = σk * clamp(max(stats.dual_feas, stats.primal_feas), 0, 1)
+        σk = σk * clamp(max(stats.dual_feas, stats.primal_feas), γmin, 1)
       end
 
     end

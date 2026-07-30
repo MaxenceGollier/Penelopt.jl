@@ -34,7 +34,6 @@ include("types/ShiftedPenalizedProblem.jl")
 include("types/Watchdog.jl")
 
 include("subsolvers/more-sorensen.jl")
-include("subsolvers/more-sorensen-sigma.jl")
 
 include("ir2n.jl")
 

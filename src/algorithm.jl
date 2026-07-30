@@ -188,9 +188,9 @@ function SolverCore.solve!(
   max_eval::Int = -1,
   max_time::Float64 = 30.0,
   max_iter::Int = 100,
-  r2n_max_iter::Int = 1000,
+  r2n_max_iter::Int = 100,
   ms_max_iter::Int = 10,
-  μ::T = T(1e-2),
+  μ::T = T(0.01),
   infeasible_tol::T = T(1e-2),
   infeasible_iter::Int = 3,
 
@@ -395,7 +395,7 @@ function SolverCore.solve!(
       set_penalty!(mk, τ)
 
       # Initialize regularization parameter
-      νsub = 1 / solver.substats.solver_specific[:sigma]
+      νsub = max(1 / solver.substats.solver_specific[:sigma], 1 / β4)
 
       # Subsolver: Activate the aggressive regularization parameter update if sigma is too small
       first_increase = true
@@ -416,7 +416,7 @@ function SolverCore.solve!(
       y .= solver.substats.multipliers
 
       # Initialize regularization parameter
-      νsub = 1/solver.substats.solver_specific[:sigma]
+      νsub = max(1 / solver.substats.solver_specific[:sigma], 1 / β4)
 
       # Subsolver: Do not impose primal decrease
       primal_decrease = false
