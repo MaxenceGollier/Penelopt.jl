@@ -298,7 +298,7 @@ function SolverCore.solve!(
           Δ = norm(s) * γtr,
         )
         σms = σk + σms
-        σk = clamp(σms, σk * γ2, σk * γ2)
+        σk = clamp(σms, σk * γ0, σk * γ1)
       end
     end
 
