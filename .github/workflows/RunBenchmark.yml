@@ -7,7 +7,7 @@ on:
 
 # Only trigger the benchmark job when you add `run CUTEst benchmark` label to the PR
 jobs:
-  Benchmark:
+  Benchmark-LBFGS:
     runs-on: windows-latest
     if: >
       github.event_name != 'pull_request' ||
@@ -21,7 +21,7 @@ jobs:
 
       - name: Use Julia cache
         uses: julia-actions/cache@v2
-      
+        
       - name: Instantiate project
         run: |
           julia --project=benchmark -e '
@@ -29,32 +29,66 @@ jobs:
             Pkg.develop(path=".")
             Pkg.instantiate()
             mkpath("benchmark/result")
-            '
-      
+          '
+
       - name: Run benchmarks with LBFGS
         run: |
           julia --project=benchmark -e '
-              include("benchmark/benchmark-cutest-lbfgs.jl")
-              '
-        
+            include("benchmark/benchmark-cutest-lbfgs.jl")
+          '
+
+      - name: Upload LBFGS benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: cutest-benchmark-stats-lbfgs
+          path: benchmark/result
+          if-no-files-found: error
+
+
+  Benchmark-Exact-Hessian:
+    runs-on: windows-latest
+    if: >
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'run CUTEst benchmark')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: 'lts'
+
+      - name: Use Julia cache
+        uses: julia-actions/cache@v2
+
+      - name: Instantiate project
+        run: |
+          julia --project=benchmark -e '
+            using Pkg
+            Pkg.develop(path=".")
+            Pkg.instantiate()
+            mkpath("benchmark/result")
+          '
+
       - name: Run benchmarks with exact Hessian
         run: |
           julia --project=benchmark -e '
-              include("benchmark/benchmark-cutest-exact-hessian.jl")
-            '
-      
-      - name: Upload benchmark results
+            include("benchmark/benchmark-cutest-exact-hessian.jl")
+          '
+
+      - name: Upload exact-Hessian benchmark results
         uses: actions/upload-artifact@v4
         with:
-          name: cutest-benchmark-stats
+          name: cutest-benchmark-stats-exact-hessian
           path: benchmark/result
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if-no-files-found: error
+
 
   Compare-benchmarks:
-    needs: Benchmark
+    needs:
+      - Benchmark-LBFGS
+      - Benchmark-Exact-Hessian
     if: >
       github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'run CUTEst benchmark')
     uses: ./.github/workflows/CompareBenchmarks.yml
-
