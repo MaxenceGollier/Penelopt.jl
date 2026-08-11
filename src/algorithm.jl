@@ -163,6 +163,10 @@ function L2Penalty(
     error("L2Penalty: This algorithm only works for equality contrained problems.")
   end
 
+  if length(nlp.meta.ifix) > 0
+    nlp = remove_fixed_variables(nlp)
+  end
+
   solver =
     L2PenaltySolver(nlp; r2n_m_monotone = r2n_m_monotone, linear_solver = linear_solver)
 
