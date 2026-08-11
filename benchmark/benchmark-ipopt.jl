@@ -2,10 +2,8 @@ using JLD2
 
 using CUTEst, NLPModelsIpopt, SolverBenchmark
 
-nmax = 10000
 problem_names = CUTEst.select_sif_problems(
   min_con = 1,
-  max_var = nmax,
   only_equ_con = true,
   only_free_var = true,
   custom_filter = meta -> (
