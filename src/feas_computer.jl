@@ -122,13 +122,6 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
   set_solver_specific!(r2n_stats, :n_fact, get_n_fact(ls_workspace))
 end
 
-function update_constraint_multipliers!(solver::L2PenaltySolver{T}) where {T}
-  σ =
-    isa(solver.subsolver, PenaltyR2NSolver) ?
-    solver.substats.solver_specific[:sigma_cauchy] : solver.substats.solver_specific[:sigma]
-  @. solver.y = solver.subsolver.subpb.h.q * σ
-end
-
 function kkt_dual_feas!(solver::L2PenaltySolver{T}) where {T}
   return solver.substats.dual_feas
 end
