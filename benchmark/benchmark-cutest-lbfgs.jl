@@ -12,6 +12,24 @@ problem_names = CUTEst.select_sif_problems(
     #&& meta["variables"]["free"] + meta["variables"]["fixed"] == meta["variables"]["number"]
   )
 )
+
+# Speedup benchmark time for BFGS
+# Split problems across 4 runners.
+split = parse(Int, get(ENV, "CUTEST_SPLIT", "1"))
+n_splits = 4
+
+@assert 1 <= split <= n_splits
+
+problem_names = collect(problem_names)
+
+n = length(problem_names)
+first = fld((split - 1) * n, n_splits) + 1
+last  = fld(split * n, n_splits)
+
+problem_names = problem_names[first:last]
+
+@info "Running CUTEst split $split/$n_splits: problems $first:$last ($(length(problem_names)) problems)"
+
 problem_list = (CUTEstModel(name) for name in problem_names)
 
 tol = 1e-6
