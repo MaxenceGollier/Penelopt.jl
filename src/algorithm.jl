@@ -163,15 +163,29 @@ function L2Penalty(
     error("L2Penalty: This algorithm only works for equality contrained problems.")
   end
 
+  # Preprocessing
+  preprocessed_nlp = nlp
   if length(nlp.meta.ifix) > 0
-    nlp = remove_fixed_variables(nlp)
+    preprocessed_nlp = remove_fixed_variables(nlp)
   end
 
+  # Preallocation
   solver =
-    L2PenaltySolver(nlp; r2n_m_monotone = r2n_m_monotone, linear_solver = linear_solver)
+    L2PenaltySolver(preprocessed_nlp; r2n_m_monotone = r2n_m_monotone, linear_solver = linear_solver)
+  stats = PeneloptExecutionStats(preprocessed_nlp)
 
-  stats = PeneloptExecutionStats(nlp)
-  solve!(solver, nlp, stats; kwargs...)
+  # Solve
+  solve!(solver, preprocessed_nlp, stats; kwargs...)
+
+  # Postprocess
+  if length(nlp.meta.ifix) > 0
+    solution = similar(nlp.meta.x0)
+    @views solution[nlp.meta.ifix] .= nlp.meta.uvar[nlp.meta.ifix]
+    @views solution[nlp.meta.ifree] .= stats.solution
+
+    stats.solution = solution
+  end
+
   return stats
 end
 

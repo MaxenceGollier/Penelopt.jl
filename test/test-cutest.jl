@@ -168,3 +168,29 @@ end
   @test stats.status == :first_order
   finalize(nlp)
 end
+
+# Test a problem with fixed variables
+@testset "AIRCRFTA" begin
+  primal_solution = [
+     0.005652720539657081,
+    -0.00653774373397042,
+    -0.0006212466680082355,
+    -0.12333555374458006,
+    -0.0003874221934374081,
+    0.1,
+    0.0,
+    0.0
+  ]
+  dual_solution = zeros(5)
+  linear_solver =
+    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
+  test_problem(
+    "BT1",
+    primal_solution,
+    dual_solution,
+    :first_order;
+    linear_solver = linear_solver,
+  )
+end
+# Test an ill-conditionned problem
+# TODO: Add MSS1
