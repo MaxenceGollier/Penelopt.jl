@@ -13,7 +13,6 @@ jobs:
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'run CUTEst benchmark')
     env:
-      JULIA_NUM_THREADS: 4
       MUMPS_SEQ: true
 
     steps:
@@ -30,8 +29,6 @@ jobs:
         run: |
           julia --project=benchmark -e '
             using Pkg
-            Pkg.develop(path=".")
-            Pkg.add(url = "https://github.com/MaxenceGollier/SolverBenchmark.jl.git", rev = "parallel")
             Pkg.instantiate()
             mkpath("benchmark/result")
           '
@@ -56,7 +53,6 @@ jobs:
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'run CUTEst benchmark')
     env:
-      JULIA_NUM_THREADS: 4
       MUMPS_SEQ: true
     steps:
       - uses: actions/checkout@v4
@@ -72,8 +68,6 @@ jobs:
         run: |
           julia --project=benchmark -e '
             using Pkg
-            Pkg.develop(path=".")
-            Pkg.add(url = "https://github.com/MaxenceGollier/SolverBenchmark.jl.git", rev = "parallel")
             Pkg.instantiate()
             mkpath("benchmark/result")
           '
