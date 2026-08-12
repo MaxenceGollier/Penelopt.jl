@@ -55,12 +55,21 @@ jobs:
 
 
   Benchmark-Exact-Hessian:
+    strategy:
+      fail-fast: false
+      matrix:
+        split: [1, 2]
+
     runs-on: windows-latest
+
     if: >
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'run CUTEst benchmark')
+
     env:
       MUMPS_SEQ: true
+      CUTEST_SPLIT: ${{ matrix.split }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -88,7 +97,7 @@ jobs:
       - name: Upload exact-Hessian benchmark results
         uses: actions/upload-artifact@v4
         with:
-          name: cutest-benchmark-stats-exact-hessian
+          name: cutest-benchmark-stats-exact-hessian-${{ matrix.split }}
           path: benchmark/result
           if-no-files-found: error
 

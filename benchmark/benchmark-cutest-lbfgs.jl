@@ -49,4 +49,4 @@ solvers = Dict(
 )
 
 stats = bmark_solvers(solvers, problem_list)
-@save "benchmark/result/stats_lbfgs.jld2" stats
+@save "benchmark/result/stats_lbfgs_$(split).jld2" stats
