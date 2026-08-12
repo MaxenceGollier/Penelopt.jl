@@ -30,5 +30,5 @@ solvers = Dict(
     ),
 )
 
-stats = bmark_solvers(solvers, problem_list)
+stats = bmark_solvers(solvers, problem_list, parallel = true)
 @save "benchmark/result/stats_exact.jld2" stats
