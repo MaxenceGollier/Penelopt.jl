@@ -108,7 +108,7 @@ For advanced usage, first define a solver "L2PenaltySolver" to preallocate the m
 - `rtol::T = √eps(T)`: relative tolerance;
 - `sub_atol::T = zero(T)`: absolute tolerance given to the subsolver;
 - `sub_rtol::T = T(1e-2)`: relative tolerance given to the subsolver;
-- `infeasible_tol = T(1e-2)`: tolerance used to decide whether the problem is infeasible or not √θₖ/‖c(xₖ)‖₂ < infeasible_tol, the problem is declared infeasible.
+- `infeasible_tol = T(1e-3)`: tolerance used to decide whether the problem is infeasible or not √θₖ/‖c(xₖ)‖₂ < infeasible_tol, the problem is declared infeasible.
 - `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
 - `sub_max_eval::Int = -1`: maximum number of evaluation for the subsolver (negative number means unlimited);
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
@@ -191,7 +191,7 @@ function SolverCore.solve!(
   r2n_max_iter::Int = 1000,
   ms_max_iter::Int = 10,
   μ::T = T(1e-2),
-  infeasible_tol::T = T(1e-2),
+  infeasible_tol::T = T(1e-3),
   infeasible_iter::Int = 3,
 
   ## Logging arguments

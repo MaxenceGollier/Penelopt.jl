@@ -141,6 +141,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :sigma, σk)
   set_solver_specific!(stats, :rho, T(0))
   m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone-1)+1] = fk + hk)
+  n_small_step = 0
 
   solved = false
 
@@ -263,7 +264,16 @@ function SolverCore.solve!(
           (fk - fkn + max(1, abs(fk)) * 10 * eps())/(
             -d∇fks + max(1, abs(fk)) * 10 * eps()
           ) : zero(T)
-        if η2 ≤ fρk < Inf # Activate watchdog
+
+        # Check decrease w.r.t c
+        ψs = ψ(s)
+        cρk =
+          ψs - hk <= 0 ?
+          (hk - hkn + max(1, abs(hk)) * 10 * eps())/(
+            hk - ψs + max(1, abs(hk)) * 10 * eps()
+          ) : zero(T)
+
+        if η2 ≤ fρk < Inf && cρk > -3 # Activate watchdog
           activate!(watchdog_checkpoint)
           save!(watchdog_checkpoint, mk, xk, y, stats)
           watchdog_checkpoint.m_fh_hist .= m_fh_hist
@@ -294,6 +304,8 @@ function SolverCore.solve!(
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
 
+    n_small_step = all(i -> abs(s[i]) < tiny_step_tol * abs(x[i]), eachindex(s, x)) ? n_small_step + 1 : 0
+
     set_status!(
       stats,
       get_status(
@@ -305,7 +317,7 @@ function SolverCore.solve!(
         max_eval = max_eval,
         max_time = max_time,
         max_iter = max_iter,
-        small_step = all(i -> abs(s[i]) < tiny_step_tol * abs(x[i]), eachindex(s, x)),
+        small_step = n_small_step > 2,
       ),
     )
 
