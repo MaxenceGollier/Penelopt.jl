@@ -10,14 +10,27 @@ const METHODS = (:exact, :lbfgs)
 function load_stats(dir::AbstractString, stats, suffix = "")
 
   for method in METHODS
-    file = joinpath(dir, "stats_$(method).jld2")
 
-    if !isfile(file)
-      error("Missing file: $file")
-    end
+    # Retrieve the number of splits
+    file_splits = filter(f -> startswith(f, "stats_$(method)"), readdir(dir))
+    n_splits = length(file_splits)
 
+    # Load the first split and initialize the dictionary
+    file = joinpath(dir, file_splits[1])
     @info "Loading $file"
     dict = load(file)["stats"]
+    println(dict)
+
+    # Load the remaining splits and concatenate the data
+    for split in 2:n_splits
+      file = joinpath(dir, file_splits[split])
+      @info "Loading $file"
+      dict_split = load(file)["stats"]
+      for key in keys(dict)
+        append!(dict[key], dict_split[key])
+      end
+    end
+
     for key in keys(dict)
       new_key = Symbol("$(key)$suffix")
       stats[new_key] = dict[key]
