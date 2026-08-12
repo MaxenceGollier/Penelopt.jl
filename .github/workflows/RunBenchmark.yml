@@ -14,6 +14,7 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'run CUTEst benchmark')
     env:
       JULIA_NUM_THREADS: 4
+      MUMPS_SEQ: true
 
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +57,7 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'run CUTEst benchmark')
     env:
       JULIA_NUM_THREADS: 4
-
+      MUMPS_SEQ: true
     steps:
       - uses: actions/checkout@v4
 
