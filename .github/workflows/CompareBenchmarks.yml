@@ -17,7 +17,7 @@ jobs:
 
       - uses: julia-actions/setup-julia@latest
         with:
-          version: 'lts'
+          version: '1'
 
       - name: Use Julia cache
         uses: julia-actions/cache@v2
@@ -110,7 +110,6 @@ jobs:
         run: |
           julia --project=benchmark -e '
             using Pkg
-            Pkg.develop(path=".")
             Pkg.instantiate()
             include("benchmark/compare-benchmarks.jl")
           '

@@ -30,5 +30,5 @@ solvers = Dict(
     ),
 )
 
-stats = bmark_solvers(solvers, problem_list, parallel = true)
+stats = bmark_solvers(solvers, problem_list)
 @save "benchmark/result/stats_lbfgs.jld2" stats

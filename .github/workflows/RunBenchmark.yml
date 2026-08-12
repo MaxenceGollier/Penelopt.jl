@@ -5,26 +5,33 @@ on:
     types: [labeled, opened, synchronize, reopened]
   workflow_call:
 
-# Only trigger the benchmark job when you add `run CUTEst benchmark` label to the PR
 jobs:
   Benchmark-LBFGS:
+    strategy:
+      fail-fast: false
+      matrix:
+        split: [1, 2, 3, 4]
+
     runs-on: windows-latest
+
     if: >
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'run CUTEst benchmark')
+
     env:
       MUMPS_SEQ: true
+      CUTEST_SPLIT: ${{ matrix.split }}
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: julia-actions/setup-julia@latest
         with:
-          version: 'lts'
+          version: '1'
 
       - name: Use Julia cache
         uses: julia-actions/cache@v2
-        
+
       - name: Instantiate project
         run: |
           julia --project=benchmark -e '
@@ -33,7 +40,7 @@ jobs:
             mkpath("benchmark/result")
           '
 
-      - name: Run benchmarks with LBFGS
+      - name: Run LBFGS benchmark
         run: |
           julia --project=benchmark -e '
             include("benchmark/benchmark-cutest-lbfgs.jl")
@@ -42,7 +49,7 @@ jobs:
       - name: Upload LBFGS benchmark results
         uses: actions/upload-artifact@v4
         with:
-          name: cutest-benchmark-stats-lbfgs
+          name: cutest-benchmark-stats-lbfgs-${{ matrix.split }}
           path: benchmark/result
           if-no-files-found: error
 
@@ -59,7 +66,7 @@ jobs:
 
       - uses: julia-actions/setup-julia@latest
         with:
-          version: 'lts'
+          version: '1'
 
       - name: Use Julia cache
         uses: julia-actions/cache@v2
