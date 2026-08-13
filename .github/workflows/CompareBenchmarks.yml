@@ -29,7 +29,6 @@ jobs:
         shell: bash
         run: |
           gh run download "${{ github.event.workflow_run.id }}" \
-            --name cutest-benchmark-stats \
             --dir artifacts/current
 
       - name: Download benchmark artifact (manual/workflow_call)
@@ -57,7 +56,6 @@ jobs:
           echo "Found RunBenchmark run id: $RUN_ID"
 
           gh run download "$RUN_ID" \
-            --name cutest-benchmark-stats \
             --dir artifacts/current
 
       - name: Download latest saved benchmark (reference)
@@ -80,7 +78,6 @@ jobs:
           echo "Found SaveBenchmark run id: $REF_RUN_ID"
 
           gh run download "$REF_RUN_ID" \
-            --name cutest-benchmark-stats \
             --dir artifacts/reference
 
       - name: Download latest ipopt benchmark
@@ -103,7 +100,6 @@ jobs:
           echo "Found RunIpoptBenchmark run id: $REF_RUN_ID"
 
           gh run download "$REF_RUN_ID" \
-            --name cutest-ipopt-benchmark-stats \
             --dir artifacts/ipopt
 
       - name: Compare benchmarks
