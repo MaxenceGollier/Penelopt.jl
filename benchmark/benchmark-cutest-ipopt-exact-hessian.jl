@@ -1,7 +1,6 @@
 using JLD2
 
-using MPI, MUMPS
-using CUTEst, Penelopt, NLPModelsModifiers, SolverBenchmark
+using CUTEst, NLPModelsIpopt, SolverBenchmark
 
 problem_names = CUTEst.select_sif_problems(
   min_con = 1,
@@ -36,17 +35,21 @@ tol = 1e-6
 max_time = 300.0
 
 solvers = Dict(
-  :l2penalty_exact =>
-    nlp -> L2Penalty(
+  :ipopt_exact =>
+    nlp -> ipopt(
       nlp,
       print_level = 0,
-      atol = tol,
-      rtol = 0.0,
-      max_time = max_time,
-      max_iter = typemax(Int),
-      linear_solver = "mumps",
+      tol = tol,
+      dual_inf_tol = tol,
+      constr_viol_tol = tol,
+      compl_inf_tol = Inf,
+      acceptable_iter = 0,
+      s_max = 1e12,
+      nlp_scaling_method = "none",
+      max_cpu_time = max_time,
+      max_iter = typemax(Int32),
     ),
 )
 
 stats = bmark_solvers(solvers, problem_list)
-@save "benchmark/result/stats_exact_$(split).jld2" stats
+@save "benchmark/result/stats_ipopt_exact_$(split).jld2" stats

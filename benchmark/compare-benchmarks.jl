@@ -10,14 +10,26 @@ const METHODS = (:exact, :lbfgs)
 function load_stats(dir::AbstractString, stats, suffix = "")
 
   for method in METHODS
-    file = joinpath(dir, "stats_$(method).jld2")
 
-    if !isfile(file)
-      error("Missing file: $file")
-    end
+    # Retrieve the number of splits
+    file_splits = filter(f -> startswith(f, "stats_$(method)") || startswith(f, "stats_ipopt_$(method)"), readdir(dir))
+    n_splits = length(file_splits)
 
+    # Load the first split and initialize the dictionary
+    file = joinpath(dir, file_splits[1])
     @info "Loading $file"
     dict = load(file)["stats"]
+
+    # Load the remaining splits and concatenate the data
+    for split in 2:n_splits
+      file = joinpath(dir, file_splits[split])
+      @info "Loading $file"
+      dict_split = load(file)["stats"]
+      for key in keys(dict)
+        append!(dict[key], dict_split[key])
+      end
+    end
+
     for key in keys(dict)
       new_key = Symbol("$(key)$suffix")
       stats[new_key] = dict[key]
@@ -133,10 +145,12 @@ savefig(p, "benchmark/result/benchmark_comparison.svg")
 ipopt_dir = joinpath("artifacts", "ipopt")
 
 @info "Loading ipopt benchmark results"
-ipopt_stats = load(joinpath(ipopt_dir, "stats_ipopt.jld2"))["stats"]
-for key in keys(ipopt_stats)
-  stats[key] = ipopt_stats[key]
-end
+load_stats(ipopt_dir, stats, "")
+
+# What if we remove the feasibility problems ?
+# for (key, df) in stats
+#   stats[key] = filter(row -> !endswith(row.name, "NE") || row.name == "YATP2SQ", df)
+# end
 
 p = plot(
   pairwise_plot(stats, [:l2penalty_exact_current, :ipopt_exact]),

@@ -6,37 +6,86 @@ on:
   workflow_dispatch:
 
 jobs:
-  Benchmark:
+  Benchmark-IPOPT-LBFGS:
+    strategy:
+      fail-fast: false
+      matrix:
+        split: [1, 2, 3, 4]
+
     runs-on: windows-latest
+
+    env:
+      CUTEST_SPLIT: ${{ matrix.split }}
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: julia-actions/setup-julia@latest
         with:
-          version: 'lts'
+          version: '1'
 
       - name: Use Julia cache
         uses: julia-actions/cache@v2
-      
+
       - name: Instantiate project
         run: |
           julia --project=benchmark -e '
             using Pkg
-            Pkg.develop(path=".")
             Pkg.instantiate()
             mkpath("benchmark/result")
-            '
-      
-      - name: Run Ipopt benchmark
+          '
+
+      - name: Run Ipopt LBFGS benchmark
         run: |
           julia --project=benchmark -e '
-              include("benchmark/benchmark-ipopt.jl")
-              '
-      
-      - name: Upload benchmark results
+            include("benchmark/benchmark-cutest-ipopt-lbfgs.jl")
+          '
+
+      - name: Upload Ipopt LBFGS benchmark results
         uses: actions/upload-artifact@v4
         with:
-          name: cutest-ipopt-benchmark-stats
+          name: cutest-ipopt-benchmark-stats-lbfgs-${{ matrix.split }}
           path: benchmark/result
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if-no-files-found: error
+  
+  Benchmark-Exact-Hessian:
+    strategy:
+      fail-fast: false
+      matrix:
+        split: [1, 2]
+
+    runs-on: windows-latest
+
+    env:
+      CUTEST_SPLIT: ${{ matrix.split }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: '1'
+
+      - name: Use Julia cache
+        uses: julia-actions/cache@v2
+
+      - name: Instantiate project
+        run: |
+          julia --project=benchmark -e '
+            using Pkg
+            Pkg.instantiate()
+            mkpath("benchmark/result")
+          '
+
+      - name: Run benchmarks with exact Hessian
+        run: |
+          julia --project=benchmark -e '
+            include("benchmark/benchmark-cutest-ipopt-exact-hessian.jl")
+          '
+
+      - name: Upload exact-Hessian benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: cutest-ipopt-benchmark-stats-exact-hessian-${{ matrix.split }}
+          path: benchmark/result
+          if-no-files-found: error

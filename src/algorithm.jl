@@ -108,7 +108,7 @@ For advanced usage, first define a solver "L2PenaltySolver" to preallocate the m
 - `rtol::T = √eps(T)`: relative tolerance;
 - `sub_atol::T = zero(T)`: absolute tolerance given to the subsolver;
 - `sub_rtol::T = T(1e-2)`: relative tolerance given to the subsolver;
-- `infeasible_tol = T(1e-2)`: tolerance used to decide whether the problem is infeasible or not √θₖ/‖c(xₖ)‖₂ < infeasible_tol, the problem is declared infeasible.
+- `infeasible_tol = T(1e-3)`: tolerance used to decide whether the problem is infeasible or not √θₖ/‖c(xₖ)‖₂ < infeasible_tol, the problem is declared infeasible.
 - `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
 - `sub_max_eval::Int = -1`: maximum number of evaluation for the subsolver (negative number means unlimited);
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
@@ -191,8 +191,8 @@ function SolverCore.solve!(
   r2n_max_iter::Int = 1000,
   ms_max_iter::Int = 10,
   μ::T = T(1e-2),
-  infeasible_tol::T = T(1e-2),
-  infeasible_iter::Int = 3,
+  infeasible_tol::T = T(1e-3),
+  infeasible_iter::Int = 2,
 
   ## Logging arguments
   print_level::Int = 0,
@@ -207,6 +207,7 @@ function SolverCore.solve!(
   r2n_watchdog_max_iter::Int = 10,
   r2n_watchdog_η0::T = √eps(T),
   r2n_tiny_step_tol::T = eps(T),
+  r2n_nmax_tiny_step::Int = 2,
 
   ## MS Specific arguments
   ms_accept_descent::Bool = true,
@@ -336,6 +337,7 @@ function SolverCore.solve!(
       watchdog_max_iter = r2n_watchdog_max_iter,
       watchdog_η0 = r2n_watchdog_η0,
       tiny_step_tol = r2n_tiny_step_tol,
+      nmax_tiny_step = r2n_nmax_tiny_step,
       is_shifted = true,
       primal_decrease = primal_decrease,
       first_increase = first_increase,
