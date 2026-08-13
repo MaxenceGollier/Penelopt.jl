@@ -102,6 +102,9 @@ jobs:
           gh run download "$REF_RUN_ID" \
             --dir artifacts/ipopt
 
+      - name: Show artifacts
+        run: |
+          ls artifacts -R
       - name: Compare benchmarks
         run: |
           julia --project=benchmark -e '
