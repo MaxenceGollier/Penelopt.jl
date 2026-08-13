@@ -11,18 +11,29 @@ function load_stats(dir::AbstractString, stats, suffix = "")
 
   for method in METHODS
 
-    # Retrieve the number of splits
-    file_splits = filter(f -> startswith(f, "stats_$(method)") || startswith(f, "stats_ipopt_$(method)"), readdir(dir))
+    file_splits = String[]
+
+    for (root, _, files) in walkdir(dir)
+      for file in files
+        if startswith(file, "stats_$(method)") ||
+           startswith(file, "stats_ipopt_$(method)")
+          push!(file_splits, joinpath(root, file))
+        end
+      end
+    end
+
+    sort!(file_splits)
+
     n_splits = length(file_splits)
 
     # Load the first split and initialize the dictionary
-    file = joinpath(dir, file_splits[1])
+    file = file_splits[1]
     @info "Loading $file"
     dict = load(file)["stats"]
 
     # Load the remaining splits and concatenate the data
     for split in 2:n_splits
-      file = joinpath(dir, file_splits[split])
+      file = file_splits[split]
       @info "Loading $file"
       dict_split = load(file)["stats"]
       for key in keys(dict)
