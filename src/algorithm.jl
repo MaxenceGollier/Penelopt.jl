@@ -192,7 +192,7 @@ function SolverCore.solve!(
   ms_max_iter::Int = 10,
   μ::T = T(1e-2),
   infeasible_tol::T = T(1e-3),
-  infeasible_iter::Int = 3,
+  infeasible_iter::Int = 2,
 
   ## Logging arguments
   print_level::Int = 0,
