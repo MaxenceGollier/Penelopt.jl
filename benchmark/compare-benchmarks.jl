@@ -7,6 +7,8 @@ using Plots
 
 const METHODS = (:exact, :lbfgs)
 
+println(run(`ls artifacts -R`))
+
 function load_stats(dir::AbstractString, stats, suffix = "")
 
   for method in METHODS
