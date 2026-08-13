@@ -185,7 +185,7 @@ end
   linear_solver =
     !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
   test_problem(
-    "BT1",
+    "AIRCRFTA",
     primal_solution,
     dual_solution,
     :first_order;
