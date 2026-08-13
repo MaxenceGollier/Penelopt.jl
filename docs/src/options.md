@@ -125,10 +125,10 @@ We define $\epsilon_P$ and $\epsilon_D$ as
 * `μ::T = 0.01` (*advanced*): Decrease factor for penalized problem accuracy.
   > If $\epsilon_D^k$ is the accuracy level for the current penalized problem, then when the algorithm increases the accuracy for the subproblem, it performs the update $\epsilon_D^{k+1} = \max(μ\epsilon_D^{k},\epsilon_D)$. Smaller values mean that subproblems are solved to higher accuracy more aggressively. This is $\mu_{\epsilon}$ in the implementation paper.
 
-* `infeasible_tol::T = 0.01` (*advanced*): local infeasibility tolerance.
+* `infeasible_tol::T = 0.001` (*advanced*): local infeasibility tolerance.
   > When an optimality measure of $\min_x \|c(x)\|_2$ arround the current iterate is detected to be smaller (relative to this tolerance) than the current primal residual, the problem is declared infeasible. Larger values can cause false positives while smaller values cause false negatives. This is $\epsilon_I$ in the implementation paper.
 
-* `infeasible_iter::Int = 3` (*advanced*): local infeasibility detection frequency.
+* `infeasible_iter::Int = 2` (*advanced*): local infeasibility detection frequency.
   > Frequency (in *outer-loop* iterations) at which we estimate locally infeasibility. For performance, if you are positive that your model is feasible, you can set this parameter to a very large value. 
 
 * `max_eval::Int = -1`: Maximum number of objective function evaluation.
@@ -194,7 +194,9 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
     > The watchdog is deactivated when a sufficient decrease condition in either the dual infeasibility or the objective is attained. See the implementation paper for more details. When `T == Float64`, the default value is $\approx 10^{-8}$.
 
  * `r2n_tiny_step_tol::T = eps(T)` (*advanced*): tolerance for detecting numerically insignificant steps.
-    > When a step $s$ for some iterate $x$ is such that $|s_i|/|x_i|$ is smaller than `r2n_tiny_step_tol` for all $1 \leq i \leq n$, the inner loop returns with a corresponding exit message. When `T == Float64`, the default value is $\approx 10^{-16}$.
+    > When a step $s$ for some iterate $x$ is such that $|s_i|/|x_i|$ is smaller than `r2n_tiny_step_tol` for all $1 \leq i \leq n$ for a fixed number of consective iterations (see `r2n_nmax_tiny_step`), the inner loop returns with a corresponding exit message. When `T == Float64`, the default value is $\approx 10^{-16}$.
+
+ * `r2n_nmax_tiny_step::Int = 2` (*advanced*): number of consecutive tiny steps allowed (see `r2n_tiny_step_tol`).
 
 ## MS Specific
 

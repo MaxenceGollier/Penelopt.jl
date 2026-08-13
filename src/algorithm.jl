@@ -207,6 +207,7 @@ function SolverCore.solve!(
   r2n_watchdog_max_iter::Int = 10,
   r2n_watchdog_η0::T = √eps(T),
   r2n_tiny_step_tol::T = eps(T),
+  r2n_nmax_tiny_step::Int = 2,
 
   ## MS Specific arguments
   ms_accept_descent::Bool = true,
@@ -336,6 +337,7 @@ function SolverCore.solve!(
       watchdog_max_iter = r2n_watchdog_max_iter,
       watchdog_η0 = r2n_watchdog_η0,
       tiny_step_tol = r2n_tiny_step_tol,
+      nmax_tiny_step = r2n_nmax_tiny_step,
       is_shifted = true,
       primal_decrease = primal_decrease,
       first_increase = first_increase,
