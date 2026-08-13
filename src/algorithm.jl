@@ -216,7 +216,7 @@ function SolverCore.solve!(
   ms_μα::T = T(0.1),
   ms_μσ::T = T(10),
   ms_α0::T = eps(T),
-  ms_αmin1::T = isa(nlp, QuasiNewtonModel) ? eps(T)^(0.6) : eps(T)^(0.8),
+  ms_αmin1::T = eps(T)^(0.8),
   ms_αmin2::T = eps(T)^(0.6),
 
   ## Other arguments
