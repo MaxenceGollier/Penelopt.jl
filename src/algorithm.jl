@@ -156,6 +156,7 @@ function L2Penalty(
   nlp::AbstractNLPModel{T,V};
   r2n_m_monotone::Int = 12,
   linear_solver::String = "ldlt",
+  hessian_approximation::String = "exact",
   kwargs...,
 ) where {T<:Real,V}
 
@@ -167,6 +168,12 @@ function L2Penalty(
   preprocessed_nlp = nlp
   if length(nlp.meta.ifix) > 0
     preprocessed_nlp = remove_fixed_variables(nlp)
+  end
+  
+  if hessian_approximation == "bfgs"
+    preprocessed_nlp = CompactBFGSModel(preprocessed_nlp)
+  elseif hessian_approximation == "null"
+    preprocessed_nlp = NullHessianModel(preprocessed_nlp)
   end
 
   # Preallocation

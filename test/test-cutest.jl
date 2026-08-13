@@ -14,8 +14,7 @@ function test_problem(
 
   # Test with R2
   @testset "NullHessian" begin
-    null_model = NullHessianModel(nlp)
-    stats = L2Penalty(null_model, atol = tol, rtol = tol)
+    stats = L2Penalty(nlp, atol = tol, rtol = tol, hessian_approximation = "null")
 
     # Test whether the outputs are well defined
     @test stats.status == expected_status
@@ -31,11 +30,25 @@ function test_problem(
     @test stats.primal_feas == norm(cons(nlp, stats.solution), Inf)
 
     # Test stability and allocations
+    preprocessed_nlp = nlp
+    if length(nlp.meta.ifix) > 0
+      preprocessed_nlp = remove_fixed_variables(nlp)
+    end
+    null_model = NullHessianModel(preprocessed_nlp)
+
     solver = L2PenaltySolver(null_model)
     stats_optimized = PeneloptExecutionStats(null_model)
     @test @wrappedallocs(
       solve!(solver, null_model, stats_optimized, atol = 1e-3, rtol = 1e-3)
     ) == 0
+
+    if length(nlp.meta.ifix) > 0
+      solution = similar(nlp.meta.x0)
+      @views solution[nlp.meta.ifix] .= nlp.meta.uvar[nlp.meta.ifix]
+      @views solution[nlp.meta.ifree] .= stats_optimized.solution
+
+      stats_optimized.solution = solution
+    end
 
     # Test that the second calling form gives the same output
     @test stats_optimized.status == stats.status
@@ -49,8 +62,13 @@ function test_problem(
 
   # Test with BFGS
   @testset "BFGS" begin
-    LBFGS_model = CompactBFGSModel(nlp)
-    stats = L2Penalty(LBFGS_model, atol = tol, rtol = tol; linear_solver = linear_solver)
+    stats = L2Penalty(
+      nlp, 
+      atol = tol, 
+      rtol = tol, 
+      hessian_approximation = "bfgs", 
+      linear_solver = linear_solver
+    )
 
     @test stats.status == expected_status
     if expected_status == :first_order
@@ -66,10 +84,23 @@ function test_problem(
     @test stats.solver_specific[:n_fact] > 0
 
     # Test stability and allocations
-    NLPModels.reset!(LBFGS_model)
+    preprocessed_nlp = nlp
+    if length(nlp.meta.ifix) > 0
+      preprocessed_nlp = remove_fixed_variables(nlp)
+    end
+    LBFGS_model = CompactBFGSModel(preprocessed_nlp)
+
     solver = L2PenaltySolver(LBFGS_model, linear_solver = linear_solver)
     stats_optimized = PeneloptExecutionStats(LBFGS_model)
     solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3)
+
+    if length(nlp.meta.ifix) > 0
+      solution = similar(nlp.meta.x0)
+      @views solution[nlp.meta.ifix] .= nlp.meta.uvar[nlp.meta.ifix]
+      @views solution[nlp.meta.ifree] .= stats_optimized.solution
+
+      stats_optimized.solution = solution
+    end
 
     # Test that the second calling form gives the same output
     @test stats_optimized.status == stats.status
@@ -101,10 +132,23 @@ function test_problem(
     @test stats.solver_specific[:n_fact] > 0
 
     # Test stability and allocations
-    solver = L2PenaltySolver(nlp, linear_solver = linear_solver)
-    stats_optimized = PeneloptExecutionStats(nlp)
-    @test @wrappedallocs(solve!(solver, nlp, stats_optimized, atol = 1e-3, rtol = 1e-3)) ==
+    preprocessed_nlp = nlp
+    if length(nlp.meta.ifix) > 0
+      preprocessed_nlp = remove_fixed_variables(nlp)
+    end
+  
+    solver = L2PenaltySolver(preprocessed_nlp, linear_solver = linear_solver)
+    stats_optimized = PeneloptExecutionStats(preprocessed_nlp)
+    @test @wrappedallocs(solve!(solver, preprocessed_nlp, stats_optimized, atol = 1e-3, rtol = 1e-3)) ==
           0
+
+    if length(nlp.meta.ifix) > 0
+      solution = similar(nlp.meta.x0)
+      @views solution[nlp.meta.ifix] .= nlp.meta.uvar[nlp.meta.ifix]
+      @views solution[nlp.meta.ifree] .= stats_optimized.solution
+
+      stats_optimized.solution = solution
+    end
 
     # Test that the second calling form gives the same output
     @test stats_optimized.status == stats.status
