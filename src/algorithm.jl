@@ -246,6 +246,15 @@ function SolverCore.solve!(
 ) where {T,V}
   reset!(stats)
 
+  # Check that the problem has been correctly preprocessed
+  if length(nlp.meta.ifix) > 0
+    error("L2Penalty: The problem has fixed variables. Refer to the documentation for information on how to preprocess the problem.")
+  end
+
+  if !equality_constrained(nlp)
+    error("L2Penalty: This algorithm only works for equality contrained problems.")
+  end
+
   # Retrieve workspace
   penalty_pb = solver.subpb # f(x) + τ‖c(x)‖₂
   mk = solver.subsolver.subpb
