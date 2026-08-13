@@ -96,7 +96,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   α0::T = eps(T),
   αmin1::T = eps(T)^(0.8),
   αmin2::T = eps(T)^(0.6),
-  σmax::T = 1 / eps(T),
+  σmax::T = 1 / eps(T)^(0.6),
   accept_descent::Bool = true, # Whether we accept inexact steps that decrease the quadratic model.
 ) where {T,V,M,H,P}
   start_time = time()
@@ -141,7 +141,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
 
   # Get correct inertia
   # If the factorization/solver failed, it in indicates we should add a minimal regularization too.
-  if nzero > 0 || status == :failed
+  if nneg < m || nzero > 0 || status == :failed
     α = αmin
     set_dual_inertia!(solver_workspace, α)
     solve_system!(solver_workspace, u1)
@@ -149,7 +149,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     npos, nzero, nneg = get_inertia(solver_workspace)
     status = get_status(solver_workspace)
 
-    if nzero > 0 || status == :failed
+    if nneg < m || nzero > 0 || status == :failed
       αmin = αmin2
       α = αmin
       set_dual_inertia!(solver_workspace, α)
@@ -160,11 +160,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     end
   end
 
-  n_σ_increase = 0
-  max_σ_increase = 3
-
-  while (npos < n || status == :failed) && reg_nlp.model.data.σ <= σmax && n_σ_increase < max_σ_increase
-
+  while (npos < n || status == :failed) && reg_nlp.model.data.σ <= σmax
     reg_nlp.model.data.σ *= μσ
     set_primal_inertia!(solver_workspace, reg_nlp.model.data.σ)
 
@@ -174,11 +170,11 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     get_solution!(x1, solver_workspace)
     npos, nzero, nneg = get_inertia(solver_workspace)
     status = get_status(solver_workspace)
-    n_σ_increase += 1
   end
 
   # Solve with H = 0 instead.
-  if n_σ_increase >= max_σ_increase && (npos < n || status == :failed)
+  if reg_nlp.model.data.σ  > σmax && (npos < n || status == :failed)
+    reg_nlp.model.data.H.vals .= 0
     update_workspace!(
       solver_workspace,
       reg_nlp.h.A,
@@ -193,7 +189,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     status = get_status(solver_workspace)
   end
 
-  if reg_nlp.model.data.σ >= σmax
+  if (npos < n || status == :failed)
     set_status!(stats, :exception)
     return
   end
