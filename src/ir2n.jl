@@ -265,14 +265,7 @@ function SolverCore.solve!(
             -d∇fks + max(1, abs(fk)) * 10 * eps()
           ) : zero(T)
 
-        # Check decrease w.r.t c
-        ψs = ψ(s)
-        cρk =
-          ψs - hk <= 0 ?
-          (hk - hkn + max(1, abs(hk)) * 10 * eps())/(
-            hk - ψs + max(1, abs(hk)) * 10 * eps()
-          ) : zero(T)
-        if η2 ≤ fρk < Inf && cρk > - 1 / η2 # Activate watchdog
+        if η2 ≤ fρk < Inf # Activate watchdog
           activate!(watchdog_checkpoint)
           save!(watchdog_checkpoint, mk, xk, y, stats)
           watchdog_checkpoint.m_fh_hist .= m_fh_hist
