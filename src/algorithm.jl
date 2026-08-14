@@ -211,12 +211,12 @@ function SolverCore.solve!(
 
   ## MS Specific arguments
   ms_accept_descent::Bool = true,
-  ms_σmax::T = 1/eps(T),
+  ms_σmax::T = 1/eps(T)^(0.8),
   ms_tol::T = eps(T)^(0.6),
   ms_μα::T = T(0.1),
   ms_μσ::T = T(10),
   ms_α0::T = eps(T),
-  ms_αmin1::T = isa(nlp, QuasiNewtonModel) ? eps(T)^(0.6) : eps(T)^(0.8),
+  ms_αmin1::T = eps(T)^(0.8),
   ms_αmin2::T = eps(T)^(0.6),
 
   ## Other arguments
@@ -341,6 +341,14 @@ function SolverCore.solve!(
       is_shifted = true,
       primal_decrease = primal_decrease,
       first_increase = first_increase,
+      ms_accept_descent = ms_accept_descent,
+      ms_σmax = ms_σmax,
+      ms_tol = ms_tol,
+      ms_μα = ms_μα,
+      ms_μσ = ms_μσ,
+      ms_α0 = ms_α0,
+      ms_αmin1 = ms_αmin1,
+      ms_αmin2 = ms_αmin2,
     )
 
     if solver.substats.status == :unbounded

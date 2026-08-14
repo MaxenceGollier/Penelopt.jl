@@ -96,7 +96,7 @@ function SolverCore.solve!(
   ## MS Specific arguments
   ms_verbose::Int = 1,
   ms_accept_descent::Bool = true,
-  ms_σmax::T = 1/eps(T),
+  ms_σmax::T = 1/eps(T)^(0.8),
   ms_tol::T = eps(T)^(0.6),
   ms_μα::T = T(0.1),
   ms_μσ::T = T(10),
@@ -256,7 +256,7 @@ function SolverCore.solve!(
       if first_increase && ρk < 0
         σk = max(sqrt(stats.dual_feas), σk * γ)
         first_increase = false
-      elseif ρk < 0 && !is_active(watchdog_checkpoint) && !isa(nlp, NullHessianModel) # Watchdog procedure
+      elseif ρk < 0 && ρk > -Inf && !is_active(watchdog_checkpoint) && !isa(nlp, NullHessianModel) # Watchdog procedure
 
         # Check acceptance w.r.t f
         d∇fks = dot(∇fk, s)

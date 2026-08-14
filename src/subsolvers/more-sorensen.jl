@@ -96,7 +96,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   α0::T = eps(T),
   αmin1::T = eps(T)^(0.8),
   αmin2::T = eps(T)^(0.6),
-  σmax::T = 1 / eps(T),
+  σmax::T = 1 / eps(T)^(0.8),
   accept_descent::Bool = true, # Whether we accept inexact steps that decrease the quadratic model.
 ) where {T,V,M,H,P}
   start_time = time()
@@ -161,7 +161,6 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   end
 
   while (npos < n || status == :failed) && reg_nlp.model.data.σ <= σmax
-
     reg_nlp.model.data.σ *= μσ
     set_primal_inertia!(solver_workspace, reg_nlp.model.data.σ)
 
@@ -173,7 +172,24 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     status = get_status(solver_workspace)
   end
 
-  if reg_nlp.model.data.σ >= σmax
+  # Solve with H = 0 instead.
+  if reg_nlp.model.data.σ  > σmax && (npos < n || status == :failed)
+    reg_nlp.model.data.H.vals .= 0
+    update_workspace!(
+      solver_workspace,
+      reg_nlp.h.A,
+      reg_nlp.model.data.σ,
+      α,
+    )
+    # [ σI Aᵀ][x] = -[∇f]
+    # [ A  0 ][y] = -[c] 
+    solve_system!(solver_workspace, u1)
+    get_solution!(x1, solver_workspace)
+    npos, nzero, nneg = get_inertia(solver_workspace)
+    status = get_status(solver_workspace)
+  end
+
+  if (npos < n || status == :failed)
     set_status!(stats, :exception)
     return
   end
