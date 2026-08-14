@@ -14,7 +14,7 @@ function test_problem(
 
   # Test with R2
   @testset "NullHessian" begin
-    stats = L2Penalty(nlp, atol = tol, rtol = tol, hessian_approximation = "null")
+    stats = L2Penalty(nlp, atol = tol, rtol = tol, qn_hessian_approximation = "null")
 
     # Test whether the outputs are well defined
     @test stats.status == expected_status
@@ -60,7 +60,7 @@ function test_problem(
       nlp, 
       atol = tol, 
       rtol = tol, 
-      hessian_approximation = "bfgs", 
+      qn_hessian_approximation = "bfgs", 
       linear_solver = linear_solver
     )
 
@@ -190,7 +190,7 @@ end
   stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0)
   @test stats.status == :first_order
 
-  stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0, hessian_approximation = "bfgs")
+  stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0, qn_hessian_approximation = "bfgs")
   @test stats.status == :first_order
   finalize(nlp)
 end
