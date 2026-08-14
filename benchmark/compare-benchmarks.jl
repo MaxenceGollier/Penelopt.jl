@@ -17,9 +17,10 @@ function load_stats(dir::AbstractString, stats, suffix = "")
 
     for (root, _, files) in walkdir(dir)
       for file in files
-        if (startswith(file, "stats_$(method)") ||
-           (startswith(file, "stats_ipopt_$(method)") && suffix == "")) && 
-            occursin(r"\d+\.jld2$", file)
+        if (
+          startswith(file, "stats_$(method)") ||
+          (startswith(file, "stats_ipopt_$(method)") && suffix == "")
+        ) && occursin(r"\d+\.jld2$", file)
           push!(file_splits, joinpath(root, file))
         end
       end
@@ -35,7 +36,7 @@ function load_stats(dir::AbstractString, stats, suffix = "")
     dict = load(file)["stats"]
 
     # Load the remaining splits and concatenate the data
-    for split in 2:n_splits
+    for split = 2:n_splits
       file = file_splits[split]
       @info "Loading $file"
       dict_split = load(file)["stats"]
