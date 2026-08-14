@@ -154,7 +154,13 @@ function Base.push!(op::CompactBFGS{T,V,MT}, s::V, y::V) where {T,V,MT}
   mul!(Mk, Sk', Sk, ξ, one(T))                             # Mₖ = ξ Sₖᵀ Sₖ + Lₖ Dₖ⁻¹ Lₖᵀ
 
   # Step 2: factorize Mₖ
-  cholesky!(Symmetric(@view Mk[1:k, 1:k]))                 # Mₖ = Jₖᵀ Jₖ (factorization)
+  try
+    cholesky!(Symmetric(@view Mk[1:k, 1:k]))                 # Mₖ = Jₖᵀ Jₖ (factorization)
+  catch e
+    @warn "Cholesky factorization of Mₖ failed. Resetting the compact BFGS model."
+    NLPModels.reset!(op)
+    return
+  end
 
   # Step 3: compute Vₖ
   mul!(Vk, Yk, Diagonal(Dkinvsq))
