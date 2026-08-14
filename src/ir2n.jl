@@ -256,7 +256,10 @@ function SolverCore.solve!(
       if first_increase && ρk < 0
         σk = max(sqrt(stats.dual_feas), σk * γ)
         first_increase = false
-      elseif ρk < 0 && ρk > -Inf && !is_active(watchdog_checkpoint) && !isa(nlp, NullHessianModel) # Watchdog procedure
+      elseif ρk < 0 &&
+             ρk > -Inf &&
+             !is_active(watchdog_checkpoint) &&
+             !isa(nlp, NullHessianModel) # Watchdog procedure
 
         # Check acceptance w.r.t f
         d∇fks = dot(∇fk, s)
