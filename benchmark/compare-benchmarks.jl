@@ -7,8 +7,6 @@ using Plots
 
 const METHODS = (:exact, :lbfgs)
 
-println(run(`ls artifacts -R`))
-
 function load_stats(dir::AbstractString, stats, suffix = "")
 
   for method in METHODS
@@ -18,7 +16,7 @@ function load_stats(dir::AbstractString, stats, suffix = "")
     for (root, _, files) in walkdir(dir)
       for file in files
         if startswith(file, "stats_$(method)") ||
-           startswith(file, "stats_ipopt_$(method)")
+           (startswith(file, "stats_ipopt_$(method)") && suffix == "")
           push!(file_splits, joinpath(root, file))
         end
       end
