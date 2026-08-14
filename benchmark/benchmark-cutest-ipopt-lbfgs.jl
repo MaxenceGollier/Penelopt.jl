@@ -9,7 +9,7 @@ problem_names = CUTEst.select_sif_problems(
   custom_filter = meta -> (
     meta["variables"]["number"] >= meta["constraints"]["number"] # Uncomment to allow problems with fixed variables
     #&& meta["variables"]["free"] + meta["variables"]["fixed"] == meta["variables"]["number"]
-  )
+  ),
 )
 
 # Speedup benchmark time for BFGS
@@ -23,7 +23,7 @@ problem_names = collect(problem_names)
 
 n = length(problem_names)
 first = fld((split - 1) * n, n_splits) + 1
-last  = fld(split * n, n_splits)
+last = fld(split * n, n_splits)
 
 problem_names = problem_names[first:last]
 
