@@ -203,8 +203,8 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
  * `ms_accept_descent::Bool = true` (*advanced*): *secular* equation Newton's method truncation parameter.
      > When `ms_accept_descent` is set to `true`, the Newton's method applied to the *secular* equation is truncated when a simple decrease in the quadratic model of the objective has been reached. Setting this parameter to `false` can significantly increase the number of matrix factorizations, therefore we do not recommend it. For details on the *secular* equation and Newton's method, we refer to the implementation paper.
 
- * `ms_σmax::T = 1/eps(T)`, (*advanced*): maximum value for the regularization parameter.
-     > When inertia corrections are performed within the ms loop, we increase the quadratic regularization parameter `σ` by a factor `ms_μσ` (see `ms_μσ`) until either the inertia is $(n, 0, m)$ or `σ` reaches `ms_σmax`. In the latter case, the solver stops and returns an error message. When `T == Float64`, the default value is $\approx 10^{16}$.
+ * `ms_σmax::T = 1/eps(T)^(0.8)`, (*advanced*): maximum value for the regularization parameter.
+     > When inertia corrections are performed within the ms loop, we increase the quadratic regularization parameter `σ` by a factor `ms_μσ` (see `ms_μσ`) until either the inertia is $(n, 0, m)$ or `σ` reaches `ms_σmax`. In the latter case, the solver proceeds by setting the Hessian to $0$. When `T == Float64`, the default value is $\approx 10^{16}$.
 
  * `ms_tol::T = eps(T)^(0.6)`, (*advanced*): tolerance for the MS loop (absolute).
      > Tolerance for Newton's method applied to the *secular* equation. For completeness, the MS loop terminates when $| \|y\|_2 - Δ | \leq \text{ms\_tol}$. When `T == Float64`, the default value is $\approx 10^{-10}$.

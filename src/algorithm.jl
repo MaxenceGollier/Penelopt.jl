@@ -341,6 +341,14 @@ function SolverCore.solve!(
       is_shifted = true,
       primal_decrease = primal_decrease,
       first_increase = first_increase,
+      ms_accept_descent = ms_accept_descent,
+      ms_σmax = ms_σmax,
+      ms_tol = ms_tol,
+      ms_μα = ms_μα,
+      ms_μσ = ms_μσ,
+      ms_α0 = ms_α0,
+      ms_αmin1 = ms_αmin1,
+      ms_αmin2 = ms_αmin2,
     )
 
     if solver.substats.status == :unbounded
