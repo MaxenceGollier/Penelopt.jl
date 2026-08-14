@@ -163,7 +163,8 @@ end
   nlp = CUTEstModel("SSINE")
   stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0)
   @test stats.status == :first_order
+
+  stats = L2Penalty(CompactBFGSModel(nlp), atol = 1e-5, rtol = 0.0)
+  @test stats.status == :first_order
   finalize(nlp)
 end
-# Test an ill-conditionned problem
-# TODO: Add MSS1
