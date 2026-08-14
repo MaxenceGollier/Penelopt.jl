@@ -268,6 +268,18 @@ function SolverCore.solve!( #TODO add verbose and kwargs
       return
     end
 
+    # Check whether the matrix still has the correct inertia. (We may have failed to detect earlier)
+    npos, nzero, nneg = get_inertia(solver_workspace)
+    if npos < n
+      reg_nlp.model.data.σ *= μσ
+      if reg_nlp.model.data.σ >= σmax
+        set_status!(stats, :exception)
+        print_level > 0 && @info conclusion_message(solver, stats)
+        return
+      end
+      solve!(solver, reg_nlp, stats)
+    end
+
     # [ H + σI  Aᵀ ][x'] = -[0]
     # [   A    -αI ][y'] = -[x]
     @views @. u2[(n+1):(n+m)] = -x1[(n+1):(n+m)]
