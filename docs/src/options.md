@@ -239,3 +239,22 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
     > * ma57: Load [HSL.jl](https://github.com/JuliaSmoothOptimizers/HSL.jl).
     > * minres\_qlp: Load [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
     > * mumps: Load [MPI.jl](https://github.com/JuliaParallel/MPI.jl) and [MUMPS.jl](https://github.com/JuliaSmoothOptimizers/MUMPS.jl).
+
+## quasi-Newton Approximations
+
+ * `qn_hessian_approximation::String = "exact"`: Quasi-Newton approximation for the Hessian of the Lagrangian.
+    > Determines which quasi-Newton approximation is to be used for the Hessian of the Lagrangian.
+    >
+    > Possible values:
+    > * exact: use the exact Hessian of the Lagrangian (default).
+    > * bfgs: use a limited-memory BFGS approximation.
+    > * null: use a zero approximation (does not work well).
+
+ * `qn_mem::Int = 6`: memory parameter for the limited-memory approximation.
+    > When using a limited-memory BFGS approximation, this parameter determines how many pairs of $(s, y)$ are stored to build the approximation. If `qn_hessian_approximation::String != "bfgs"`, this parameter is ignored.
+
+ * `qn_scaling::Bool = true`: scaling parameter for the limited-memory approximation.
+    > Whether we scale $B_0 = \gamma I$ with $\gamma = y^Ty / s^T y$, where $s$ is the step and $y$ is the difference of the two last gradients of the Lagrangian. If `qn_hessian_approximation::String != "bfgs"`, this parameter is ignored.
+
+ * `qn_max_skip::Int = 2` (*advanced*): if a pair $(s, y)$ is skipped more than `max_skip` times in a row, we reset the approximation.
+    > If `qn_hessian_approximation::String != "bfgs"`, this parameter is ignored.

@@ -14,8 +14,7 @@ function test_problem(
 
   # Test with R2
   @testset "NullHessian" begin
-    null_model = NullHessianModel(nlp)
-    stats = L2Penalty(null_model, atol = tol, rtol = tol)
+    stats = L2Penalty(nlp, atol = tol, rtol = tol, qn_hessian_approximation = "null")
 
     # Test whether the outputs are well defined
     @test stats.status == expected_status
@@ -31,11 +30,19 @@ function test_problem(
     @test stats.primal_feas == norm(cons(nlp, stats.solution), Inf)
 
     # Test stability and allocations
+    preprocessed_nlp = nlp
+    if length(nlp.meta.ifix) > 0
+      preprocessed_nlp = remove_fixed_variables(nlp)
+    end
+    null_model = NullHessianModel(preprocessed_nlp)
+
     solver = L2PenaltySolver(null_model)
     stats_optimized = PeneloptExecutionStats(null_model)
     @test @wrappedallocs(
       solve!(solver, null_model, stats_optimized, atol = 1e-3, rtol = 1e-3)
     ) == 0
+
+    stats_optimized.solution = recover_full_solution(null_model, stats_optimized.solution)
 
     # Test that the second calling form gives the same output
     @test stats_optimized.status == stats.status
@@ -49,8 +56,13 @@ function test_problem(
 
   # Test with BFGS
   @testset "BFGS" begin
-    LBFGS_model = CompactBFGSModel(nlp)
-    stats = L2Penalty(LBFGS_model, atol = tol, rtol = tol; linear_solver = linear_solver)
+    stats = L2Penalty(
+      nlp, 
+      atol = tol, 
+      rtol = tol, 
+      qn_hessian_approximation = "bfgs", 
+      linear_solver = linear_solver
+    )
 
     @test stats.status == expected_status
     if expected_status == :first_order
@@ -66,10 +78,17 @@ function test_problem(
     @test stats.solver_specific[:n_fact] > 0
 
     # Test stability and allocations
-    NLPModels.reset!(LBFGS_model)
+    preprocessed_nlp = nlp
+    if length(nlp.meta.ifix) > 0
+      preprocessed_nlp = remove_fixed_variables(nlp)
+    end
+    LBFGS_model = CompactBFGSModel(preprocessed_nlp)
+
     solver = L2PenaltySolver(LBFGS_model, linear_solver = linear_solver)
     stats_optimized = PeneloptExecutionStats(LBFGS_model)
     solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3)
+
+    stats_optimized.solution = recover_full_solution(LBFGS_model, stats_optimized.solution)
 
     # Test that the second calling form gives the same output
     @test stats_optimized.status == stats.status
@@ -101,10 +120,17 @@ function test_problem(
     @test stats.solver_specific[:n_fact] > 0
 
     # Test stability and allocations
-    solver = L2PenaltySolver(nlp, linear_solver = linear_solver)
-    stats_optimized = PeneloptExecutionStats(nlp)
-    @test @wrappedallocs(solve!(solver, nlp, stats_optimized, atol = 1e-3, rtol = 1e-3)) ==
+    preprocessed_nlp = nlp
+    if length(nlp.meta.ifix) > 0
+      preprocessed_nlp = remove_fixed_variables(nlp)
+    end
+  
+    solver = L2PenaltySolver(preprocessed_nlp, linear_solver = linear_solver)
+    stats_optimized = PeneloptExecutionStats(preprocessed_nlp)
+    @test @wrappedallocs(solve!(solver, preprocessed_nlp, stats_optimized, atol = 1e-3, rtol = 1e-3)) ==
           0
+
+    stats_optimized.solution = recover_full_solution(preprocessed_nlp, stats_optimized.solution)
 
     # Test that the second calling form gives the same output
     @test stats_optimized.status == stats.status
@@ -164,7 +190,33 @@ end
   stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0)
   @test stats.status == :first_order
 
-  stats = L2Penalty(CompactBFGSModel(nlp), atol = 1e-5, rtol = 0.0)
+  stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0, qn_hessian_approximation = "bfgs")
   @test stats.status == :first_order
   finalize(nlp)
 end
+
+# Test a problem with fixed variables
+@testset "AIRCRFTA" begin
+  primal_solution = [
+     0.005652720539657081,
+    -0.00653774373397042,
+    -0.0006212466680082355,
+    -0.12333555374458006,
+    -0.0003874221934374081,
+    0.1,
+    0.0,
+    0.0
+  ]
+  dual_solution = zeros(5)
+  linear_solver =
+    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
+  test_problem(
+    "AIRCRFTA",
+    primal_solution,
+    dual_solution,
+    :first_order;
+    linear_solver = linear_solver,
+  )
+end
+# Test an ill-conditionned problem
+# TODO: Add MSS1

@@ -156,6 +156,10 @@ function L2Penalty(
   nlp::AbstractNLPModel{T,V};
   r2n_m_monotone::Int = 12,
   linear_solver::String = "ldlt",
+  qn_hessian_approximation::String = "exact",
+  qn_mem::Int = 6,
+  qn_scaling::Bool = true,
+  qn_max_skip::Int = 2,
   kwargs...,
 ) where {T<:Real,V}
 
@@ -163,11 +167,29 @@ function L2Penalty(
     error("L2Penalty: This algorithm only works for equality contrained problems.")
   end
 
-  solver =
-    L2PenaltySolver(nlp; r2n_m_monotone = r2n_m_monotone, linear_solver = linear_solver)
+  # Preprocessing
+  preprocessed_nlp = nlp
+  if length(nlp.meta.ifix) > 0
+    preprocessed_nlp = remove_fixed_variables(nlp)
+  end
+  
+  if qn_hessian_approximation == "bfgs"
+    preprocessed_nlp = CompactBFGSModel(preprocessed_nlp; mem = qn_mem, scaling = qn_scaling, max_skip = qn_max_skip)
+  elseif qn_hessian_approximation == "null"
+    preprocessed_nlp = NullHessianModel(preprocessed_nlp)
+  end
 
-  stats = PeneloptExecutionStats(nlp)
-  solve!(solver, nlp, stats; kwargs...)
+  # Preallocation
+  solver =
+    L2PenaltySolver(preprocessed_nlp; r2n_m_monotone = r2n_m_monotone, linear_solver = linear_solver)
+  stats = PeneloptExecutionStats(preprocessed_nlp)
+
+  # Solve
+  solve!(solver, preprocessed_nlp, stats; kwargs...)
+
+  # Postprocess (in case there are fixed variables)
+  stats.solution = recover_full_solution(preprocessed_nlp, stats.solution)
+
   return stats
 end
 
@@ -227,6 +249,15 @@ function SolverCore.solve!(
   β4::T = eps(T),
 ) where {T,V}
   reset!(stats)
+
+  # Check that the problem has been correctly preprocessed
+  if length(nlp.meta.ifix) > 0
+    error("L2Penalty: The problem has fixed variables. Refer to the documentation for information on how to preprocess the problem.")
+  end
+
+  if !equality_constrained(nlp)
+    error("L2Penalty: This algorithm only works for equality contrained problems.")
+  end
 
   # Retrieve workspace
   penalty_pb = solver.subpb # f(x) + τ‖c(x)‖₂

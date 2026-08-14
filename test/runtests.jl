@@ -1,9 +1,11 @@
 using Penelopt
-using CUTEst,
+using ADNLPModels,
+  CUTEst,
   Krylov,
   LinearOperators,
   NLPModels,
   NLPModelsModifiers,
+  NLPModelsTest,
   QuadraticModels,
   SolverCore,
   SparseMatricesCOO
@@ -18,6 +20,10 @@ include("allocations-macro.jl")
 
 include("instances/instance-reader.jl")
 include("instances/instance-generator.jl")
+
+@testset "pre-processing" begin
+  include("test-no-fixed-vars.jl")
+end
 
 @testset "quasi-Newton" begin
   include("test-quasi-newton.jl")
