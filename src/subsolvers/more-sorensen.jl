@@ -173,14 +173,9 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   end
 
   # Solve with H = 0 instead.
-  if reg_nlp.model.data.σ  > σmax && (npos < n || status == :failed)
+  if reg_nlp.model.data.σ > σmax && (npos < n || status == :failed)
     reg_nlp.model.data.H.vals .= 0
-    update_workspace!(
-      solver_workspace,
-      reg_nlp.h.A,
-      reg_nlp.model.data.σ,
-      α,
-    )
+    update_workspace!(solver_workspace, reg_nlp.h.A, reg_nlp.model.data.σ, α)
     # [ σI Aᵀ][x] = -[∇f]
     # [ A  0 ][y] = -[c] 
     solve_system!(solver_workspace, u1)
