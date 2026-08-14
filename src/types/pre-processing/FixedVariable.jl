@@ -117,10 +117,8 @@ function remove_fixed_variables(nlp::AbstractNLPModel{T,S}) where {T,S}
   if nnzh_full > 0
     NLPModels.hess_structure!(nlp, hess_rows_full, hess_cols_full)
   end
-  ind_hess_free = findall(
-    k -> isfree[hess_rows_full[k]] && isfree[hess_cols_full[k]],
-    1:nnzh_full,
-  )
+  ind_hess_free =
+    findall(k -> isfree[hess_rows_full[k]] && isfree[hess_cols_full[k]], 1:nnzh_full)
   hess_rows = map_full_to_free[hess_rows_full[ind_hess_free]]
   hess_cols = map_full_to_free[hess_cols_full[ind_hess_free]]
 
@@ -196,7 +194,8 @@ end
 
 recover_full_solution(::AbstractNLPModel, x::AbstractVector) = x
 
-recover_full_solution(nlp::QuasiNewtonModel, x::AbstractVector) = recover_full_solution(get_model(nlp), x)
+recover_full_solution(nlp::QuasiNewtonModel, x::AbstractVector) =
+  recover_full_solution(get_model(nlp), x)
 
 # ------------------------------------------------------------------------
 # NLPModels API
@@ -213,7 +212,11 @@ function NLPModels.obj(nlp::FixedVariableEliminationModel, x::AbstractVector)
   return NLPModels.obj(nlp.model, x_full)
 end
 
-function NLPModels.grad!(nlp::FixedVariableEliminationModel, x::AbstractVector, g::AbstractVector)
+function NLPModels.grad!(
+  nlp::FixedVariableEliminationModel,
+  x::AbstractVector,
+  g::AbstractVector,
+)
   NLPModels.increment!(nlp, :neval_grad)
   x_full = _update_x_full!(nlp, x)
   NLPModels.grad!(nlp.model, x_full, nlp.g_full)
@@ -221,7 +224,11 @@ function NLPModels.grad!(nlp::FixedVariableEliminationModel, x::AbstractVector, 
   return g
 end
 
-function NLPModels.cons!(nlp::FixedVariableEliminationModel, x::AbstractVector, c::AbstractVector)
+function NLPModels.cons!(
+  nlp::FixedVariableEliminationModel,
+  x::AbstractVector,
+  c::AbstractVector,
+)
   NLPModels.increment!(nlp, :neval_cons)
   x_full = _update_x_full!(nlp, x)
   NLPModels.cons!(nlp.model, x_full, c)
@@ -238,7 +245,11 @@ function NLPModels.jac_structure!(
   return rows, cols
 end
 
-function NLPModels.jac_coord!(nlp::FixedVariableEliminationModel, x::AbstractVector, vals::AbstractVector)
+function NLPModels.jac_coord!(
+  nlp::FixedVariableEliminationModel,
+  x::AbstractVector,
+  vals::AbstractVector,
+)
   NLPModels.increment!(nlp, :neval_jac)
   x_full = _update_x_full!(nlp, x)
   NLPModels.jac_coord!(nlp.model, x_full, nlp.jac_buffer)

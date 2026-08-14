@@ -57,11 +57,11 @@ function test_problem(
   # Test with BFGS
   @testset "BFGS" begin
     stats = L2Penalty(
-      nlp, 
-      atol = tol, 
-      rtol = tol, 
-      qn_hessian_approximation = "bfgs", 
-      linear_solver = linear_solver
+      nlp,
+      atol = tol,
+      rtol = tol,
+      qn_hessian_approximation = "bfgs",
+      linear_solver = linear_solver,
     )
 
     @test stats.status == expected_status
@@ -124,13 +124,15 @@ function test_problem(
     if length(nlp.meta.ifix) > 0
       preprocessed_nlp = remove_fixed_variables(nlp)
     end
-  
+
     solver = L2PenaltySolver(preprocessed_nlp, linear_solver = linear_solver)
     stats_optimized = PeneloptExecutionStats(preprocessed_nlp)
-    @test @wrappedallocs(solve!(solver, preprocessed_nlp, stats_optimized, atol = 1e-3, rtol = 1e-3)) ==
-          0
+    @test @wrappedallocs(
+      solve!(solver, preprocessed_nlp, stats_optimized, atol = 1e-3, rtol = 1e-3)
+    ) == 0
 
-    stats_optimized.solution = recover_full_solution(preprocessed_nlp, stats_optimized.solution)
+    stats_optimized.solution =
+      recover_full_solution(preprocessed_nlp, stats_optimized.solution)
 
     # Test that the second calling form gives the same output
     @test stats_optimized.status == stats.status
@@ -198,14 +200,14 @@ end
 # Test a problem with fixed variables
 @testset "AIRCRFTA" begin
   primal_solution = [
-     0.005652720539657081,
+    0.005652720539657081,
     -0.00653774373397042,
     -0.0006212466680082355,
     -0.12333555374458006,
     -0.0003874221934374081,
     0.1,
     0.0,
-    0.0
+    0.0,
   ]
   dual_solution = zeros(5)
   linear_solver =

@@ -172,16 +172,24 @@ function L2Penalty(
   if length(nlp.meta.ifix) > 0
     preprocessed_nlp = remove_fixed_variables(nlp)
   end
-  
+
   if qn_hessian_approximation == "bfgs"
-    preprocessed_nlp = CompactBFGSModel(preprocessed_nlp; mem = qn_mem, scaling = qn_scaling, max_skip = qn_max_skip)
+    preprocessed_nlp = CompactBFGSModel(
+      preprocessed_nlp;
+      mem = qn_mem,
+      scaling = qn_scaling,
+      max_skip = qn_max_skip,
+    )
   elseif qn_hessian_approximation == "null"
     preprocessed_nlp = NullHessianModel(preprocessed_nlp)
   end
 
   # Preallocation
-  solver =
-    L2PenaltySolver(preprocessed_nlp; r2n_m_monotone = r2n_m_monotone, linear_solver = linear_solver)
+  solver = L2PenaltySolver(
+    preprocessed_nlp;
+    r2n_m_monotone = r2n_m_monotone,
+    linear_solver = linear_solver,
+  )
   stats = PeneloptExecutionStats(preprocessed_nlp)
 
   # Solve
@@ -252,7 +260,9 @@ function SolverCore.solve!(
 
   # Check that the problem has been correctly preprocessed
   if length(nlp.meta.ifix) > 0
-    error("L2Penalty: The problem has fixed variables. Refer to the documentation for information on how to preprocess the problem.")
+    error(
+      "L2Penalty: The problem has fixed variables. Refer to the documentation for information on how to preprocess the problem.",
+    )
   end
 
   if !equality_constrained(nlp)
