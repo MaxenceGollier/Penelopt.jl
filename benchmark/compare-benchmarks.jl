@@ -162,9 +162,9 @@ ipopt_dir = joinpath("artifacts", "ipopt")
 load_stats(ipopt_dir, stats, "")
 
 # What if we remove the feasibility problems ?
-for (key, df) in stats
-  stats[key] = filter(row -> !endswith(row.name, "NE") || row.name == "YATP2SQ", df)
-end
+# for (key, df) in stats
+#   stats[key] = filter(row -> !endswith(row.name, "NE") || row.name == "YATP2SQ", df)
+# end
 
 p = plot(
   pairwise_plot(stats, [:l2penalty_exact_current, :ipopt_exact]),
