@@ -108,12 +108,46 @@ All three levels can be constructed once (`L2PenaltySolver`,
 `PenaltyR2NSolver`, or `MoreSorensenSolver`, respectively) and reused across
 solves, following the same two-call pattern described above.
 
+## Fixed Variables
+
+If some variables in your problem are fixed (i.e., some of your constraints are $x_i = c_i$ for some constants $c_i$), Penelopt.jl automatically removes these internally and solves a reduced problem.
+
+```@example fixed
+using CUTEst, Penelopt
+
+# NLP model with fixed variables
+nlp = CUTEstModel("AIRCRFTA")
+
+# You can check that a problem has fixed variables by accessing the `meta` of the NLP model
+length(nlp.meta.ifix) > 0
+```
+The reformulation is done automatically when calling the solver, and the solution is then mapped back to the original problem.
+However, if you wish to use a [preallocated solver](performance.md#preallocation) you are responsible for constructing the reduced problem yourself.
+
+The example below shows how to construct a preallocated solver for a problem with fixed variables.
+```@example fixed
+
+# For the reformulation, it suffices to call the following function.
+nlp_no_fixed = remove_fixed_variables(nlp)
+
+# Now you can construct a preallocated solver for the reduced problem.
+solver = L2PenaltySolver(nlp_no_fixed)
+stats = PeneloptExecutionStats(nlp_no_fixed)
+
+solve!(solver, nlp_no_fixed, stats)
+
+finalize(nlp) # hide
+
+# To retrieve the solution back you can do
+solution_full = recover_full_solution(nlp_no_fixed, stats.solution)
+```
+
 ## Quasi-Newton Approximations
 
 If the Hessian of the Lagrangian of your nonlinear programming problem is dense, ill-conditionned, expensive to compute, or inaccessible, you may be interested in replacing it with a quasi-Newton approximation.
 
 `Penelopt.jl` offers you the possibility to run the optimization process with a [Limited-memory BFGS](https://en.wikipedia.org/wiki/Limited-memory_BFGS) approximation.
-You simply need to call the function `CompactBFGSModel` on your `nlp`!
+You can simply pass a keyword argument when calling the solver (see the [options](options.md) page):
 
 ```@example bfgs
 using CUTEst, Penelopt
@@ -121,10 +155,7 @@ using CUTEst, Penelopt
 # Construct your NLP model
 nlp = CUTEstModel("HS6")
 
-# Construct your BFGS model
-bfgs_nlp = CompactBFGSModel(nlp)
-
-stats = L2Penalty(bfgs_nlp; print_level = 1)
+stats = L2Penalty(nlp; print_level = 1, qn_hessian_approximation = "bfgs")
 
 finalize(nlp) # hide
 ```
@@ -132,12 +163,34 @@ finalize(nlp) # hide
 !!! warning "Default options"
     Some default [options](options.md) have a different value when using our solver with a quasi-Newton approximation.
     Those options are
-    * `r2n_η2::T = 0.1` which default to `0.9` with a quasi-Newton approximation;
-    * `ms_αmin1::T = eps(T)^(0.6)` which default to `eps(T)^(0.8)` with a quasi-Newton approximation.
+    * `r2n_η2::T = 0.1` which default to `0.9` with a quasi-Newton approximation.
 
 !!! tip "L-BFGS options"
-    The `CompactBFGSModel` constructor supports keyword arguments to customize your approximation.
+    You can pass the following additional keyword arguments to customize your approximation.
     Those are
-    * `mem::Int = 6`: memory parameter for the limited-memory approximation.
-    * `scaling::Bool = true`: whether we scale $B_0 = \gamma I$ with $\gamma = y^Ty / s^T y$, where $s$ is the step and $y$ is the difference of the two last gradients of the Lagrangian.
-    * `max_skip::Int = 2` (*advanced*): if we skipped a pair $(s, y)$ more than `max_skip` times in a row, we reset the approximation. 
+    * `qn_mem::Int = 6`: memory parameter for the limited-memory approximation.
+    * `qn_scaling::Bool = true`: whether we scale $B_0 = \gamma I$ with $\gamma = y^Ty / s^T y$, where $s$ is the step and $y$ is the difference of the two last gradients of the Lagrangian.
+    * `qn_max_skip::Int = 2` (*advanced*): if we skipped a pair $(s, y)$ more than `max_skip` times in a row, we reset the approximation.
+
+If you wish to use a quasi-Newton approximation together with the [preallocation](performance.md#preallocation) feature you should do the following instead:
+
+```{julia}
+julia> using CUTEst, Penelopt
+
+# Construct your NLP model
+julia> nlp = CUTEstModel("HS6")
+
+# Construct a "quasi-Newton" NLP structure first
+julia> nlp_bfgs = CompactBFGSModel(nlp; mem = 6, scaling = true, max_skip = 2)
+
+# The solver will automatically use the quasi-Newton approximation now
+julia> solver = L2PenaltySolver(nlp_bfgs)
+julia> stats = PeneloptExecutionStats(nlp_bfgs)
+
+# Solve as many times as needed;
+julia> solve!(solver, nlp, stats)
+```
+
+!!! danger "Quasi-Newton approximations and fixed variables"
+    If your problem has fixed variables, you should first remove them before constructing a quasi-Newton approximation.
+    This is because the quasi-Newton approximation is built for the reduced problem and it will not be valid for the original problem.
