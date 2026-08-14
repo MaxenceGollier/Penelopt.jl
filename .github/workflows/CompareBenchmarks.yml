@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   workflow_call:
   workflow_run:
-    workflows: ["Run Benchmark"]
+    workflows: ["RunBenchmark.yml"]
     types:
       - completed
 
@@ -23,7 +23,7 @@ jobs:
         uses: julia-actions/cache@v2
 
       - name: Download benchmark artifact (workflow_run)
-        if: github.event_name == 'workflow_run'
+        if: github.event_name != 'workflow_call'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
