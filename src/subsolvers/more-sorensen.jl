@@ -96,7 +96,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   α0::T = eps(T),
   αmin1::T = eps(T)^(0.8),
   αmin2::T = eps(T)^(0.6),
-  σmax::T = 1 / eps(T)^(0.6),
+  σmax::T = 1 / eps(T)^(0.8),
   accept_descent::Bool = true, # Whether we accept inexact steps that decrease the quadratic model.
 ) where {T,V,M,H,P}
   start_time = time()
@@ -141,7 +141,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
 
   # Get correct inertia
   # If the factorization/solver failed, it in indicates we should add a minimal regularization too.
-  if nneg < m || nzero > 0 || status == :failed
+  if nneg < m || status == :failed
     α = αmin
     set_dual_inertia!(solver_workspace, α)
     solve_system!(solver_workspace, u1)
@@ -149,7 +149,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     npos, nzero, nneg = get_inertia(solver_workspace)
     status = get_status(solver_workspace)
 
-    if nneg < m || nzero > 0 || status == :failed
+    if nneg < m || status == :failed
       αmin = αmin2
       α = αmin
       set_dual_inertia!(solver_workspace, α)

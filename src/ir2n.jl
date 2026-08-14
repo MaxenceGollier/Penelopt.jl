@@ -96,7 +96,7 @@ function SolverCore.solve!(
   ## MS Specific arguments
   ms_verbose::Int = 1,
   ms_accept_descent::Bool = true,
-  ms_σmax::T = 1/eps(T)^(0.6),
+  ms_σmax::T = 1/eps(T)^(0.8),
   ms_tol::T = eps(T)^(0.6),
   ms_μα::T = T(0.1),
   ms_μσ::T = T(10),
