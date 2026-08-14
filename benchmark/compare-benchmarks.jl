@@ -11,12 +11,15 @@ function load_stats(dir::AbstractString, stats, suffix = "")
 
   for method in METHODS
 
+    @info "Loading $(method) benchmark results"
+
     file_splits = String[]
 
     for (root, _, files) in walkdir(dir)
       for file in files
-        if startswith(file, "stats_$(method)") ||
-           (startswith(file, "stats_ipopt_$(method)") && suffix == "")
+        if (startswith(file, "stats_$(method)") ||
+           (startswith(file, "stats_ipopt_$(method)") && suffix == "")) && 
+            occursin(r"\d+\.jld2$", file)
           push!(file_splits, joinpath(root, file))
         end
       end
@@ -159,9 +162,9 @@ ipopt_dir = joinpath("artifacts", "ipopt")
 load_stats(ipopt_dir, stats, "")
 
 # What if we remove the feasibility problems ?
-# for (key, df) in stats
-#   stats[key] = filter(row -> !endswith(row.name, "NE") || row.name == "YATP2SQ", df)
-# end
+for (key, df) in stats
+  stats[key] = filter(row -> !endswith(row.name, "NE") || row.name == "YATP2SQ", df)
+end
 
 p = plot(
   pairwise_plot(stats, [:l2penalty_exact_current, :ipopt_exact]),
