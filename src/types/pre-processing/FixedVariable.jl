@@ -196,6 +196,8 @@ end
 
 recover_full_solution(::AbstractNLPModel, x::AbstractVector) = x
 
+recover_full_solution(nlp::QuasiNewtonModel, x::AbstractVector) = recover_full_solution(get_model(nlp), x)
+
 # ------------------------------------------------------------------------
 # NLPModels API
 # ------------------------------------------------------------------------

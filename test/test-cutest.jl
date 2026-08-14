@@ -42,13 +42,7 @@ function test_problem(
       solve!(solver, null_model, stats_optimized, atol = 1e-3, rtol = 1e-3)
     ) == 0
 
-    if length(nlp.meta.ifix) > 0
-      solution = similar(nlp.meta.x0)
-      @views solution[nlp.meta.ifix] .= nlp.meta.uvar[nlp.meta.ifix]
-      @views solution[nlp.meta.ifree] .= stats_optimized.solution
-
-      stats_optimized.solution = solution
-    end
+    stats_optimized.solution = recover_full_solution(null_model, stats_optimized.solution)
 
     # Test that the second calling form gives the same output
     @test stats_optimized.status == stats.status
@@ -94,13 +88,7 @@ function test_problem(
     stats_optimized = PeneloptExecutionStats(LBFGS_model)
     solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3)
 
-    if length(nlp.meta.ifix) > 0
-      solution = similar(nlp.meta.x0)
-      @views solution[nlp.meta.ifix] .= nlp.meta.uvar[nlp.meta.ifix]
-      @views solution[nlp.meta.ifree] .= stats_optimized.solution
-
-      stats_optimized.solution = solution
-    end
+    stats_optimized.solution = recover_full_solution(LBFGS_model, stats_optimized.solution)
 
     # Test that the second calling form gives the same output
     @test stats_optimized.status == stats.status
@@ -142,13 +130,7 @@ function test_problem(
     @test @wrappedallocs(solve!(solver, preprocessed_nlp, stats_optimized, atol = 1e-3, rtol = 1e-3)) ==
           0
 
-    if length(nlp.meta.ifix) > 0
-      solution = similar(nlp.meta.x0)
-      @views solution[nlp.meta.ifix] .= nlp.meta.uvar[nlp.meta.ifix]
-      @views solution[nlp.meta.ifree] .= stats_optimized.solution
-
-      stats_optimized.solution = solution
-    end
+    stats_optimized.solution = recover_full_solution(preprocessed_nlp, stats_optimized.solution)
 
     # Test that the second calling form gives the same output
     @test stats_optimized.status == stats.status

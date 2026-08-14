@@ -184,14 +184,8 @@ function L2Penalty(
   # Solve
   solve!(solver, preprocessed_nlp, stats; kwargs...)
 
-  # Postprocess
-  if length(nlp.meta.ifix) > 0
-    solution = similar(nlp.meta.x0)
-    @views solution[nlp.meta.ifix] .= nlp.meta.uvar[nlp.meta.ifix]
-    @views solution[nlp.meta.ifree] .= stats.solution
-
-    stats.solution = solution
-  end
+  # Postprocess (in case there are fixed variables)
+  stats.solution = recover_full_solution(preprocessed_nlp, stats.solution)
 
   return stats
 end
