@@ -84,7 +84,8 @@ function SolverCore.solve!(
   σmin::T = eps(T),
   η1::T = √√eps(T),
   η2::T = T(0.1),
-  γ::T = T(3),
+  γ1::T = T(3),
+  γ2::T = T(1/3),
   watchdog_max_iter::Int = 10,
   watchdog_η0::T = √eps(T),
   tiny_step_tol::T = eps(T),
@@ -198,7 +199,7 @@ function SolverCore.solve!(
     # Check the watchdog
     if check_watchdog!(watchdog_checkpoint, stats, mk, xk, watchdog_max_iter, watchdog_η0)
       fallback!(mk, xk, y, watchdog_checkpoint)
-      φ.data.σ *= γ^watchdog_max_iter
+      φ.data.σ *= γ1^watchdog_max_iter
       σk = φ.data.σ
       hk, fk = watchdog_checkpoint.hk, watchdog_checkpoint.fk
       m_fh_hist .= watchdog_checkpoint.m_fh_hist
@@ -249,12 +250,12 @@ function SolverCore.solve!(
     end
 
     if η2 ≤ ρk < Inf
-      σk = max(σk / 100, eps(T))
+      σk = max(σk * γ2, σmin)
     end
 
     if ρk < η1 || ρk == Inf
       if first_increase && ρk < 0
-        σk = max(sqrt(stats.dual_feas), σk * γ)
+        σk = max(sqrt(stats.dual_feas), σk * γ1)
         first_increase = false
       elseif ρk < 0 &&
              ρk > -1 / eps(T) &&
@@ -281,10 +282,10 @@ function SolverCore.solve!(
           shift!(mk, xk, y = y)
 
         else
-          σk = σk * γ
+          σk = σk * γ1
         end
       else
-        σk = σk * γ
+        σk = σk * γ1
       end
     end
 
