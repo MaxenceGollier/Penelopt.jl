@@ -5,10 +5,9 @@ using CUTEst, NLPModelsIpopt, SolverBenchmark
 problem_names = CUTEst.select_sif_problems(
   min_con = 1,
   only_equ_con = true,
-  only_free_var = true,
   custom_filter = meta -> (
-    meta["variables"]["number"] >= meta["constraints"]["number"] # Uncomment to allow problems with fixed variables
-    #&& meta["variables"]["free"] + meta["variables"]["fixed"] == meta["variables"]["number"]
+    meta["variables"]["number"] >= meta["constraints"]["number"]
+    && meta["variables"]["free"] + meta["variables"]["fixed"] == meta["variables"]["number"]
   ),
 )
 
@@ -45,7 +44,7 @@ solvers = Dict(
       compl_inf_tol = Inf,
       acceptable_iter = 0,
       s_max = floatmax(Float64),
-      hessian_approximation = "limited-memory",
+      qn_hessian_approximation = "limited-memory",
       nlp_scaling_method = "none",
       max_cpu_time = max_time,
       max_iter = typemax(Int32),
