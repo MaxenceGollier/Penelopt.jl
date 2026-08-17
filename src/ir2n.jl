@@ -257,7 +257,7 @@ function SolverCore.solve!(
         σk = max(sqrt(stats.dual_feas), σk * γ)
         first_increase = false
       elseif ρk < 0 &&
-             ρk > -Inf &&
+             ρk > -1 / eps(T) &&
              !is_active(watchdog_checkpoint) &&
              !isa(nlp, NullHessianModel) # Watchdog procedure
 

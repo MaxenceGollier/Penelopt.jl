@@ -1,4 +1,5 @@
 function extrapolate!(
+  nlp::AbstractNLPModel,
   x::V,
   solver::L2PenaltySolver{T,V,S,PB},
   τ₂::T,
@@ -57,7 +58,18 @@ function extrapolate!(
   px .*= α_dot
 
   # x = x + (τ₂ - τ₁) x'
-  solver.x .= x .+ (τ₂ - τ₁) .* px
+  x_extrap = px
+  x_extrap .= x .+ (τ₂ - τ₁) .* px
 
-  return true
+  # Basic safeguard
+  obj_extrap = obj(nlp, x_extrap)
+  cons!(nlp, x_extrap, solver.cn)
+
+  if obj_extrap < Inf && norm(solver.cn) < Inf
+    solver.x .= x_extrap
+    set_solver_specific!(solver.substats, :smooth_obj, obj_extrap)
+    return true
+  end
+
+  return false
 end
