@@ -43,7 +43,7 @@ solvers = Dict(
       rtol = 0.0,
       max_time = max_time,
       max_iter = typemax(Int),
-      qn_hessian_approximation = "limited-memory",
+      qn_hessian_approximation = "bfgs",
       linear_solver = "mumps",
     ),
 )
