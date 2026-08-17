@@ -163,7 +163,7 @@ function L2Penalty(
   kwargs...,
 ) where {T<:Real,V}
 
-  if !equality_constrained(nlp)
+  if !equality_constrained(nlp) || has_bounds(nlp)
     error("L2Penalty: This algorithm only works for equality contrained problems.")
   end
 
@@ -265,7 +265,7 @@ function SolverCore.solve!(
     )
   end
 
-  if !equality_constrained(nlp)
+  if !equality_constrained(nlp) || has_bounds(nlp)
     error("L2Penalty: This algorithm only works for equality contrained problems.")
   end
 

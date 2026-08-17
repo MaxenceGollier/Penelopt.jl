@@ -38,6 +38,10 @@ end
   include("test-cutest.jl")
 end
 
+@testset "Errors and warnings" begin
+  include("test-errors.jl")
+end
+
 using MPI, MUMPS
 @testset "CUTEst-MUMPS" begin
   @test !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt))
