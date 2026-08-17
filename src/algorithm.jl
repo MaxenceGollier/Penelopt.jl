@@ -168,11 +168,17 @@ function L2Penalty(
   end
 
   # Preprocessing
+
+  ## Scale the model
+  preprocessed_nlp = scale_model(nlp)
+
+  ## Remove fixed variables
   preprocessed_nlp = nlp
   if length(nlp.meta.ifix) > 0
     preprocessed_nlp = remove_fixed_variables(nlp)
   end
-
+  
+  ## qN approximations
   if qn_hessian_approximation == "bfgs"
     preprocessed_nlp = CompactBFGSModel(
       preprocessed_nlp;
