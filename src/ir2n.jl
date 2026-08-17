@@ -249,7 +249,7 @@ function SolverCore.solve!(
     end
 
     if η2 ≤ ρk < Inf
-      σk = σk / γ
+      σk = max(σk / 100, eps(T))
     end
 
     if ρk < η1 || ρk == Inf
