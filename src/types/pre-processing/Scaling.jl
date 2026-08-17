@@ -77,7 +77,7 @@ and whose constraints are `d_c .* c(x)`. `d_f` must be a positive scalar and
  
 If `get_ncon(nlp) == 0`, `d_c` may be passed as an empty vector.
 """
-function scale_model(nlp::AbstractNLPModel{T,S}, d_f::T, d_c::S) where {T,S}
+function scale_model(nlp::AbstractNLPModel{T,S}; d_f::T = one(T), d_c::S = ones(get_ncon(nlp))) where {T,S}
   ncon = get_ncon(nlp)
   length(d_c) == ncon || throw(
     DimensionMismatch(
