@@ -32,31 +32,27 @@ function MoreSorensenSolver(
   # Check for MUMPS
   mumps_loaded = !isnothing(Base.get_extension(@__MODULE__, :PeneloptMUMPSExt))
   if !mumps_loaded && solver == :mumps
-    @warn
-      "Penelopt.jl: MUMPS extension is not loaded. Please install MPI.jl and MUMPS.jl. Switching to LDLFactorizations.jl...",
+    @warn "Penelopt.jl: MUMPS extension is not loaded. Please install MPI.jl and MUMPS.jl. Switching to LDLFactorizations.jl...",
     solver = :ldlt
   end
 
   # Check for HSL
   hsl_loaded = !isnothing(Base.get_extension(@__MODULE__, :PeneloptHSLExt))
   if !hsl_loaded && solver == :ma57
-    @warn
-      "Penelopt.jl: HSL extension is not loaded. Please install HSL.jl. Switching to LDLFactorizations.jl..."
+    @warn "Penelopt.jl: HSL extension is not loaded. Please install HSL.jl. Switching to LDLFactorizations.jl..."
     solver = :ldlt
   end
 
   hsl_isfunctional = hsl_loaded && hsl_functional()
   if !hsl_isfunctional && solver == :ma57
-    @warn
-      "Penelopt.jl: HSL extension is not functional. Please check your license and make sure you have loaded HSL_jll.jl appropriately. Switching to LDLFactorizations.jl..."
+    @warn "Penelopt.jl: HSL extension is not functional. Please check your license and make sure you have loaded HSL_jll.jl appropriately. Switching to LDLFactorizations.jl..."
     solver = :ldlt
   end
 
   # Check for Krylov
   krylov_loaded = !isnothing(Base.get_extension(@__MODULE__, :PeneloptKrylovExt))
   if !krylov_loaded && solver == :minres_qlp
-    @warn
-      "Penelopt.jl: Krylov extension is not loaded. Please install Krylov.jl. Switching to LDLFactorizations.jl..."
+    @warn "Penelopt.jl: Krylov extension is not loaded. Please install Krylov.jl. Switching to LDLFactorizations.jl..."
     solver = :ldlt
   end
 
