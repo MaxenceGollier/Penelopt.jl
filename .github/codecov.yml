@@ -15,3 +15,4 @@ ignore:
   - "ext/Krylov"
   - "ext/PeneloptHSLExt.jl"
   - "ext/HSL"
+  - "src/logging.jl"
