@@ -166,7 +166,8 @@ function SolverCore.solve!( #TODO add verbose and kwargs
 
   # Solve with H = 0 instead.
   if reg_nlp.model.data.σ > σmax && (npos < n || status == :failed)
-    isa(reg_nlp.model.data.H, CompactBFGS) ? NLPModels.reset!(reg_nlp.model.data.H) : reg_nlp.model.data.H.vals .= 0
+    isa(reg_nlp.model.data.H, CompactBFGS) ? NLPModels.reset!(reg_nlp.model.data.H) :
+    reg_nlp.model.data.H.vals .= 0
     update_workspace!(solver_workspace, reg_nlp.h.A, reg_nlp.model.data.σ, α)
     # [ σI Aᵀ][x] = -[∇f]
     # [ A  0 ][y] = -[c] 
