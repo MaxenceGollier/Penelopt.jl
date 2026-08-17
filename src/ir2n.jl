@@ -230,6 +230,7 @@ function SolverCore.solve!(
     # Step acceptance
     xkn .= xk .+ s
     fkn, hkn = obj(nlp, xkn), h(xkn)
+    ckn = h.b
     mks = dot(∇fk, s) + ψ(s)
 
     fhmax = m_monotone > 1 ? maximum(m_fh_hist) : fk + hk
@@ -244,7 +245,7 @@ function SolverCore.solve!(
       #update functions
       fk, hk = fkn, hkn
 
-      shift!(mk, xk, y = y)
+      shift!(mk, xk, y = y, c = ckn)
 
     end
 
@@ -277,8 +278,9 @@ function SolverCore.solve!(
 
           #update functions
           fk, hk = fkn, hkn
+          ckn = h.b
 
-          shift!(mk, xk, y = y)
+          shift!(mk, xk, y = y, c = ckn)
 
         else
           σk = σk * γ

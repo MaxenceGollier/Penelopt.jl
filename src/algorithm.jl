@@ -427,7 +427,7 @@ function SolverCore.solve!(
       # Update penalty parameter
       τ₊ = max(τ + β1, norm(y, 1))
       if extrapolate!(x, solver, τ₊, τ)
-        shift!(mk, x, y = y)
+        shift!(mk, x, y = y, c = solver.cn)
 
         # Subsolver: Do not impose primal decrease
         primal_decrease = false
