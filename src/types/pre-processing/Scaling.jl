@@ -48,7 +48,7 @@ Wraps `nlp` and exposes the scaled objective `d_f * f(x)` and scaled
 constraints `d_c .* c(x)`. Do not construct directly; use
 [`scale_model`](@ref).
 """
-struct ScaledModel{
+mutable struct ScaledModel{
   T,
   S<:AbstractVector{T},
   M<:AbstractNLPModel{T,S},
