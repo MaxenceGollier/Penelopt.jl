@@ -8,15 +8,43 @@
   @test_warn "Penelopt.jl: MUMPS extension is not loaded. Please install MPI.jl and MUMPS.jl. Switching to LDLFactorizations.jl..." begin
     L2Penalty(nlp, linear_solver = "mumps")
   end
-  @test_warn "Penelopt.jl: HSL extension is not functional. Please check your license and make sure you have loaded HSL_jll.jl appropriately. Switching to LDLFactorizations.jl..." begin
+  @test_warn "Penelopt.jl: HSL extension is not loaded. Please install HSL.jl. Switching to LDLFactorizations.jl..." begin
     L2Penalty(nlp, linear_solver = "ma57")
-  end
-  @test_warn "Penelopt.jl: Krylov extension is not loaded. Please install Krylov.jl. Switching to LDLFactorizations.jl..." begin
-    L2Penalty(nlp, linear_solver = "minres_qlp")
   end
 
   finalize(nlp)
 end
 
 @testset "Wrong problem type" begin
+  
+  # Unconstrained problem
+  nlp = CUTEstModel("3PK")
+  @test_throws "L2Penalty: This algorithm only works for equality contrained problems." L2Penalty(nlp)
+  solver = L2PenaltySolver(nlp)
+  stats = PeneloptExecutionStats(nlp)
+  @test_throws "L2Penalty: This algorithm only works for equality contrained problems." solve!(solver, nlp, stats)
+  finalize(nlp)
+  
+  # Problem with bounds 
+  nlp = CUTEstModel("LIN")
+  @test_throws "L2Penalty: This algorithm only works for equality contrained problems." L2Penalty(nlp)
+  solver = L2PenaltySolver(nlp)
+  stats = PeneloptExecutionStats(nlp)
+  @test_throws "L2Penalty: This algorithm only works for equality contrained problems." solve!(solver, nlp, stats)
+  finalize(nlp)
+
+  # Problem with inequalities
+  nlp = CUTEstModel("AVGASA")
+  @test_throws "L2Penalty: This algorithm only works for equality contrained problems." L2Penalty(nlp)
+  solver = L2PenaltySolver(nlp)
+  stats = PeneloptExecutionStats(nlp)
+  @test_throws "L2Penalty: This algorithm only works for equality contrained problems." solve!(solver, nlp, stats)
+  finalize(nlp)
+
+  # Problem with fixed variables
+  nlp = CUTEstModel("AIRCRFTA")
+  solver = L2PenaltySolver(nlp)
+  stats = PeneloptExecutionStats(nlp)
+  @test_throws "L2Penalty: The problem has fixed variables. Refer to the documentation for information on how to preprocess the problem." solve!(solver, nlp, stats)
+  finalize(nlp)
 end
