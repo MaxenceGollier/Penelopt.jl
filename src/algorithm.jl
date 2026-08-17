@@ -421,7 +421,6 @@ function SolverCore.solve!(
       τ₊ = max(τ + β1, norm(y, 1))
       if extrapolate!(x, solver, τ₊, τ)
         shift!(mk, x, y = y)
-        set_solver_specific!(solver.substats, :smooth_obj, obj(nlp, x))
 
         # Subsolver: Do not impose primal decrease
         primal_decrease = false
