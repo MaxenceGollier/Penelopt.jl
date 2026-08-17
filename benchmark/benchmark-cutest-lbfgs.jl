@@ -7,8 +7,8 @@ problem_names = CUTEst.select_sif_problems(
   min_con = 1,
   only_equ_con = true,
   custom_filter = meta -> (
-    meta["variables"]["number"] >= meta["constraints"]["number"]
-    && meta["variables"]["free"] + meta["variables"]["fixed"] == meta["variables"]["number"]
+    meta["variables"]["number"] >= meta["constraints"]["number"] &&
+    meta["variables"]["free"] + meta["variables"]["fixed"] == meta["variables"]["number"]
   ),
 )
 
