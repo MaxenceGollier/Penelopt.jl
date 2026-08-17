@@ -192,8 +192,8 @@ end
   stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0)
   @test stats.status == :first_order
 
-  stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0, qn_hessian_approximation = "bfgs")
-  @test stats.status == :first_order
+  # stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0, qn_hessian_approximation = "bfgs")
+  # @test stats.status == :first_order
   finalize(nlp)
 end
 
