@@ -32,7 +32,7 @@ function MoreSorensenSolver(
   # Check for MUMPS
   mumps_loaded = !isnothing(Base.get_extension(@__MODULE__, :PeneloptMUMPSExt))
   if !mumps_loaded && solver == :mumps
-    @warn "Penelopt.jl: MUMPS extension is not loaded. Please install MPI.jl and MUMPS.jl. Switching to LDLFactorizations.jl...",
+    @warn "Penelopt.jl: MUMPS extension is not loaded. Please install MPI.jl and MUMPS.jl. Switching to LDLFactorizations.jl..."
     solver = :ldlt
   end
 
