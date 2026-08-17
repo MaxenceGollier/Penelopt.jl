@@ -333,7 +333,7 @@ function SolverCore.solve!(
   end
 
   ## Initialize Model
-  shift!(mk, x, ∇f = solver.∇fk, y = y)
+  shift!(mk, x, ∇f = solver.∇fk, y = y, J = ψ.A, c = ψ.b)
 
   infeasible = false
   not_desc = false

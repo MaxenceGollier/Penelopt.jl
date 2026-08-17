@@ -128,7 +128,7 @@ function SolverCore.solve!(
   local ρk::T = zero(T)
 
   # initialize parameters
-  hk = @views h(xk)
+  hk = !is_shifted ? h(xk) : h.h(ψ.b)
   h0 = copy(hk)
   fk = !is_shifted ? obj(nlp, xk) : stats.solver_specific[:smooth_obj]
 
