@@ -37,7 +37,7 @@ max_time = 300.0
 solvers = Dict(
   :l2penalty_lbfgs =>
     nlp -> L2Penalty(
-      CompactBFGSModel(nlp),
+      nlp,
       print_level = 0,
       atol = tol,
       rtol = 0.0,
