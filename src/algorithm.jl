@@ -237,9 +237,14 @@ function SolverCore.solve!(
   r2n_verbose::Int = 1,
   ms_verbose::Int = 1,
 
+  ## Outer Loop specific arguments
+  τmin::T = T(1),
+  τ0::T = T(1),
+
   ## R2N Specific arguments
   r2n_η1::T = √√eps(T),
   r2n_η2::T = isa(nlp, QuasiNewtonModel) ? T(0.9) : T(0.1),
+  r2n_σmin::T = eps(T),
   r2n_γ::T = T(3),
   r2n_watchdog_max_iter::Int = 10,
   r2n_watchdog_η0::T = √eps(T),
@@ -255,13 +260,6 @@ function SolverCore.solve!(
   ms_α0::T = eps(T),
   ms_αmin1::T = eps(T)^(0.8),
   ms_αmin2::T = eps(T)^(0.6),
-
-  ## Other arguments
-  max_decreas_iter::Int = 10,
-  τ::T = T(100),
-  β1::T = T(1),
-  β3::T = 1e-4/τ,
-  β4::T = eps(T),
 ) where {T,V}
   reset!(stats)
 
@@ -318,9 +316,9 @@ function SolverCore.solve!(
   solved = dual_feas ≤ dual_tol && primal_feas ≤ primal_tol
 
   ## Initialize penalty parameter
-  τ = max(norm(solver.y, 1), T(1))
+  τ = max(norm(solver.y, 1), τ0)
   set_penalty!(mk, τ)
-  νsub = 1 / β4
+  νsub = 1 / r2n_σmin
   set_solver_specific!(solver.substats, :tau, τ)
 
   ## Logging
@@ -367,15 +365,22 @@ function SolverCore.solve!(
       solver.subpb,
       solver.substats;
       x = x,
+
+      ## Termination arguments
       atol = dual_ktol,
       rtol = dual_krtol,
-      print_level = print_level - 1,
-      verbose = r2n_verbose,
       max_iter = r2n_max_iter,
       ms_max_iter = ms_max_iter,
       max_time = max_time - stats.elapsed_time,
       max_eval = rem_eval,
-      σmin = β4,
+
+      ## Logging arguments
+      print_level = print_level - 1,
+      verbose = r2n_verbose,
+      ms_verbose = ms_verbose,
+
+      ## R2N Specific arguments
+      σmin = r2n_σmin,
       σk = 1 / νsub,
       η1 = r2n_η1,
       η2 = r2n_η2,
@@ -387,6 +392,8 @@ function SolverCore.solve!(
       is_shifted = true,
       primal_decrease = primal_decrease,
       first_increase = first_increase,
+
+      ## MS Specific arguments
       ms_accept_descent = ms_accept_descent,
       ms_σmax = ms_σmax,
       ms_tol = ms_tol,
@@ -400,9 +407,10 @@ function SolverCore.solve!(
     if solver.substats.status == :unbounded
       τ *= 10
       set_penalty!(mk, τ)
-      νsub = 1 / β4
+      νsub = 1 / r2n_σmin
       shift!(mk, x, y = y)
       set_solver_specific!(solver.substats, :smooth_obj, fx)
+      set_solver_specific!(solver.substats, :tau, τ)
       continue
     end
 
@@ -423,7 +431,7 @@ function SolverCore.solve!(
 
     if primal_feas > primal_ktol || (dual_ktol ≤ dual_tol && primal_feas > primal_tol)
       # Update penalty parameter
-      τ₊ = max(τ + β1, norm(y, 1))
+      τ₊ = max(τ + τmin, norm(y, 1))
       if extrapolate!(x, solver, τ₊, τ)
         shift!(mk, x, y = y, c = solver.cn)
 
@@ -471,7 +479,7 @@ function SolverCore.solve!(
     # Check whether the primal feasibility has decreased. If not, increase the penalty parameter more aggressively.
     if primal_feas > primal_ktol && hx_prev < hx
       n_iter_since_decrease += 1
-      β1 *= 10
+      τmin *= 10
     else
       n_iter_since_decrease = 0
     end

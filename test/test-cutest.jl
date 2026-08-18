@@ -9,12 +9,16 @@ function test_problem(
   dual_solution,
   expected_status;
   linear_solver::String = "ldlt",
+  ignore_null_hessian::Bool = false,
+  ignore_bfgs::Bool = false,
+  ignore_exact::Bool = false,
 )
   nlp = CUTEstModel(name)
 
   # Test with R2
-  @testset "NullHessian" begin
-    stats = L2Penalty(nlp, atol = tol, rtol = tol, qn_hessian_approximation = "null")
+  
+  !ignore_null_hessian && @testset "NullHessian" begin
+    stats = L2Penalty(nlp, atol = tol, rtol = tol, qn_hessian_approximation = "null", τ0 = 1.0)
 
     # Test whether the outputs are well defined
     @test stats.status == expected_status
@@ -39,7 +43,7 @@ function test_problem(
     solver = L2PenaltySolver(null_model)
     stats_optimized = PeneloptExecutionStats(null_model)
     @test @wrappedallocs(
-      solve!(solver, null_model, stats_optimized, atol = 1e-3, rtol = 1e-3)
+      solve!(solver, null_model, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
     ) == 0
 
     stats_optimized.solution = recover_full_solution(null_model, stats_optimized.solution)
@@ -55,13 +59,14 @@ function test_problem(
   end
 
   # Test with BFGS
-  @testset "BFGS" begin
+  !ignore_bfgs && @testset "BFGS" begin
     stats = L2Penalty(
       nlp,
       atol = tol,
       rtol = tol,
       qn_hessian_approximation = "bfgs",
       linear_solver = linear_solver,
+      τ0 = 1.0
     )
 
     @test stats.status == expected_status
@@ -86,7 +91,7 @@ function test_problem(
 
     solver = L2PenaltySolver(LBFGS_model, linear_solver = linear_solver)
     stats_optimized = PeneloptExecutionStats(LBFGS_model)
-    solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3)
+    solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
 
     stats_optimized.solution = recover_full_solution(LBFGS_model, stats_optimized.solution)
 
@@ -101,9 +106,9 @@ function test_problem(
     @test stats_optimized.solver_specific[:n_fact] == stats.solver_specific[:n_fact]
   end
 
-  @testset "Exact" begin
+  !ignore_exact && @testset "Exact" begin
 
-    stats = L2Penalty(nlp, atol = tol, rtol = tol; linear_solver = linear_solver)
+    stats = L2Penalty(nlp, atol = tol, rtol = tol; linear_solver = linear_solver, τ0 = 1.0)
 
     # Test whether the outputs are well defined
     @test stats.status == expected_status
@@ -128,7 +133,7 @@ function test_problem(
     solver = L2PenaltySolver(preprocessed_nlp, linear_solver = linear_solver)
     stats_optimized = PeneloptExecutionStats(preprocessed_nlp)
     @test @wrappedallocs(
-      solve!(solver, preprocessed_nlp, stats_optimized, atol = 1e-3, rtol = 1e-3)
+      solve!(solver, preprocessed_nlp, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
     ) == 0
 
     stats_optimized.solution =
@@ -220,5 +225,32 @@ end
     linear_solver = linear_solver,
   )
 end
-# Test an ill-conditionned problem
-# TODO: Add MSS1
+
+# Test a problem s.t f(x) + tau ||c(x)|| is unbounded for a small tau.
+@testset "HS56" begin
+  primal_solution = [
+    2.4,
+    1.2,
+    1.2,
+    0.857071947850131,
+    0.5639426413606289,
+    0.5639426413606289,
+    1.5707963267948966
+  ]
+  dual_solution = [
+    0.0,
+    0.0,
+    0.0,
+    1.44
+  ]
+  linear_solver =
+    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
+  test_problem(
+    "HS56",
+    primal_solution,
+    dual_solution,
+    :first_order;
+    linear_solver = linear_solver,
+    ignore_null_hessian = true,
+  )
+end

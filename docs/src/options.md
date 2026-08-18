@@ -173,6 +173,14 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
  * `callback::Function = (args...) -> nothing`: callback function.
    > We have a dedicated [section](callbacks.md) for this option.
 
+## Outer Loop Specific
+
+ * `τ0::T = 1.0` (*advanced*): initial penalty parameter.
+    > The first penalized problem is solved with a penalty parameter $\max(τ_0, \lVert y^{LS}_0 \rVert_1)$. This is $\tau_0$ in the implementation paper.
+
+ * `τmin::T = 1.0` (*advanced*): penalty parameter minimimum increase.
+    > The penalty parameter is increased by at least `τmin`, i.e. $\tau_{k+1} \geq \tau_k + \tau_{\text{min}}$. This is $\tau_{\text{min}}$ in the implementation paper.
+
 ## R2N Specific
 
  * `r2n_η1::T = √√eps(T)` (*advanced*): Armijo sufficient decrease threshold. 
