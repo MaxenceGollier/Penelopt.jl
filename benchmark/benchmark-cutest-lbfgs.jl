@@ -12,6 +12,8 @@ problem_names = CUTEst.select_sif_problems(
   ),
 )
 
+filter!(x -> x != "FLOSP2TL", problem_names) # This problem of the form min 0 st c(x) = 0 causes the benchmarks to timeout...
+
 # Speedup benchmark time for BFGS
 # Split problems across 4 runners.
 split = parse(Int, get(ENV, "CUTEST_SPLIT", "1"))
