@@ -239,7 +239,7 @@ function SolverCore.solve!(
 
   ## Outer Loop specific arguments
   τmin::T = T(1),
-  τ0::T = T(10),
+  τ0::T = T(1),
 
   ## R2N Specific arguments
   r2n_η1::T = √√eps(T),
