@@ -175,11 +175,16 @@ function L2Penalty(
   end
 
   # Preprocessing
-  preprocessed_nlp = nlp
+
+  ## Scale the model
+  preprocessed_nlp = scale_model(nlp)
+
+  ## Remove fixed variables
   if length(nlp.meta.ifix) > 0
     preprocessed_nlp = remove_fixed_variables(nlp)
   end
-
+  
+  ## qN approximations
   if qn_hessian_approximation == "bfgs"
     preprocessed_nlp = CompactBFGSModel(
       preprocessed_nlp;
@@ -257,6 +262,8 @@ function SolverCore.solve!(
   ms_αmin2::T = eps(T)^(0.6),
 
   ## Other arguments
+  nlp_scaling_method::String = "gradient-based",
+  gmax::T = T(100),
   max_decreas_iter::Int = 10,
   τ::T = T(100),
   β1::T = T(1),
@@ -316,6 +323,20 @@ function SolverCore.solve!(
   set_residuals!(stats, dual_feas, primal_feas)
 
   solved = dual_feas ≤ dual_tol && primal_feas ≤ primal_tol
+
+  ## Scaling
+  if nlp_scaling_method == "gradient-based"
+    scaling_model = nlp
+    scaling_model = isa(scaling_model, ScaledModel) ? scaling_model : get_model(scaling_model)
+    scaling_model = isa(scaling_model, ScaledModel) ? scaling_model : get_model(scaling_model)
+
+    scaling_model.d_f = gmax / norm(solver.∇fk, Inf)
+    for j in axes(ψ.A, 1)
+        nc = norm(view(ψ.A, j, :), Inf)
+        scaling_model.d_c[j] = nc > 0 ? min(1.0, gmax / nc) : 1.0
+    end
+  end
+  
 
   ## Initialize penalty parameter
   τ = max(norm(solver.y, 1), T(1))
