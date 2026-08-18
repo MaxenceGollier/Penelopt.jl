@@ -12,7 +12,7 @@ using LinearAlgebra, Printf, SparseArrays
 using NLPModels, NLPModelsModifiers
 using LDLFactorizations, LinearOperators, QuadraticModels, SolverCore, SparseMatricesCOO
 
-import SolverCore.reset!
+import SolverCore: get_status, reset!
 
 abstract type AbstractPenalizedProblemSolver <: AbstractOptimizationSolver end
 

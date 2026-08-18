@@ -346,7 +346,6 @@ function SolverCore.solve!(
     get_status(
       nlp,
       elapsed_time = stats.elapsed_time,
-      n_iter_since_decrease = n_iter_since_decrease,
       iter = stats.iter,
       optimal = solved,
       infeasible = infeasible,
@@ -354,7 +353,6 @@ function SolverCore.solve!(
       max_eval = max_eval,
       max_time = max_time,
       max_iter = max_iter,
-      max_decreas_iter = max_decreas_iter,
     ),
   )
 
@@ -503,7 +501,6 @@ function SolverCore.solve!(
       get_status(
         nlp,
         elapsed_time = stats.elapsed_time,
-        n_iter_since_decrease = n_iter_since_decrease,
         iter = stats.iter,
         optimal = solved,
         infeasible = infeasible,
@@ -512,7 +509,6 @@ function SolverCore.solve!(
         max_eval = max_eval,
         max_time = max_time,
         max_iter = max_iter,
-        max_decreas_iter = max_decreas_iter,
       ),
     )
 
@@ -537,42 +533,4 @@ function SolverCore.solve!(
 
   set_solution!(stats, x)
   return stats
-end
-
-function get_status(
-  nlp::M;
-  elapsed_time = 0.0,
-  iter = 0,
-  optimal = false,
-  unbounded = false,
-  infeasible = false,
-  not_desc = false,
-  small_step = false,
-  n_iter_since_decrease = 0,
-  max_eval = Inf,
-  max_time = Inf,
-  max_iter = Inf,
-  max_decreas_iter = Inf,
-) where {M<:AbstractNLPModel}
-  if infeasible
-    :infeasible
-  elseif optimal
-    :first_order
-  elseif unbounded
-    :unbounded
-  elseif not_desc
-    :not_desc
-  elseif small_step
-    :small_step
-  elseif iter >= max_iter
-    :max_iter
-  elseif elapsed_time >= max_time
-    :max_time
-  elseif neval_obj(nlp) >= max_eval && max_eval > -1
-    :max_eval
-  elseif n_iter_since_decrease ≥ max_decreas_iter
-    :infeasible
-  else
-    :unknown
-  end
 end
