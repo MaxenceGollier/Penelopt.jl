@@ -16,9 +16,10 @@ function test_problem(
   nlp = CUTEstModel(name)
 
   # Test with R2
-  
+
   !ignore_null_hessian && @testset "NullHessian" begin
-    stats = L2Penalty(nlp, atol = tol, rtol = tol, qn_hessian_approximation = "null", τ0 = 1.0)
+    stats =
+      L2Penalty(nlp, atol = tol, rtol = tol, qn_hessian_approximation = "null", τ0 = 1.0)
 
     # Test whether the outputs are well defined
     @test stats.status == expected_status
@@ -66,7 +67,7 @@ function test_problem(
       rtol = tol,
       qn_hessian_approximation = "bfgs",
       linear_solver = linear_solver,
-      τ0 = 1.0
+      τ0 = 1.0,
     )
 
     @test stats.status == expected_status
@@ -93,7 +94,8 @@ function test_problem(
     stats_optimized = PeneloptExecutionStats(LBFGS_model)
     solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
 
-    stats_optimized.solution = recover_full_solution(LBFGS_model, stats_optimized.solution)
+    stats_optimized.solution =
+      recover_full_solution(LBFGS_model, stats_optimized.solution)
 
     # Test that the second calling form gives the same output
     @test stats_optimized.status == stats.status
@@ -235,14 +237,9 @@ end
     0.857071947850131,
     0.5639426413606289,
     0.5639426413606289,
-    1.5707963267948966
+    1.5707963267948966,
   ]
-  dual_solution = [
-    0.0,
-    0.0,
-    0.0,
-    1.44
-  ]
+  dual_solution = [0.0, 0.0, 0.0, 1.44]
   linear_solver =
     !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
   test_problem(
