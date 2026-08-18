@@ -239,7 +239,7 @@ function SolverCore.solve!(
 
   ## Outer Loop specific arguments
   τmin::T = T(1),
-  τ0::T = T(1),
+  τ0::T = T(10),
 
   ## R2N Specific arguments
   r2n_η1::T = √√eps(T),
@@ -410,6 +410,7 @@ function SolverCore.solve!(
       νsub = 1 / r2n_σmin
       shift!(mk, x, y = y)
       set_solver_specific!(solver.substats, :smooth_obj, fx)
+      set_solver_specific!(solver.substats, :tau, τ)
       continue
     end
 
