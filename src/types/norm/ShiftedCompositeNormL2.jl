@@ -75,10 +75,8 @@ shifted(
   xk::AbstractVector{T},
 ) where {T<:Real,F0<:Function,F1<:Function,M<:AbstractMatrix{T},V<:AbstractVector{T}} =
   begin
+    A = ψ.A
     b = similar(ψ.b)
-    ψ.c!(b, xk)
-    A = similar(ψ.A)
-    ψ.J!(A, xk)
     ShiftedCompositeNormL2(
       ψ.h.lambda,
       ψ.c!,
@@ -99,9 +97,9 @@ function (ψ::AbstractShiftedCompositeNorm)(y)
   return ψ.h(ψ.g)
 end
 
-function shift!(ψ::AbstractShiftedCompositeNorm, shift::AbstractVector{R}) where {R<:Real}
+function shift!(ψ::AbstractShiftedCompositeNorm, shift::AbstractVector{R}; J = nothing,c = nothing) where {R<:Real}
   !isnothing(ψ.A_prev) && (ψ.A_prev.vals .= ψ.A.vals) # Update previous Jacobian if necessary
-  ψ.c!(ψ.b, shift)
-  ψ.J!(ψ.A, shift)
+  isnothing(c) ? ψ.c!(ψ.b, shift) : (ψ.b .= c)
+  isnothing(J) ? ψ.J!(ψ.A, shift) : (ψ.A.vals .= J.vals)
   return ψ
 end

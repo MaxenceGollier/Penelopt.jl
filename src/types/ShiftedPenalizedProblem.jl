@@ -119,6 +119,8 @@ function shift!(
   x::V;
   ∇f::VN1 = nothing,
   y::VN2 = nothing,
+  J::Ma = nothing,
+  c::VN3 = nothing,
 ) where {
   T,
   V,
@@ -128,6 +130,8 @@ function shift!(
   P<:L2PenalizedProblem{T,V,O},
   VN1<:Union{Nothing,V},
   VN2<:Union{Nothing,V},
+  VN3<:Union{Nothing,V},
+  Ma<:Union{Nothing,AbstractMatrix{T}},
 }
   nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
   φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
@@ -135,7 +139,7 @@ function shift!(
   g = φ.data.c
   isnothing(∇f) ? grad!(nlp, x, g) : (g .= ∇f)
 
-  shift!(ψ, x)
+  shift!(ψ, x, J = J, c = c)
 end
 
 function shift!(
@@ -143,6 +147,8 @@ function shift!(
   x::V;
   ∇f::VN1 = nothing,
   y::VN2 = nothing,
+  J::Ma = nothing,
+  c::VN3 = nothing,
 ) where {
   T,
   V,
@@ -152,6 +158,8 @@ function shift!(
   P<:L2PenalizedProblem{T,V,O},
   VN1<:Union{Nothing,V},
   VN2<:Union{Nothing,V},
+  VN3<:Union{Nothing,V},
+  Ma<:Union{Nothing,AbstractMatrix{T}},
 }
   nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
   φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
@@ -164,7 +172,7 @@ function shift!(
   g, B = φ.data.c, φ.data.H
 
   isnothing(∇f) ? grad!(nlp, x, g) : (g .= ∇f)
-  shift!(ψ, x)
+  shift!(ψ, x, J = J, c = c)
 
   # Update the approximation.
   if !is_first_shift
@@ -193,7 +201,9 @@ function shift!(
   x::V;
   ∇f::VN1 = nothing,
   y::VN2 = nothing,
-) where {T,V,M,H,P,VN1<:Union{Nothing,V},VN2<:Union{Nothing,V}}
+  J::Ma = nothing,
+  c::VN3 = nothing,
+) where {T,V,M,H,P,VN1<:Union{Nothing,V},VN2<:Union{Nothing,V}, VN3<:Union{Nothing,V}, Ma<:Union{Nothing,AbstractMatrix{T}}}
   nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
   φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
 
@@ -206,7 +216,7 @@ function shift!(
     hess_coord!(nlp, x, y, φ.data.H.vals)
   end
 
-  shift!(ψ, x)
+  shift!(ψ, x, J = J, c = c)
 end
 
 # Miscellaneous

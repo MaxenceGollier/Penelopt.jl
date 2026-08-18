@@ -333,7 +333,7 @@ function SolverCore.solve!(
   end
 
   ## Initialize Model
-  shift!(mk, x, ∇f = solver.∇fk, y = y)
+  shift!(mk, x, ∇f = solver.∇fk, y = y, J = ψ.A, c = ψ.b)
 
   infeasible = false
   not_desc = false
@@ -425,7 +425,7 @@ function SolverCore.solve!(
       # Update penalty parameter
       τ₊ = max(τ + β1, norm(y, 1))
       if extrapolate!(x, solver, τ₊, τ)
-        shift!(mk, x, y = y)
+        shift!(mk, x, y = y, c = solver.cn)
 
         # Subsolver: Do not impose primal decrease
         primal_decrease = false
