@@ -97,7 +97,12 @@ function (ψ::AbstractShiftedCompositeNorm)(y)
   return ψ.h(ψ.g)
 end
 
-function shift!(ψ::AbstractShiftedCompositeNorm, shift::AbstractVector{R}; J = nothing,c = nothing) where {R<:Real}
+function shift!(
+  ψ::AbstractShiftedCompositeNorm,
+  shift::AbstractVector{R};
+  J = nothing,
+  c = nothing,
+) where {R<:Real}
   !isnothing(ψ.A_prev) && (ψ.A_prev.vals .= ψ.A.vals) # Update previous Jacobian if necessary
   isnothing(c) ? ψ.c!(ψ.b, shift) : (ψ.b .= c)
   isnothing(J) ? ψ.J!(ψ.A, shift) : (ψ.A.vals .= J.vals)

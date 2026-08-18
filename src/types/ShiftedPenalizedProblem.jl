@@ -203,7 +203,17 @@ function shift!(
   y::VN2 = nothing,
   J::Ma = nothing,
   c::VN3 = nothing,
-) where {T,V,M,H,P,VN1<:Union{Nothing,V},VN2<:Union{Nothing,V}, VN3<:Union{Nothing,V}, Ma<:Union{Nothing,AbstractMatrix{T}}}
+) where {
+  T,
+  V,
+  M,
+  H,
+  P,
+  VN1<:Union{Nothing,V},
+  VN2<:Union{Nothing,V},
+  VN3<:Union{Nothing,V},
+  Ma<:Union{Nothing,AbstractMatrix{T}},
+}
   nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
   φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
 
