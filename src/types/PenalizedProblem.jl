@@ -59,6 +59,8 @@ function NLPModels.get_ncon(nlp::L2PenalizedProblem)
   return length(h.b)
 end
 
+SolverCore.eval_fun(nlp::L2PenalizedProblem) = neval_obj(nlp)
+
 # Miscellaneous
 function set_penalty!(nlp::L2PenalizedProblem{T}, τ::T) where {T}
   nlp.h.h.lambda = τ
