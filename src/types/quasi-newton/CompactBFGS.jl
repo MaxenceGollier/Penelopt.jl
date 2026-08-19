@@ -178,8 +178,8 @@ function CompactBFGSModel(nlp::AbstractNLPModel{T,S}; kwargs...) where {T,S}
   return CompactBFGSModel(nlp.meta, nlp, op)
 end
 
-get_model(nlp::CompactBFGSModel) = nlp.model
-get_op(nlp::CompactBFGSModel) = nlp.op
+NLPModelsModifiers.get_model(nlp::CompactBFGSModel) = nlp.model
+NLPModelsModifiers.get_op(nlp::CompactBFGSModel) = nlp.op
 @default_counters CompactBFGSModel model
 
 # Copying API
