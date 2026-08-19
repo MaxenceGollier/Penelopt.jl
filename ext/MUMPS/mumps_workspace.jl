@@ -36,7 +36,7 @@ function construct_mumps_workspace(
   icntl = default_icntl
 
   ## Set Parameters
-  cntl[1] = zero(T)
+  cntl[1] = eps(T)
 
   cntl[2] = eps(T) # Tolerance for iterative refinement
 
@@ -92,7 +92,7 @@ function construct_mumps_workspace(
   icntl = default_icntl
 
   ## Set Parameters
-  cntl[1] = zero(T)
+  cntl[1] = eps(T)^(0.5)
 
   cntl[2] = eps(T) # Tolerance for iterative refinement
 
