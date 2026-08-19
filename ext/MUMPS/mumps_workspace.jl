@@ -456,7 +456,6 @@ function mumps_switch_to_indefinite!(workspace::PenaltyMUMPSWorkspace)
   H, x = get_H(workspace), workspace.x
   n, m = workspace.n, workspace.m
 
-  mumps.sym = 2
   mumps.job = MUMPS.INITIALIZE
   MUMPS.invoke_mumps_unsafe!(mumps)
 
@@ -475,8 +474,6 @@ function mumps_switch_to_indefinite!(workspace::PenaltyMUMPSWorkspace)
   mumps.rhs = pointer(x)
   mumps._y_gc_haven = x
 
-  icntl = mumps.icntl
-
   # Deactivate Logging
   redirect_stdout(devnull) do
     MUMPS.set_icntl!(mumps, 2, 0)
@@ -491,6 +488,6 @@ function mumps_switch_to_indefinite!(workspace::PenaltyMUMPSWorkspace)
   MUMPS.set_icntl!(mumps, 24, 1)
   MUMPS.set_icntl!(mumps, 11, 2)
 
-  MUMPS.set_cntl!(mumps, 1, 1e-1)
+  MUMPS.set_cntl!(mumps, 1, 1e-2)
   MUMPS.set_cntl!(mumps, 2, eps(eltype(x)))
 end
