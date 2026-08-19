@@ -41,9 +41,6 @@ function construct_mumps_workspace(
   # Deactivate Logging
   icntl[2], icntl[3], icntl[4] = 0, 0, 0
 
-  # Deactivate permutation/scaling
-  icntl[6], icntl[7], icntl[8] = 0, 0, 0
-
   # Max number of iterative refinement steps
   icntl[10] = 10
 
@@ -97,9 +94,6 @@ function construct_mumps_workspace(
 
   # Deactivate Logging
   icntl[2], icntl[3], icntl[4] = 0, 0, 0
-
-  # Deactivate permutation/scaling
-  icntl[6], icntl[7], icntl[8] = 0, 0, 0
 
   # Max number of iterative refinement steps
   icntl[10] = 10
