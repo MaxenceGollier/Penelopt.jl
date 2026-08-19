@@ -36,6 +36,8 @@ function construct_mumps_workspace(
   icntl = default_icntl
 
   ## Set Parameters
+  cntl[1] = zero(T)
+
   cntl[2] = eps(T) # Tolerance for iterative refinement
 
   # Deactivate Logging
@@ -58,7 +60,7 @@ function construct_mumps_workspace(
   # A is performed internally by the package, and numerical pivoting is switched off. Therefore, this
   # setting works for classes of matrices more general than positive definite matrices, including matrices with
   # negative pivots. 
-  S = Mumps{T}(mumps_definite, icntl, cntl)
+  S = Mumps{T}(mumps_symmetric, icntl, cntl)
 
   # Associate the row, cols and vals of the mumps structure with those of H.
   irn, jcn, a = H.data.rows, H.data.cols, H.data.vals
@@ -90,6 +92,8 @@ function construct_mumps_workspace(
   icntl = default_icntl
 
   ## Set Parameters
+  cntl[1] = zero(T)
+
   cntl[2] = eps(T) # Tolerance for iterative refinement
 
   # Deactivate Logging
@@ -98,7 +102,7 @@ function construct_mumps_workspace(
   # Max number of iterative refinement steps
   icntl[10] = 10
 
-  S = Mumps{T}(mumps_definite, icntl, cntl)
+  S = Mumps{T}(mumps_symmetric, icntl, cntl)
 
   # Associate the row, cols and vals of the mumps structure with those of H.
   irn, jcn, a = H.H.data.rows, H.H.data.cols, H.H.data.vals
@@ -451,7 +455,6 @@ function mumps_switch_to_indefinite!(workspace::PenaltyMUMPSWorkspace)
   mumps = workspace.M
   H, x = get_H(workspace), workspace.x
   n, m = workspace.n, workspace.m
-  mumps.sym == 2 && return
 
   mumps.sym = 2
   mumps.job = MUMPS.INITIALIZE
