@@ -102,6 +102,14 @@ function construct_mumps_workspace(
   # Max number of iterative refinement steps
   icntl[10] = 10
 
+  # ICNTL(11): error analysis
+  # 2: Main statistics (recommended)
+  icntl[11] = 2
+
+  # ICNTL(24) controls the detection of “null pivot rows”.
+  # 1: Null pivot row detection.
+  icntl[24] = 1
+
   S = Mumps{T}(mumps_symmetric, icntl, cntl)
 
   # Associate the row, cols and vals of the mumps structure with those of H.
