@@ -240,13 +240,11 @@ function solve_system!(
     workspace.status = :failed
   end
 
-  if mumps.rinfog[6] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[7] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[8] > sqrt(eps(eltype(workspace.x)))
+  if relative_error!(workspace) > sqrt(eps(eltype(workspace.x)))
     workspace.status = :failed
 
     # Switch to symmetric indefinite factorization
-    mumps_switch_to_indefinite!(workspace)
+    increase_pivtol!(workspace)
   end
 
   return
@@ -323,13 +321,11 @@ function solve_system!(
     return
   end
 
-  if mumps.rinfog[6] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[7] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[8] > sqrt(eps(eltype(workspace.x)))
+  if relative_error!(workspace) > sqrt(eps(eltype(workspace.x)))
     workspace.status = :failed
 
     # Switch to symmetric indefinite factorization
-    mumps_switch_to_indefinite!(workspace)
+    increase_pivtol!(workspace)
 
     return
   end
@@ -360,13 +356,11 @@ function solve_system!(
     return
   end
 
-  if mumps.rinfog[6] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[7] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[8] > sqrt(eps(eltype(workspace.x)))
+  if relative_error!(workspace) > sqrt(eps(eltype(workspace.x)))
     workspace.status = :failed
 
     # Switch to symmetric indefinite factorization
-    mumps_switch_to_indefinite!(workspace)
+    increase_pivtol!(workspace)
     return
   end
 
@@ -413,13 +407,11 @@ function solve_system!(
     return
   end
 
-  if mumps.rinfog[6] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[7] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[8] > sqrt(eps(eltype(workspace.x)))
+  if relative_error!(workspace) > sqrt(eps(eltype(workspace.x)))
     workspace.status = :failed
 
     # Switch to symmetric indefinite factorization
-    mumps_switch_to_indefinite!(workspace)
+    increase_pivtol!(workspace)
 
     return
   end
@@ -451,7 +443,17 @@ function get_inertia(workspace::PenaltyMUMPSWorkspace{WP,K2}) where {WP,K2}
   return npos, nzero, nneg
 end
 
-function mumps_switch_to_indefinite!(workspace::PenaltyMUMPSWorkspace)
+function relative_error!(workspace::PenaltyMUMPSWorkspace{WP,K2}) where {WP,K2}
+  mumps = workspace.M
+
+  return max(
+    mumps.rinfog[6],
+    mumps.rinfog[7],
+    mumps.rinfog[8]
+  )
+end
+
+function increase_pivtol!(workspace::PenaltyMUMPSWorkspace)
   mumps = workspace.M
   H, x = get_H(workspace), workspace.x
   n, m = workspace.n, workspace.m
