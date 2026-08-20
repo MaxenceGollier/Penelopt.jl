@@ -462,7 +462,7 @@ function update_pivtol!(workspace::PenaltyMUMPSWorkspace)
 end
 
 function SolverCore.reset!(workspace::PenaltyMUMPSWorkspace)
-  set_n_fact!(workspace, 0)
+  Penelopt.set_n_fact!(workspace, 0)
   MUMPS.set_icntl!(workspace.M, 10, 10)
   MUMPS.set_cntl!(workspace.M, 1, eps(eltype(workspace.x)))
 end
