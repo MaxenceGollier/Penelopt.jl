@@ -36,6 +36,11 @@ function construct_mumps_workspace(
   icntl = default_icntl
 
   ## Set Parameters
+
+  # CNTL(1) is the relative threshold for numerical pivoting.
+  # Remarks: It forms a trade-off between preserving sparsity and ensuring numerical stability during
+  # the factorization. In general, a larger value of CNTL(1) increases fill-in but leads to a more accurate
+  # factorization.
   cntl[1] = eps(T)
 
   cntl[2] = eps(T) # Tolerance for iterative refinement
@@ -54,12 +59,13 @@ function construct_mumps_workspace(
   # 1: Null pivot row detection.
   icntl[24] = 1
 
-  # MUMPS Documentation - Definite matrices (SYM=1).
-  # Remark for symmetric matrices (SYM=1). When SYM=1 is indicated by the user, an LDLT
-  # factorization (in opposition to Cholesky factorization which requires positive diagonal pivots) of matrix
-  # A is performed internally by the package, and numerical pivoting is switched off. Therefore, this
-  # setting works for classes of matrices more general than positive definite matrices, including matrices with
-  # negative pivots. 
+  # CNTL(13) controls the parallelism of the root node
+  # Remarks: Processing the root sequentially (ICNTL(13) > 0) can be useful when the user is
+  # interested in the inertia of the matrix (see INFO(12) and INFOG(12)), or when the user wants
+  # to detect null pivots (see Subsection 5.13) or to activate BLR compression (Subsection 5.20) on the
+  # root node.
+  icntl[13] = 1
+ 
   S = Mumps{T}(mumps_symmetric, icntl, cntl)
 
   # Associate the row, cols and vals of the mumps structure with those of H.
@@ -92,6 +98,10 @@ function construct_mumps_workspace(
   icntl = default_icntl
 
   ## Set Parameters
+  # CNTL(1) is the relative threshold for numerical pivoting.
+  # Remarks: It forms a trade-off between preserving sparsity and ensuring numerical stability during
+  # the factorization. In general, a larger value of CNTL(1) increases fill-in but leads to a more accurate
+  # factorization.
   cntl[1] = eps(T)
 
   cntl[2] = eps(T) # Tolerance for iterative refinement
@@ -105,6 +115,13 @@ function construct_mumps_workspace(
   # ICNTL(11): error analysis
   # 2: Main statistics (recommended)
   icntl[11] = 2
+
+  # CNTL(13) controls the parallelism of the root node
+  # Remarks: Processing the root sequentially (ICNTL(13) > 0) can be useful when the user is
+  # interested in the inertia of the matrix (see INFO(12) and INFOG(12)), or when the user wants
+  # to detect null pivots (see Subsection 5.13) or to activate BLR compression (Subsection 5.20) on the
+  # root node.
+  icntl[13] = 1
 
   # ICNTL(24) controls the detection of “null pivot rows”.
   # 1: Null pivot row detection.
