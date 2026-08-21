@@ -185,6 +185,18 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   is_descent = check_descent(reg_nlp, @view x1[1:n])
   norm_x1 = norm(@view x1[(n+1):(n+m)])
 
+  # Check curvature
+  curvature = check_curvature(reg_nlp, @view x1[1:n])
+  if !curvature
+    reg_nlp.model.data.σ *= μσ
+    if reg_nlp.model.data.σ >= σmax
+      set_status!(stats, :exception)
+      print_level > 0 && @info conclusion_message(solver, stats)
+      return
+    end
+    solve!(solver, reg_nlp, stats)
+  end
+
   if print_level > 0 && stats.iter % verbose == 0
     @info log_ms_iteration(
       stats,
@@ -302,10 +314,23 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   stats.iter >= max_iter && set_status!(stats, :max_iter)
   stats.elapsed_time >= max_time && set_status!(stats, :max_time)
   !check_descent(reg_nlp, @view x1[1:n]) && set_status!(stats, :not_desc)
+
   if !check_descent(reg_nlp, @view x1[1:n])
     reg_nlp.model.data.σ *= μσ
     if reg_nlp.model.data.σ >= σmax
       set_status!(stats, :not_desc)
+      print_level > 0 && @info conclusion_message(solver, stats)
+      return
+    end
+    solve!(solver, reg_nlp, stats)
+  end
+
+  # Check curvature
+  curvature = check_curvature(reg_nlp, @view x1[1:n])
+  if !curvature
+    reg_nlp.model.data.σ *= μσ
+    if reg_nlp.model.data.σ >= σmax
+      set_status!(stats, :exception)
       print_level > 0 && @info conclusion_message(solver, stats)
       return
     end
