@@ -153,7 +153,11 @@ function NLPModels.jac_structure!(
   return rows, cols
 end
 
-function NLPModels.jac_coord!(nlp::ShiftedConstraintModel, x::AbstractVector, vals::AbstractVector)
+function NLPModels.jac_coord!(
+  nlp::ShiftedConstraintModel,
+  x::AbstractVector,
+  vals::AbstractVector,
+)
   NLPModels.increment!(nlp, :neval_jac)
   NLPModels.jac_coord!(nlp.model, x, vals)
   return vals
