@@ -19,9 +19,6 @@ If `nlp` has no fixed variables (i.e. no `i` with `lvar[i] == uvar[i]`),
 is a no-op in that case too, so it is always safe to call both.
 """
 
-using NLPModels
-using LinearAlgebra
-
 export FixedVariableEliminationModel, remove_fixed_variables, recover_full_solution
 
 """
