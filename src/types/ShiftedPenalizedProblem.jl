@@ -246,6 +246,23 @@ function check_descent(
   return ψ0 - obj(φ, s) - ψ(s) >= 0
 end
 
+function check_curvature(
+  shifted_penalty_nlp::ShiftedL2PenalizedProblem{T},
+  s::AbstractVector,
+) where {T}
+  φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
+  H, σ = φ.data.H, φ.data.σ
+
+  mul!(φ.data.v, Symmetric(H, :L), s)
+  num = ( dot(s, φ.data.v) + σ * dot(s, s) )
+
+  φ.data.v .+= s .* σ
+  den = dot(φ.data.v, φ.data.v)
+
+  curv = num / den
+  return curv > eps(T)^2
+end
+
 function reset!(shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P}) where {T,V,M,H,P} end
 
 function reset!(

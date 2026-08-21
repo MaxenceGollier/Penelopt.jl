@@ -211,6 +211,17 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     return
   end
 
+  curvature = check_curvature(reg_nlp, @view x1[1:n])
+  if !curvature
+    reg_nlp.model.data.σ *= μσ
+    if reg_nlp.model.data.σ >= σmax
+      set_status!(stats, :not_desc)
+      print_level > 0 && @info conclusion_message(solver, stats)
+      return
+    end
+    solve!(solver, reg_nlp, stats)
+  end
+
   # [ H + σI Aᵀ][x'] = -[0]
   # [   A    0 ][y'] = -[x] 
   @views @. u2[(n+1):(n+m)] = -x1[(n+1):(n+m)]
