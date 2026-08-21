@@ -313,7 +313,6 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   stats.iter >= max_iter && set_status!(stats, :max_iter)
   stats.elapsed_time >= max_time && set_status!(stats, :max_time)
   !check_descent(reg_nlp, @view x1[1:n]) && set_status!(stats, :not_desc)
-
   if !check_descent(reg_nlp, @view x1[1:n])
     reg_nlp.model.data.σ *= μσ
     if reg_nlp.model.data.σ >= σmax
