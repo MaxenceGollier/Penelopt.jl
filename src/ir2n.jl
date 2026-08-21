@@ -239,6 +239,12 @@ function SolverCore.solve!(
 
     ρk = Δmod < 0 ? 0 : Δobj / Δmod
 
+    # Check curvature condition
+    curvature = check_curvature(mk, s)
+    if !curvature && stats.iter > 100
+      ρk = 0
+    end
+
     if η1 ≤ ρk < Inf
       xk .= xkn
 
