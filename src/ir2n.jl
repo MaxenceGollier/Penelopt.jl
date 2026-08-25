@@ -243,7 +243,7 @@ function SolverCore.solve!(
 
     ρk = Δmod < 0 ? 0 : Δobj / Δmod # Armijo ratio
     Ck = Δmod / norm(dual_res, 2)^2   # Cauchy ratio
-    ηC = eps(T)
+    ηC = eps(T)^2
 
     if η1 ≤ ρk < Inf && ηC ≤ Ck
       xk .= xkn
