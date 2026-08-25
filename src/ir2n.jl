@@ -237,9 +237,15 @@ function SolverCore.solve!(
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     Δmod = fhmax - (fk + mks) + max(1, abs(fhmax)) * 10 * eps()
 
-    ρk = Δmod < 0 ? 0 : Δobj / Δmod
+    dual_res .= ∇fk
+    mul!(dual_res, ψ.A', y, one(T), one(T))
+    
 
-    if η1 ≤ ρk < Inf
+    ρk = Δmod < 0 ? 0 : Δobj / Δmod # Armijo ratio
+    Ck = Δmod / norm(dual_res, 2)^2   # Cauchy ratio
+    ηC = eps(T)
+
+    if η1 ≤ ρk < Inf && ηC ≤ Ck
       xk .= xkn
 
       #update functions
@@ -249,11 +255,11 @@ function SolverCore.solve!(
 
     end
 
-    if η2 ≤ ρk < Inf
+    if η2 ≤ ρk < Inf && ηC ≤ Ck
       σk = σk / γ
     end
 
-    if ρk < η1 || ρk == Inf
+    if ρk < η1 || ρk == Inf || Ck < ηC
       if first_increase && ρk < 0
         σk = max(sqrt(stats.dual_feas), σk * γ)
         first_increase = false
