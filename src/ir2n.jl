@@ -234,8 +234,8 @@ function SolverCore.solve!(
     mks = dot(∇fk, s) + ψ(s)
 
     fhmax = m_monotone > 1 ? maximum(m_fh_hist) : fk + hk
-    Δobj = fhmax - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    Δmod = fhmax - (fk + mks) + max(1, abs(fhmax)) * 10 * eps()
+    Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps(T)
+    Δmod = fhmax - (fk + mks) + max(1, abs(fhmax)) * 10 * eps(T)
 
     ρk = Δmod < 0 ? 0 : Δobj / Δmod
 
