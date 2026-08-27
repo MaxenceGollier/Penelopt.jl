@@ -219,9 +219,22 @@ function SolverCore.solve!( #TODO add verbose and kwargs
 
   while abs(norm_x1 - Δ) > atol && stats.iter < max_iter && stats.elapsed_time < max_time
     # α = α + (‖y‖/Δ - 1)*‖y‖²/(yᵀy')
-    @views α₊ = α + norm_x1^2/dot(x1[(n+1):(n+m)], x2[(n+1):(n+m)])*(norm_x1/Δ - 1)
+    @views αn = norm_x1^2/dot(x1[(n+1):(n+m)], x2[(n+1):(n+m)])*(norm_x1/Δ - 1)
 
-    α = α₊ ≤ 0 ? max(μα*α, αmin) : α₊
+    # If αn ≤ 0, we need to increase σ and resolve the system. 
+    # This is because a it is an indication of non positiveness of H + σI.
+    # Refer to the implementation paper for more information.
+    if αn ≤ 0
+      reg_nlp.model.data.σ *= μσ
+      if reg_nlp.model.data.σ >= σmax
+        set_status!(stats, :exception)
+        print_level > 0 && @info conclusion_message(solver, stats)
+        return
+      end
+      solve!(solver, reg_nlp, stats)
+    end
+
+    α = α + αn
     set_dual_inertia!(solver_workspace, α)
 
     # [ H + σI  Aᵀ ][x] = -[∇f]
@@ -258,7 +271,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
 
     # Check whether the matrix still has the correct inertia. (We may have failed to detect earlier)
     npos, nzero, nneg = get_inertia(solver_workspace)
-    if npos < n
+    if npos != n || nzero != 0 || nneg != m
       reg_nlp.model.data.σ *= μσ
       if reg_nlp.model.data.σ >= σmax
         set_status!(stats, :exception)
