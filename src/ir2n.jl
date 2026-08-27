@@ -84,6 +84,7 @@ function SolverCore.solve!(
   σmin::T = eps(T),
   η1::T = √√eps(T),
   η2::T = T(0.1),
+  ηC::T = eps(T),
   γ::T = T(3),
   watchdog_max_iter::Int = 10,
   watchdog_η0::T = √eps(T),
@@ -237,13 +238,12 @@ function SolverCore.solve!(
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     Δmod = fhmax - (fk + mks) + max(1, abs(fhmax)) * 10 * eps()
 
+    ρk = Δmod < 0 ? 0 : Δobj / Δmod # Armijo ratio
+
+    # Compute Cauchy ratio
     dual_res .= ∇fk
     mul!(dual_res, ψ.A', y, one(T), one(T))
-    
-
-    ρk = Δmod < 0 ? 0 : Δobj / Δmod # Armijo ratio
     Ck = Δmod / norm(dual_res, 2)^2   # Cauchy ratio
-    ηC = eps(T)
 
     if η1 ≤ ρk < Inf && ηC ≤ Ck
       xk .= xkn
