@@ -8,19 +8,11 @@ max_time = 300.0
 docp = chain(OptimalControlBackend())
 nlp = nlp_model(docp)
 
-stats = ipopt(
-  nlp,
-  print_level = 0,
-  tol = tol,
-)
+stats = ipopt(nlp, print_level = 0, tol = tol)
 
 reset!(nlp)
 
-stats = ipopt(
-  nlp,
-  print_level = 0,
-  tol = tol,
-)
+stats = ipopt(nlp, print_level = 0, tol = tol)
 
 println(nlp.counters)
 println(stats.elapsed_time)
@@ -48,9 +40,8 @@ m = control_dimension(ocp_sol)
 
 plot(
   ocp_sol;
-  color=1,
-  size=(816, 240*(n+m)),
-  label="OptimalControl",
+  color = 1,
+  size = (816, 240*(n+m)),
+  label = "OptimalControl",
   #leftmargin=20mm,
 )
-
