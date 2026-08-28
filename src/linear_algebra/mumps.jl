@@ -334,7 +334,7 @@ function solve_system!(
   # [x₁] = [A     -αI]  [u]
 
   x1 .= u
-  MUMPS.associate_rhs!(mumps, x1)
+  MUMPS.associate_rhs!(mumps, x1; unsafe = true)
   MUMPS.mumps_solve!(x1, mumps; rhs_changed = true)
 
   # MUMPS infog(1): a negative value is an error in the factorization.
@@ -362,7 +362,7 @@ function solve_system!(
   @views Z1[1:n, 1:p] .= Uk .* (-1)
   @views Z1[1:n, (p+1):(2*p)] .= Vk
 
-  MUMPS.associate_rhs!(mumps, Z1)
+  MUMPS.associate_rhs!(mumps, Z1; unsafe = true)
   MUMPS.mumps_solve!(Z1, mumps; rhs_changed = true)
 
   # MUMPS infog(1): a negative value is an error in the factorization.
@@ -407,7 +407,7 @@ function solve_system!(
   # [x₃] = [σI+ξI  Aᵀ]⁻¹[x₂]
   # [x₃] = [A     -αI]  [x₂]
   x3 .= x2
-  MUMPS.associate_rhs!(mumps, x3)
+  MUMPS.associate_rhs!(mumps, x3; unsafe = true)
   MUMPS.mumps_solve!(x3, mumps; rhs_changed = true)
 
   # MUMPS infog(1): a negative value is an error in the factorization.
