@@ -216,7 +216,7 @@ function check_watchdog!(
 
   s .= xk .- checkpoint.xk
   v .= s
-  mul!(v, Hcp, s, one(T), σ) 
+  mul!(v, checkpoint.Hkvals, s, one(T), checkpoint.σk) 
   opt_measure = dot(v, v)
 
   achieve_reduction =
