@@ -102,7 +102,9 @@ function test_problem(
 
     solver = L2PenaltySolver(LBFGS_model, linear_solver = linear_solver)
     stats_optimized = PeneloptExecutionStats(LBFGS_model)
-    solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
+    @test @wrappedallocs(
+      solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
+    ) == 0
 
     stats_optimized.solution =
       recover_full_solution(LBFGS_model, stats_optimized.solution)

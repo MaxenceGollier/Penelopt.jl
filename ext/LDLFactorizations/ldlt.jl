@@ -2,6 +2,7 @@ mutable struct PenaltyLDLTWorkspace{
   WP<:LDLFactorization,
   K2<:AbstractMatrix,
   V<:AbstractVector,
+  VI<:Union{Nothing,AbstractVector},
   T<:Real,
 } <: AbstractLDLTWorkspace
   M::WP
@@ -9,6 +10,7 @@ mutable struct PenaltyLDLTWorkspace{
   x::V
   dx::V
   r::V
+  _ipiv::VI # For CompactBFGS LU factorization
   σ::T
   n::Int
   m::Int
@@ -39,6 +41,7 @@ function construct_ldlt_workspace(
     similar(u1),
     similar(u1),
     similar(u1),
+    nothing,
     zero(T),
     n,
     m,
@@ -60,6 +63,7 @@ function construct_ldlt_workspace(
     similar(u1),
     similar(u1),
     similar(u1),
+    Vector{LinearAlgebra.BlasInt}(undef, 2 * H.B._mem),
     zero(T),
     n,
     m,
@@ -268,12 +272,12 @@ function solve_system!(
   B = workspace.H.B
   n, m = workspace.n, workspace.m
   p = min(B._insert - 1, B._mem)
-  x1, x2, x3, y1, y2 = H.x1, H.x2, H.x3, H.y1, H.y2
+  x1, x2, x3, y1 = H.x1, H.x2, H.x3, H.y1
   Z1, Z2 = H.Z1, H.Z2
   Uk = @view B.Uk[:, 1:p]
   Vk = @view B.Vk[:, 1:p]
 
-  # Step 0: Write (#TODO: we can use easily use QRMumps instead of LDLFactorization here...)
+  # Step 0: Write
   # [B  Aᵀ] = [σI+ξI  Aᵀ] + [-U V]([U V])ᵀ
   # [A -αI] = [A     -αI] + [ 0 0]([0 0])
   # Hence,
@@ -292,7 +296,7 @@ function solve_system!(
     return
   end
 
-  # Step 2: Compute # TODO: allow for iterative refinement
+  # Step 2: Compute
   # [x₁] = [σI+ξI  Aᵀ]⁻¹[u]
   # [x₁] = [A     -αI]  [u]
   ldiv!(x1, workspace.M, u)
@@ -339,10 +343,10 @@ function solve_system!(
   # Step 5: Solve
   # (I + Fᵀ [σI+ξI  Aᵀ]⁻¹ E )⁻¹[y₁]
   # (       [A     -αI]     )  [y₁]
-  # using Julia LinearALgebra's lu!
-  F = lu!(Z2[1:(2*p), 1:(2*p)], check = false) # FIXME ?
-  @views ldiv!(y2[1:(2*p)], F, y1[1:(2*p)])
-  if any(isnan, y2)
+  # using LAPACK
+  @views LinearAlgebra.LAPACK.getrf!(Z2[1:(2*p), 1:(2*p)], workspace._ipiv[1:(2*p)])
+  @views LinearAlgebra.LAPACK.getrs!('N', Z2[1:(2*p), 1:(2*p)], workspace._ipiv[1:(2*p)], y1[1:(2*p)])
+  if any(isnan, @view y1[1:(2*p)])
     workspace.status = :failed
     return
   end
@@ -350,8 +354,8 @@ function solve_system!(
   # Step 6: Compute
   # x₂ = E[y₂] = [-U V][y₂] = [-Uy₂ + Vy₂]
   # x₂ = E[y₂] = [ 0 0][y₂] = [0]
-  @views mul!(x2[1:n], Vk, y2[(p+1):(2*p)])
-  @views mul!(x2[1:n], Uk, y2[1:p], -one(eltype(y2)), one(eltype(y2)))
+  @views mul!(x2[1:n], Vk, y1[(p+1):(2*p)])
+  @views mul!(x2[1:n], Uk, y1[1:p], -one(eltype(y1)), one(eltype(y1)))
 
   # Step 7: Solve
   # [x₃] = [σI+ξI  Aᵀ]⁻¹[x₂]

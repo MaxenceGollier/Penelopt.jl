@@ -15,7 +15,6 @@ mutable struct CompactBFGSK2{
   x2::V
   x3::V
   y1::V
-  y2::V
 end
 
 function K2(
@@ -127,7 +126,6 @@ function K2(
     zeros(T, n+m),
     zeros(T, n+m),
     zeros(T, n+m),
-    zeros(T, 2*B._mem),
     zeros(T, 2*B._mem),
   )
 end
