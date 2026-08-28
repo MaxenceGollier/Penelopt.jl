@@ -52,7 +52,6 @@ function read_instance(file::String; type = Float64, Hessian_modifier = H -> H)
     model.meta,
     nothing,
     nothing,
-    nothing,
     true,
   )
 end

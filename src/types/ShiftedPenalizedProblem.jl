@@ -89,7 +89,6 @@ function ShiftedL2PenalizedProblem(
     penalty_nlp.meta,
     nothing,
     nothing,
-    nothing,
     true,
   )
 end

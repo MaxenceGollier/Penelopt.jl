@@ -84,7 +84,6 @@ function generate_instance(
     model.meta,
     nothing,
     nothing,
-    nothing,
     true,
   ),
   Dict(:u => u, :y => y, :tau => tau)
