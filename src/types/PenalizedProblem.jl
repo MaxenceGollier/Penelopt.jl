@@ -37,14 +37,12 @@ function L2PenalizedProblem(nlp::AbstractNLPModel{T,S}) where {T,S}
   A = SparseMatrixCOO(nlp.meta.ncon, nlp.meta.nvar, rows, cols, vals)
   b = similar(x0, eltype(x0), nlp.meta.ncon)
 
-  store_previous_jacobian = isa(nlp, QuasiNewtonModel) ? true : false
   penalty = CompositeNormL2(
     one(T),
     (c, x) -> cons!(nlp, x, c),
     (j, x) -> jac_coord!(nlp, x, j.vals),
     A,
     b,
-    store_previous_jacobian = store_previous_jacobian,
   )
   return L2PenalizedProblem(nlp, penalty, nlp.meta)
 end
