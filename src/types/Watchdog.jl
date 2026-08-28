@@ -183,10 +183,12 @@ function check_watchdog!(
   Hcp = SparseMatrixCOO(m, n, H.rows, H.cols, checkpoint.Hkvals)
 
   s .= xk .- checkpoint.xk
-  mul!(v, Hcp, s)
-  sHs = checkpoint.σk*norm(s)^2 + dot(v, s)
+  v .= s
+  mul!(v, Hcp, s, one(T), σ) 
+  opt_measure = dot(v, v)
+
   achieve_reduction =
-    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*sHs) ||
+    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*opt_measure) ||
     (stats.dual_feas < (1-η0)*checkpoint.dual_feas)
   max_iter = stats.iter - checkpoint.iter > watchdog_max_iter
 
@@ -213,10 +215,12 @@ function check_watchdog!(
   s, v = checkpoint.s, checkpoint.v
 
   s .= xk .- checkpoint.xk
-  mul!(v, checkpoint.Hkvals, s)
-  sHs = checkpoint.σk*norm(s)^2 + dot(v, s)
+  v .= s
+  mul!(v, Hcp, s, one(T), σ) 
+  opt_measure = dot(v, v)
+
   achieve_reduction =
-    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*sHs) ||
+    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*opt_measure) ||
     (stats.dual_feas < (1-η0)*checkpoint.dual_feas)
   max_iter = stats.iter - checkpoint.iter > watchdog_max_iter
 
@@ -243,9 +247,10 @@ function check_watchdog!(
   s, v = checkpoint.s, checkpoint.v
 
   s .= xk .- checkpoint.xk
-  sHs = checkpoint.σk*norm(s)^2
+  opt_measure = checkpoint.σk^2*norm(s)^2
+
   achieve_reduction =
-    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*sHs) ||
+    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*opt_measure) ||
     (stats.dual_feas < (1-η0)*checkpoint.dual_feas)
   max_iter = stats.iter - checkpoint.iter > watchdog_max_iter
 
