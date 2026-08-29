@@ -67,7 +67,7 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
   # ( I     Jᵀ )( s ) = - ( ∇f )
   # ( J     0I )( y ) = - ( 0  )
   @. u1[1:n] = - solver.∇fk
-  @. u1[(n+1):(n+m)] = 0
+  @. u1[(n+1):(n+m)] = - ψ.b
 
   σ, α = one(T), eps(T)
   update_workspace!(ls_workspace, ψ.A, σ, α)
