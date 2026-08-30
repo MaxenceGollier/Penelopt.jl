@@ -180,7 +180,7 @@ function check_watchdog!(
   s, v = checkpoint.s, checkpoint.v
   H = mk.model.data.H
   (m, n) = size(H)
-  Hcp = SparseMatrixCOO(m, n, H.rows, H.cols, checkpoint.Hkvals)
+  Hcp = Symmetric(SparseMatrixCOO(m, n, H.rows, H.cols, checkpoint.Hkvals), :L)
 
   s .= xk .- checkpoint.xk
   v .= s
