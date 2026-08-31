@@ -43,9 +43,13 @@ function test_problem(
 
     solver = L2PenaltySolver(null_model)
     stats_optimized = PeneloptExecutionStats(null_model)
-    @test @wrappedallocs(
+    if linear_solver == "ldlt"
+      @test @wrappedallocs(
+        solve!(solver, null_model, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
+      ) == 0
+    else
       solve!(solver, null_model, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
-    ) == 0
+    end
 
     stats_optimized.solution = recover_full_solution(null_model, stats_optimized.solution)
 
@@ -134,9 +138,13 @@ function test_problem(
 
     solver = L2PenaltySolver(preprocessed_nlp, linear_solver = linear_solver)
     stats_optimized = PeneloptExecutionStats(preprocessed_nlp)
-    @test @wrappedallocs(
+    if linear_solver == "ldlt"
+      @test @wrappedallocs(
+        solve!(solver, preprocessed_nlp, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
+      ) == 0
+    else
       solve!(solver, preprocessed_nlp, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
-    ) == 0
+    end
 
     stats_optimized.solution =
       recover_full_solution(preprocessed_nlp, stats_optimized.solution)

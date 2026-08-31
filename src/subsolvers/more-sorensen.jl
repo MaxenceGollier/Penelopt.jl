@@ -333,5 +333,5 @@ function get_primal_dual_sol!(s, y, solver::MoreSorensenSolver)
 end
 
 function SolverCore.reset!(solver::MoreSorensenSolver{T}) where {T}
-  set_n_fact!(solver.workspace, 0)
+  reset!(solver.workspace)
 end

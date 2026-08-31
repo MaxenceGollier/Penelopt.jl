@@ -3,7 +3,7 @@ module PeneloptMUMPSExt
 using MPI, MUMPS
 using Penelopt
 
-using LinearAlgebra, SparseMatricesCOO
+using LinearAlgebra, SolverCore, SparseMatricesCOO
 
 import Penelopt: AbstractMUMPSWorkspace
 import Penelopt: construct_mumps_workspace, solve_system!, update_workspace!

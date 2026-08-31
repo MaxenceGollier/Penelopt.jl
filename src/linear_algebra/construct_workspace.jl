@@ -49,3 +49,7 @@ end
 function set_n_fact!(workspace::PenaltyDirectWorkspace, n::Int)
   workspace._n_fact = n
 end
+
+function SolverCore.reset!(workspace::PenaltyWorkspace)
+  set_n_fact!(workspace, 0)
+end

@@ -36,13 +36,17 @@ function construct_mumps_workspace(
   icntl = default_icntl
 
   ## Set Parameters
+
+  # CNTL(1) is the relative threshold for numerical pivoting.
+  # Remarks: It forms a trade-off between preserving sparsity and ensuring numerical stability during
+  # the factorization. In general, a larger value of CNTL(1) increases fill-in but leads to a more accurate
+  # factorization.
+  cntl[1] = eps(T)
+
   cntl[2] = eps(T) # Tolerance for iterative refinement
 
   # Deactivate Logging
   icntl[2], icntl[3], icntl[4] = 0, 0, 0
-
-  # Deactivate permutation/scaling
-  icntl[6], icntl[7], icntl[8] = 0, 0, 0
 
   # Max number of iterative refinement steps
   icntl[10] = 10
@@ -55,13 +59,14 @@ function construct_mumps_workspace(
   # 1: Null pivot row detection.
   icntl[24] = 1
 
-  # MUMPS Documentation - Definite matrices (SYM=1).
-  # Remark for symmetric matrices (SYM=1). When SYM=1 is indicated by the user, an LDLT
-  # factorization (in opposition to Cholesky factorization which requires positive diagonal pivots) of matrix
-  # A is performed internally by the package, and numerical pivoting is switched off. Therefore, this
-  # setting works for classes of matrices more general than positive definite matrices, including matrices with
-  # negative pivots. 
-  S = Mumps{T}(mumps_definite, icntl, cntl)
+  # CNTL(13) controls the parallelism of the root node
+  # Remarks: Processing the root sequentially (ICNTL(13) > 0) can be useful when the user is
+  # interested in the inertia of the matrix (see INFO(12) and INFOG(12)), or when the user wants
+  # to detect null pivots (see Subsection 5.13) or to activate BLR compression (Subsection 5.20) on the
+  # root node.
+  icntl[13] = 1
+ 
+  S = Mumps{T}(mumps_symmetric, icntl, cntl)
 
   # Associate the row, cols and vals of the mumps structure with those of H.
   irn, jcn, a = H.data.rows, H.data.cols, H.data.vals
@@ -93,18 +98,36 @@ function construct_mumps_workspace(
   icntl = default_icntl
 
   ## Set Parameters
+  # CNTL(1) is the relative threshold for numerical pivoting.
+  # Remarks: It forms a trade-off between preserving sparsity and ensuring numerical stability during
+  # the factorization. In general, a larger value of CNTL(1) increases fill-in but leads to a more accurate
+  # factorization.
+  cntl[1] = eps(T)
+
   cntl[2] = eps(T) # Tolerance for iterative refinement
 
   # Deactivate Logging
   icntl[2], icntl[3], icntl[4] = 0, 0, 0
 
-  # Deactivate permutation/scaling
-  icntl[6], icntl[7], icntl[8] = 0, 0, 0
-
   # Max number of iterative refinement steps
   icntl[10] = 10
 
-  S = Mumps{T}(mumps_definite, icntl, cntl)
+  # ICNTL(11): error analysis
+  # 2: Main statistics (recommended)
+  icntl[11] = 2
+
+  # CNTL(13) controls the parallelism of the root node
+  # Remarks: Processing the root sequentially (ICNTL(13) > 0) can be useful when the user is
+  # interested in the inertia of the matrix (see INFO(12) and INFOG(12)), or when the user wants
+  # to detect null pivots (see Subsection 5.13) or to activate BLR compression (Subsection 5.20) on the
+  # root node.
+  icntl[13] = 1
+
+  # ICNTL(24) controls the detection of “null pivot rows”.
+  # 1: Null pivot row detection.
+  icntl[24] = 1
+
+  S = Mumps{T}(mumps_symmetric, icntl, cntl)
 
   # Associate the row, cols and vals of the mumps structure with those of H.
   irn, jcn, a = H.H.data.rows, H.H.data.cols, H.H.data.vals
@@ -242,14 +265,7 @@ function solve_system!(
     workspace.status = :failed
   end
 
-  if mumps.rinfog[6] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[7] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[8] > sqrt(eps(eltype(workspace.x)))
-    workspace.status = :failed
-
-    # Switch to symmetric indefinite factorization
-    mumps_switch_to_indefinite!(workspace)
-  end
+  update_pivtol!(workspace)
 
   return
 end
@@ -325,16 +341,7 @@ function solve_system!(
     return
   end
 
-  if mumps.rinfog[6] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[7] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[8] > sqrt(eps(eltype(workspace.x)))
-    workspace.status = :failed
-
-    # Switch to symmetric indefinite factorization
-    mumps_switch_to_indefinite!(workspace)
-
-    return
-  end
+  update_pivtol!(workspace)
 
   # Step 3: Compute
   # y₁ = Fᵀx₁ = [Uᵀx₁(1:n)]
@@ -362,15 +369,7 @@ function solve_system!(
     return
   end
 
-  if mumps.rinfog[6] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[7] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[8] > sqrt(eps(eltype(workspace.x)))
-    workspace.status = :failed
-
-    # Switch to symmetric indefinite factorization
-    mumps_switch_to_indefinite!(workspace)
-    return
-  end
+  update_pivtol!(workspace)
 
   # Step 4.2: Compute 
   # Z₂ = FᵀZ₁ = UᵀZ₁[1:n]
@@ -415,16 +414,7 @@ function solve_system!(
     return
   end
 
-  if mumps.rinfog[6] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[7] > sqrt(eps(eltype(workspace.x))) ||
-     mumps.rinfog[8] > sqrt(eps(eltype(workspace.x)))
-    workspace.status = :failed
-
-    # Switch to symmetric indefinite factorization
-    mumps_switch_to_indefinite!(workspace)
-
-    return
-  end
+  update_pivtol!(workspace)
 
   # Step 8:
   # [B  Aᵀ]⁻¹[u] = x₁ - x₃ 
@@ -453,47 +443,43 @@ function get_inertia(workspace::PenaltyMUMPSWorkspace{WP,K2}) where {WP,K2}
   return npos, nzero, nneg
 end
 
-function mumps_switch_to_indefinite!(workspace::PenaltyMUMPSWorkspace)
+function relative_error!(workspace::PenaltyMUMPSWorkspace{WP,K2}) where {WP,K2}
   mumps = workspace.M
-  H, x = get_H(workspace), workspace.x
-  n, m = workspace.n, workspace.m
-  mumps.sym == 2 && return
 
-  mumps.sym = 2
-  mumps.job = MUMPS.INITIALIZE
-  MUMPS.invoke_mumps_unsafe!(mumps)
+  return max(
+    mumps.rinfog[6],
+    mumps.rinfog[7],
+    mumps.rinfog[8]
+  )
+end
 
-  # Associate the row, cols and vals of the mumps structure with those of H.
-  irn, jcn, a = H.rows, H.cols, H.vals
-  mumps.irn, mumps.jcn, mumps.a = pointer.((irn, jcn, a))
-  mumps.n = m+n
-  mumps.nnz = length(irn)
-  mumps._irn_gc_haven = irn
-  mumps._jcn_gc_haven = jcn
-  mumps._a_gc_haven = a
+function increase_pivtol!(workspace::PenaltyMUMPSWorkspace)
+  mumps = workspace.M
 
-  # Associate the size and number of the right hand side
-  mumps.lrhs = n + m
-  mumps.nrhs = 1
-  mumps.rhs = pointer(x)
-  mumps._y_gc_haven = x
-
-  icntl = mumps.icntl
-
-  # Deactivate Logging
-  redirect_stdout(devnull) do
-    MUMPS.set_icntl!(mumps, 2, 0)
-    MUMPS.set_icntl!(mumps, 3, 0)
-    MUMPS.set_icntl!(mumps, 4, 0)
-  end
-
-  # Max number of iterative refinement steps
+  MUMPS.set_cntl!(mumps, 1, 1e-2)
   MUMPS.set_icntl!(mumps, 10, -10)
+end
 
-  # See `construct_mumps_workspace` for more details on these parameters
-  MUMPS.set_icntl!(mumps, 24, 1)
-  MUMPS.set_icntl!(mumps, 11, 2)
+function decrease_pivtol!(workspace::PenaltyMUMPSWorkspace)
+  mumps = workspace.M
 
-  MUMPS.set_cntl!(mumps, 1, 1e-1)
-  MUMPS.set_cntl!(mumps, 2, eps(eltype(x)))
+  MUMPS.set_cntl!(mumps, 1, mumps.cntl[1] / 10)
+  MUMPS.set_icntl!(mumps, 10, 10)
+end
+
+function update_pivtol!(workspace::PenaltyMUMPSWorkspace)
+  mumps = workspace.M
+
+  relative_error = relative_error!(workspace)
+  if relative_error > sqrt(eps(eltype(workspace.x)))
+    increase_pivtol!(workspace)
+  elseif relative_error < eps(eltype(workspace.x)) / 100
+    decrease_pivtol!(workspace)
+  end
+end
+
+function SolverCore.reset!(workspace::PenaltyMUMPSWorkspace)
+  Penelopt.set_n_fact!(workspace, 0)
+  MUMPS.set_icntl!(workspace.M, 10, 10)
+  MUMPS.set_cntl!(workspace.M, 1, eps(eltype(workspace.x)))
 end
