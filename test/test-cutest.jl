@@ -140,7 +140,14 @@ function test_problem(
     stats_optimized = PeneloptExecutionStats(preprocessed_nlp)
     if linear_solver == "ldlt"
       @test @wrappedallocs(
-        solve!(solver, preprocessed_nlp, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
+        solve!(
+          solver,
+          preprocessed_nlp,
+          stats_optimized,
+          atol = 1e-3,
+          rtol = 1e-3,
+          τ0 = 1.0,
+        )
       ) == 0
     else
       solve!(solver, preprocessed_nlp, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)

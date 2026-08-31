@@ -65,7 +65,7 @@ function construct_mumps_workspace(
   # to detect null pivots (see Subsection 5.13) or to activate BLR compression (Subsection 5.20) on the
   # root node.
   icntl[13] = 1
- 
+
   S = Mumps{T}(mumps_symmetric, icntl, cntl)
 
   # Associate the row, cols and vals of the mumps structure with those of H.
@@ -446,11 +446,7 @@ end
 function relative_error!(workspace::PenaltyMUMPSWorkspace{WP,K2}) where {WP,K2}
   mumps = workspace.M
 
-  return max(
-    mumps.rinfog[6],
-    mumps.rinfog[7],
-    mumps.rinfog[8]
-  )
+  return max(mumps.rinfog[6], mumps.rinfog[7], mumps.rinfog[8])
 end
 
 function increase_pivtol!(workspace::PenaltyMUMPSWorkspace)
