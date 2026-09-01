@@ -5,6 +5,8 @@ using Printf
 using SolverBenchmark
 using Plots
 
+include(joinpath(@__DIR__, "infeasibility-checker.jl"))
+
 const METHODS = (:exact, :lbfgs)
 
 function load_stats(dir::AbstractString, stats, suffix = "")
@@ -54,8 +56,15 @@ function load_stats(dir::AbstractString, stats, suffix = "")
   return stats
 end
 
-function pairwise_plot(stats, keys; compare_n_fact = false)
-  solved(df) = (df.status .== :first_order) # TODO: add infeasible problems
+function pairwise_plot(
+  stats,
+  keys;
+  compare_n_fact = false,
+  certified_infeasible = Set{String}(),
+)
+  solved(df) =
+    (df.status .== :first_order) .|
+    ((df.status .== :infeasible) .& in.(df.name, Ref(certified_infeasible)))
   costs = [
     df -> .!solved(df) * Inf + df.elapsed_time,
     df -> .!solved(df) * Inf + df.neval_obj,
@@ -127,57 +136,6 @@ function pairwise_plot(stats, keys; compare_n_fact = false)
   return p
 end
 
-current_dir = joinpath("artifacts", "current")
-reference_dir = joinpath("artifacts", "reference")
-
-stats = Dict{Symbol,DataFrame}()
-
-@info "Loading current benchmark results"
-load_stats(current_dir, stats, "_current")
-
-@info "Loading reference benchmark results"
-load_stats(reference_dir, stats, "_reference")
-
-p = plot(
-  pairwise_plot(
-    stats,
-    [:l2penalty_exact_reference, :l2penalty_exact_current],
-    compare_n_fact = true,
-  ),
-  pairwise_plot(
-    stats,
-    [:l2penalty_lbfgs_reference, :l2penalty_lbfgs_current],
-    compare_n_fact = true,
-  ),
-  layout = (2, 1),
-  size = (1920, 1080),
-)
-
-mkpath("benchmark/result")
-savefig(p, "benchmark/result/benchmark_comparison.svg")
-
-# Plot IPOPT
-ipopt_dir = joinpath("artifacts", "ipopt")
-
-@info "Loading ipopt benchmark results"
-load_stats(ipopt_dir, stats, "")
-
-# What if we remove the feasibility problems ?
-# for (key, df) in stats
-#   stats[key] = filter(row -> !endswith(row.name, "NE") || row.name == "YATP2SQ", df)
-# end
-
-p = plot(
-  pairwise_plot(stats, [:l2penalty_exact_current, :ipopt_exact]),
-  pairwise_plot(stats, [:l2penalty_lbfgs_current, :ipopt_lbfgs]),
-  layout = (2, 1),
-  size = (1920, 1080),
-)
-
-savefig(p, "benchmark/result/benchmark_comparison_ipopt.svg")
-
-@info "Infeasibility results\n"
-
 function infeasibility_pair(stats, keys)
   df_1 = stats[keys[1]]
   df_2 = stats[keys[2]]
@@ -188,17 +146,93 @@ function infeasibility_pair(stats, keys)
   @assert parts_2[1] == :ipopt
 
   @info "Checking infeasibility results for $(parts_1[2]) Hessian approximation."
+
+  # Names for which L2Penalty (keys[1]) declared infeasibility. These are the
+  # candidates that need to be certified as locally infeasible.
+  infeasible_candidates = String[]
   for i = 1:nrow(df_1)
     @assert df_1[i, :name] == df_2[i, :name]
     if df_1[i, :status] == :infeasible && df_2[i, :status] == :infeasible
       @info "IPOPT and L2Penalty both declared $(df_1[i, :name]) infeasible"
+      push!(infeasible_candidates, df_1[i, :name])
     elseif df_1[i, :status] == :infeasible
       @info "L2Penalty declared $(df_1[i, :name]) infeasible, but IPOPT terminated with status $(df_2[i, :status])"
+      push!(infeasible_candidates, df_1[i, :name])
     elseif df_2[i, :status] == :infeasible
       @info "IPOPT declared $(df_1[i, :name]) infeasible, but L2Penalty terminated with status $(df_1[i, :status])"
     end
   end
   @info ""
+
+  return infeasible_candidates
 end
 
-infeasibility_pair(stats, [:l2penalty_exact_current, :ipopt_exact])
+current_dir = joinpath("artifacts", "current")
+reference_dir = joinpath("artifacts", "reference")
+ipopt_dir = joinpath("artifacts", "ipopt")
+
+stats = Dict{Symbol,DataFrame}()
+
+@info "Loading current benchmark results"
+load_stats(current_dir, stats, "_current")
+
+@info "Loading reference benchmark results"
+load_stats(reference_dir, stats, "_reference")
+
+@info "Loading ipopt benchmark results"
+load_stats(ipopt_dir, stats, "")
+
+# Infeasibility check must run before the performance profiles, since its
+# result (which problems are certified locally infeasible) feeds into how
+# the profiles' costs treat the :infeasible status.
+@info "Infeasibility results\n"
+
+exact_candidates = infeasibility_pair(stats, [:l2penalty_exact_current, :ipopt_exact])
+lbfgs_candidates = infeasibility_pair(stats, [:l2penalty_lbfgs_current, :ipopt_lbfgs])
+infeasible_candidates = union(exact_candidates, lbfgs_candidates)
+
+@info "Certifying local infeasibility for $(length(infeasible_candidates)) candidate problem(s)"
+certified_infeasible = Set{String}()
+for name in infeasible_candidates
+  if certify_local_infeasibility(name)
+    push!(certified_infeasible, name)
+  end
+end
+
+p = plot(
+  pairwise_plot(
+    stats,
+    [:l2penalty_exact_reference, :l2penalty_exact_current],
+    compare_n_fact = true,
+    certified_infeasible = certified_infeasible,
+  ),
+  pairwise_plot(
+    stats,
+    [:l2penalty_lbfgs_reference, :l2penalty_lbfgs_current],
+    compare_n_fact = true,
+    certified_infeasible = certified_infeasible,
+  ),
+  layout = (2, 1),
+  size = (1920, 1080),
+)
+
+mkpath("benchmark/result")
+savefig(p, "benchmark/result/benchmark_comparison.svg")
+
+# Plot IPOPT
+p = plot(
+  pairwise_plot(
+    stats,
+    [:l2penalty_exact_current, :ipopt_exact],
+    certified_infeasible = certified_infeasible,
+  ),
+  pairwise_plot(
+    stats,
+    [:l2penalty_lbfgs_current, :ipopt_lbfgs],
+    certified_infeasible = certified_infeasible,
+  ),
+  layout = (2, 1),
+  size = (1920, 1080),
+)
+
+savefig(p, "benchmark/result/benchmark_comparison_ipopt.svg")
