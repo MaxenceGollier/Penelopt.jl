@@ -1,6 +1,5 @@
 using JLD2
 
-using MPI, MUMPS
 using CUTEst, Penelopt, NLPModelsModifiers, SolverBenchmark
 
 problem_names = CUTEst.select_sif_problems(
