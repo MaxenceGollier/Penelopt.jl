@@ -299,7 +299,7 @@ function SolverCore.solve!(
 
   set_solver_specific!(solver.substats, :smooth_obj, fx)
   grad!(nlp, x, solver.∇fk)
-  compute_least_square_multipliers!(solver)
+  initialize_multipliers!(solver)
   dual_feas = least_square_dual_feas!(solver)
   solver.subsolver.y .= solver.y
 
