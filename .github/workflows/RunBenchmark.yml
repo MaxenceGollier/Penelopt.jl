@@ -100,13 +100,3 @@ jobs:
           name: cutest-benchmark-stats-exact-hessian-${{ matrix.split }}
           path: benchmark/result
           if-no-files-found: error
-
-
-  Compare-benchmarks:
-    needs:
-      - Benchmark-LBFGS
-      - Benchmark-Exact-Hessian
-    if: >
-      github.event_name == 'pull_request' &&
-      contains(github.event.pull_request.labels.*.name, 'run CUTEst benchmark')
-    uses: ./.github/workflows/CompareBenchmarks.yml

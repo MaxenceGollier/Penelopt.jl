@@ -2,9 +2,16 @@ name: Compare Benchmarks
 
 on:
   workflow_dispatch:
+    inputs:
+      run_id:
+        description: >
+          Run ID of a completed "Run Benchmark" run to compare.
+          Leave empty to use the latest successful run on this branch.
+        required: false
+        type: string
   workflow_call:
   workflow_run:
-    workflows: ["RunBenchmark.yml"]
+    workflows: ["Run Benchmark"]
     types:
       - completed
 
@@ -22,38 +29,33 @@ jobs:
       - name: Use Julia cache
         uses: julia-actions/cache@v2
 
-      - name: Download benchmark artifact (workflow_run)
-        if: github.event_name != 'workflow_call'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          gh run download "${{ github.event.workflow_run.id }}" \
-            --dir artifacts/current
-
-      - name: Download benchmark artifact (manual/workflow_call)
-        if: github.event_name == 'workflow_call'
+      - name: Download benchmark artifact
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: ${{ github.ref_name }}
         shell: bash
         run: |
-          echo "Looking for RunBenchmark artifact on branch: $BRANCH"
-
-          RUN_ID=$(gh run list \
-            --workflow "Run Benchmark" \
-            --branch "$BRANCH" \
-            --status success \
-            --limit 1 \
-            --json databaseId \
-            --jq '.[0].databaseId')
-
-          if [ -z "$RUN_ID" ]; then
-            echo "::error::No successful RunBenchmark run found on branch $BRANCH"
-            exit 1
+          if [ -n "${{ github.event.workflow_run.id }}" ]; then
+            RUN_ID="${{ github.event.workflow_run.id }}"
+            echo "Using triggering run id: $RUN_ID"
+          elif [ -n "${{ inputs.run_id }}" ]; then
+            RUN_ID="${{ inputs.run_id }}"
+            echo "Using manually supplied run id: $RUN_ID"
+          else
+            echo "Looking for latest successful Run Benchmark run on branch: $BRANCH"
+            RUN_ID=$(gh run list \
+              --workflow "Run Benchmark" \
+              --branch "$BRANCH" \
+              --status success \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId')
           fi
 
-          echo "Found RunBenchmark run id: $RUN_ID"
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::No Run Benchmark run id could be determined"
+            exit 1
+          fi
 
           gh run download "$RUN_ID" \
             --dir artifacts/current
