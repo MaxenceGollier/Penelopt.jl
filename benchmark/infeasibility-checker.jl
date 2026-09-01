@@ -42,7 +42,7 @@ if length(nlp.meta.ifix) > 0
   preprocess_nlp = remove_fixed_variables(nlp)
 end
 
-stats = L2Penalty(preprocess_nlp, print_level = 1, atol = 1e-6, rtol = 0.0)
+stats = L2Penalty(preprocess_nlp, print_level = 2, atol = 1e-6, rtol = 0.0, max_time = 300.0)
 x = stats.solution[nlp.meta.ifree]
 
 check_local_infeasibility(preprocess_nlp, x)
