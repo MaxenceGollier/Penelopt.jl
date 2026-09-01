@@ -32,8 +32,6 @@ jobs:
     name: Julia ${{ inputs.version }} - ${{ inputs.os }} - ${{ inputs.arch }} - ${{ github.event_name }}
     runs-on: ${{ inputs.os }}
     continue-on-error: ${{ inputs.allow_failure }}
-    env:
-      MUMPS_SEQ: true
     steps:
       - uses: actions/checkout@v4
       - name: Install compilers
