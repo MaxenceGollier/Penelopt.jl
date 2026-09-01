@@ -1,6 +1,6 @@
 using OptimalControlProblems, OptimalControl, Plots
 
-using Penelopt, MUMPS, MPI
+using Penelopt, LDLFactorizations
 
 tol = 1e-6
 max_time = 300.0

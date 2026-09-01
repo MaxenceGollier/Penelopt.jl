@@ -17,7 +17,7 @@ end
 
 function MoreSorensenSolver(
   reg_nlp::AbstractShiftedPenalizedProblem{T,V};
-  solver = :ldlt,
+  solver = :mumps,
 ) where {T,V}
   x0 = reg_nlp.model.meta.x0
   n = reg_nlp.model.meta.nvar
@@ -29,31 +29,31 @@ function MoreSorensenSolver(
 
   # Check linear solver
 
-  # Check for MUMPS
-  mumps_loaded = !isnothing(Base.get_extension(@__MODULE__, :PeneloptMUMPSExt))
-  if !mumps_loaded && solver == :mumps
-    @warn "Penelopt.jl: MUMPS extension is not loaded. Please install MPI.jl and MUMPS.jl. Switching to LDLFactorizations.jl..."
-    solver = :ldlt
+  # Check for LDLFactorizations
+  ldlt_loaded = !isnothing(Base.get_extension(@__MODULE__, :PeneloptLDLFactorizationsExt))
+  if !ldlt_loaded && solver == :ldlt
+    @warn "Penelopt.jl: LDLFactorizations extension is not loaded. Please install LDLFactorizations.jl. Switching to MUMPS..."
+    solver = :mumps
   end
 
   # Check for HSL
   hsl_loaded = !isnothing(Base.get_extension(@__MODULE__, :PeneloptHSLExt))
   if !hsl_loaded && solver == :ma57
-    @warn "Penelopt.jl: HSL extension is not loaded. Please install HSL.jl. Switching to LDLFactorizations.jl..."
-    solver = :ldlt
+    @warn "Penelopt.jl: HSL extension is not loaded. Please install HSL.jl. Switching to MUMPS..."
+    solver = :mumps
   end
 
   hsl_isfunctional = hsl_loaded && hsl_functional()
   if !hsl_isfunctional && solver == :ma57
-    @warn "Penelopt.jl: HSL extension is not functional. Please check your license and make sure you have loaded HSL_jll.jl appropriately. Switching to LDLFactorizations.jl..."
-    solver = :ldlt
+    @warn "Penelopt.jl: HSL extension is not functional. Please check your license and make sure you have loaded HSL_jll.jl appropriately. Switching to MUMPS..."
+    solver = :mumps
   end
 
   # Check for Krylov
   krylov_loaded = !isnothing(Base.get_extension(@__MODULE__, :PeneloptKrylovExt))
   if !krylov_loaded && solver == :minres_qlp
-    @warn "Penelopt.jl: Krylov extension is not loaded. Please install Krylov.jl. Switching to LDLFactorizations.jl..."
-    solver = :ldlt
+    @warn "Penelopt.jl: Krylov extension is not loaded. Please install Krylov.jl. Switching to MUMPS..."
+    solver = :mumps
   end
 
   H = K2(

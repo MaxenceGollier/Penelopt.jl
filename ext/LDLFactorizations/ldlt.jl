@@ -3,7 +3,7 @@ mutable struct PenaltyLDLTWorkspace{
   K2<:AbstractMatrix,
   V<:AbstractVector,
   T<:Real,
-} <: PenaltyDirectWorkspace
+} <: AbstractLDLTWorkspace
   M::WP
   H::K2
   x::V

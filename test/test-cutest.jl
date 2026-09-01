@@ -8,7 +8,7 @@ function test_problem(
   primal_solution,
   dual_solution,
   expected_status;
-  linear_solver::String = "ldlt",
+  linear_solver::String = "mumps",
   ignore_null_hessian::Bool = false,
   ignore_bfgs::Bool = false,
   ignore_exact::Bool = false,
@@ -174,7 +174,7 @@ end
   primal_solution = [1, 0]
   dual_solution = [-99.5]
   linear_solver =
-    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" : "mumps"
   test_problem(
     "BT1",
     primal_solution,
@@ -189,7 +189,7 @@ end
   primal_solution = [1, 0]
   dual_solution = [0.499999]
   linear_solver =
-    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" : "mumps"
   test_problem(
     "MARATOS",
     primal_solution,
@@ -201,7 +201,7 @@ end
 
 # Test an infeasible problem
 @testset "VANDANIUMS" begin
-  if isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt))
+  if isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt))
     test_problem("VANDANIUMS", Float64[], Float64[], :infeasible)
   end
 end
@@ -233,7 +233,7 @@ end
   ]
   dual_solution = zeros(5)
   linear_solver =
-    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" : "mumps"
   test_problem(
     "AIRCRFTA",
     primal_solution,
@@ -256,7 +256,7 @@ end
   ]
   dual_solution = [0.0, 0.0, 0.0, 1.44]
   linear_solver =
-    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" : "mumps"
   test_problem(
     "HS56",
     primal_solution,

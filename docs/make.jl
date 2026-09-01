@@ -26,6 +26,7 @@ makedocs(;
       "JuMP" => "tutorials/JuMP.md",
       "HSL" => "tutorials/HSL.md",
       "MUMPS" => "tutorials/MUMPS.md",
+      "LDLFactorizations" => "tutorials/LDLFactorizations.md",
     ],
     "Developers" =>
       ["Contributing" => "90-contributing.md", "Developing" => "91-developer.md"],

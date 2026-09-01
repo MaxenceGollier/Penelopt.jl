@@ -10,9 +10,14 @@ module Penelopt
 
 using LinearAlgebra, Printf, SparseArrays
 using NLPModels, NLPModelsModifiers
-using LDLFactorizations, LinearOperators, QuadraticModels, SolverCore, SparseMatricesCOO
+using LinearOperators, QuadraticModels, SolverCore, SparseMatricesCOO
+using MPI, MUMPS
 
 import SolverCore: get_status, reset!
+
+function __init__()
+  MPI.Init()
+end
 
 abstract type AbstractPenalizedProblemSolver <: AbstractOptimizationSolver end
 
@@ -29,7 +34,7 @@ include("types/pre-processing/FixedVariable.jl")
 
 include("linear_algebra/K2.jl")
 include("linear_algebra/construct_workspace.jl")
-include("linear_algebra/ldlt.jl")
+include("linear_algebra/mumps.jl")
 
 include("types/PenalizedProblem.jl")
 include("types/ShiftedPenalizedProblem.jl")

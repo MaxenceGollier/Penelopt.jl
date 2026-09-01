@@ -237,19 +237,19 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
 
 ## Linear Solver
 
- * `linear_solver::Sring = "ldlt"`: Linear solver library used for step computations.
+ * `linear_solver::Sring = "mumps"`: Linear solver library used for step computations.
     > Determines which linear algebra package is to be used for the solution of the linear systems.
     >
     > Possible values:
+    > * mumps: use the [MUMPS](https://mumps-solver.org/index.php?page=doc) package (default).
     > * ldlt: use the [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl) package.
     > * ma57: use the HSL routine MA57.
     > * minres\_qlp (does not work well): use the minres\_qlp solver from [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
-    > * mumps: use the Mumps package.
     >
     > **NOTE**: Except for the default, you need to **load** corresponding packages to use each option.
+    > * ldlt: Load [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl).
     > * ma57: Load [HSL.jl](https://github.com/JuliaSmoothOptimizers/HSL.jl).
     > * minres\_qlp: Load [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
-    > * mumps: Load [MPI.jl](https://github.com/JuliaParallel/MPI.jl) and [MUMPS.jl](https://github.com/JuliaSmoothOptimizers/MUMPS.jl).
 
 ## quasi-Newton Approximations
 

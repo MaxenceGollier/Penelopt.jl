@@ -54,10 +54,10 @@ julia> solve!(solver, nlp, stats; x = x2)
     Some [options](options.md) require allocations and are therefore passed to the solver structure construction call.
     The following options **need** to be passed to the solver constructor (passing them to `solve!` will cause failure).
     * `r2n_m_monotone::Int = 12`;
-    * `linear_solver::Sring = "ldlt"`.
+    * `linear_solver::Sring = "mumps"`.
     For clarity, if you want to modify these options, while preallocating the workspace, you should do
     ```{julia}
-    julia> solver = L2PenaltySolver(nlp, r2n_m_monotone = 6, linear_solver = "mumps")
+    julia> solver = L2PenaltySolver(nlp, r2n_m_monotone = 6, linear_solver = "ldlt")
     julia> ...
     ```
 

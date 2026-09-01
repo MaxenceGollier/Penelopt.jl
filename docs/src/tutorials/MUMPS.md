@@ -3,8 +3,8 @@
 This tutorial shows how to use the [MUMPS](https://mumps-solver.org/index.php?page=doc) linear solver to solve a problem from the
 [CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl) (see [this](CUTEst.md) tutorial) collection with `Penelopt.jl`.
 
-!!! warning "Extensions"
-    `Penelopt.jl` uses an [extension](https://docs.julialang.org/en/v1/manual/code-loading/#man-extensions) to load the [MUMPS](https://mumps-solver.org/index.php?page=doc) linear solver. Therefore, you **need** to load both [MPI.jl](https://github.com/JuliaParallel/MPI.jl) and [MUMPS.jl](https://github.com/JuliaSmoothOptimizers/MUMPS.jl). Our algorithm will throw a warning and switch to the default [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl) package if you try to use MUMPS without loading the required packages.
+!!! note "Default Linear Solver"
+    `Penelopt.jl` depends directly on [MPI.jl](https://github.com/JuliaParallel/MPI.jl) and [MUMPS.jl](https://github.com/JuliaSmoothOptimizers/MUMPS.jl), and uses MUMPS as its **default** linear solver. You therefore do not need to load any extra package to use it.
 
 ## 1. Load a CUTEst problem
 
@@ -18,13 +18,7 @@ nlp = CUTEstModel("MSS1")
 nothing # hide
 ```
 
-## 2. Load the MUMPS packages
-
-```@example mumps
-using MPI, MUMPS
-```
-
-## 3. Solve with Penelopt
+## 2. Solve with Penelopt
 
 ```@example mumps
 using Penelopt
@@ -42,7 +36,7 @@ println("solution  : ", stats.solution)
 nothing # hide
 ```
 
-## 4. Finalize the CUTEst model
+## 3. Finalize the CUTEst model
 
 Once the CUTEst problem has been used, you should finalize it, see the CUTEst [documentation](https://jso.dev/CUTEst.jl/stable/).
 

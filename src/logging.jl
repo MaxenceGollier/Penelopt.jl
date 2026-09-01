@@ -1,13 +1,15 @@
 function get_linear_solver(
   solver::L2PenaltySolver{T,V,S,PB},
 ) where {T,V,H,WP,MSS<:MoreSorensenSolver{T,V,H,WP},S<:PenaltyR2NSolver{T,V,MSS},PB}
-  if WP <: PenaltyLDLTWorkspace
-    return "LDLFactorizations.jl v$(pkgversion(LDLFactorizations))"
-  elseif WP <: AbstractMUMPSWorkspace
+  if WP <: AbstractMUMPSWorkspace
     # The MUMPS struct exposes the version number.
     version = solver.subsolver.subsolver.workspace.M.version_number
     version = decode_mumps_version(version)
     return "MUMPS v$(version)"
+  elseif WP <: AbstractLDLTWorkspace
+    # LDLFactorizations.jl is loaded through the PeneloptLDLFactorizationsExt extension.
+    ext = Base.get_extension(@__MODULE__, :PeneloptLDLFactorizationsExt)
+    return "LDLFactorizations.jl v$(pkgversion(ext.LDLFactorizations))"
   else
     return ""
   end
