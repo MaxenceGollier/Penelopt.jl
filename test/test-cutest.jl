@@ -220,9 +220,7 @@ end
   # Only test that we converge to first order
   nlp = CUTEstModel("SSINE")
   stats = L2Penalty(nlp, atol = 1e-3, rtol = 0.0)
-  if !Sys.iswindows()
-    @test stats.status == :first_order
-  end
+  @test stats.status == :first_order
 
   # stats = L2Penalty(nlp, atol = 1e-3, rtol = 0.0, qn_hessian_approximation = "bfgs")
   # @test stats.status == :first_order
