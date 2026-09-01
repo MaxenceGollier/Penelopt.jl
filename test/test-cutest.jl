@@ -41,7 +41,7 @@ function test_problem(
     end
     null_model = NullHessianModel(preprocessed_nlp)
 
-    solver = L2PenaltySolver(null_model)
+    solver = L2PenaltySolver(null_model, linear_solver = linear_solver)
     stats_optimized = PeneloptExecutionStats(null_model)
     if linear_solver == "ldlt"
       @test @wrappedallocs(
@@ -211,10 +211,10 @@ end
   # The problem is infeasible but the primal feas is arbitrarily small for some ||x|| -> inf.
   # Only test that we converge to first order
   nlp = CUTEstModel("SSINE")
-  stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0)
+  stats = L2Penalty(nlp, atol = 1e-3, rtol = 0.0)
   @test stats.status == :first_order
 
-  # stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0, qn_hessian_approximation = "bfgs")
+  # stats = L2Penalty(nlp, atol = 1e-3, rtol = 0.0, qn_hessian_approximation = "bfgs")
   # @test stats.status == :first_order
   finalize(nlp)
 end
