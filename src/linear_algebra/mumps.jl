@@ -29,8 +29,18 @@ function construct_mumps_workspace(
   H::M,
   u1::V,
   n,
-  m,
+  m;
+  max_m_lapack::Int = 100,
 ) where {T,V<:AbstractVector{T},M<:Symmetric}
+  # When there are few enough constraints, it is cheaper to have MUMPS
+  # factor only the large n×n leading (Hessian) block, retrieve the small
+  # dense m×m Schur complement it assembles along the way, and factor that
+  # ourselves with LAPACK (Bunch-Kaufman) — rather than factoring the full
+  # (n+m)×(n+m) augmented system with MUMPS every time.
+  if m <= max_m_lapack
+    return construct_mumps_schur_lapack_workspace(H, u1, n, m)
+  end
+
   # Set params : TODO
   cntl = T == Float64 ? default_cntl64 : default_cntl32
   icntl = default_icntl
@@ -422,11 +432,11 @@ function solve_system!(
   workspace.x .= x1 .- x3
 end
 
-function get_solution!(x::V, workspace::PenaltyMUMPSWorkspace) where {V<:AbstractVector}
+function get_solution!(x::V, workspace::AbstractMUMPSWorkspace) where {V<:AbstractVector}
   x .= workspace.x
 end
 
-function get_status(workspace::PenaltyMUMPSWorkspace)
+function get_status(workspace::AbstractMUMPSWorkspace)
   return workspace.status
 end
 
@@ -443,27 +453,27 @@ function get_inertia(workspace::PenaltyMUMPSWorkspace{WP,K2}) where {WP,K2}
   return npos, nzero, nneg
 end
 
-function relative_error!(workspace::PenaltyMUMPSWorkspace{WP,K2}) where {WP,K2}
+function relative_error!(workspace::AbstractMUMPSWorkspace)
   mumps = workspace.M
 
   return max(mumps.rinfog[6], mumps.rinfog[7], mumps.rinfog[8])
 end
 
-function increase_pivtol!(workspace::PenaltyMUMPSWorkspace)
+function increase_pivtol!(workspace::AbstractMUMPSWorkspace)
   mumps = workspace.M
 
   MUMPS.set_cntl!(mumps, 1, 1e-2)
   MUMPS.set_icntl!(mumps, 10, -10)
 end
 
-function decrease_pivtol!(workspace::PenaltyMUMPSWorkspace)
+function decrease_pivtol!(workspace::AbstractMUMPSWorkspace)
   mumps = workspace.M
 
   MUMPS.set_cntl!(mumps, 1, mumps.cntl[1] / 10)
   MUMPS.set_icntl!(mumps, 10, 10)
 end
 
-function update_pivtol!(workspace::PenaltyMUMPSWorkspace)
+function update_pivtol!(workspace::AbstractMUMPSWorkspace)
   mumps = workspace.M
 
   relative_error = relative_error!(workspace)
@@ -475,6 +485,328 @@ function update_pivtol!(workspace::PenaltyMUMPSWorkspace)
 end
 
 function SolverCore.reset!(workspace::PenaltyMUMPSWorkspace)
+  set_n_fact!(workspace, 0)
+  MUMPS.set_icntl!(workspace.M, 10, 10)
+  MUMPS.set_cntl!(workspace.M, 1, eps(eltype(workspace.x)))
+end
+
+# MUMPS + Schur complement + LAPACK Misc.
+#
+# Used instead of `PenaltyMUMPSWorkspace` when the number of constraints m
+# is small (m <= max_m_lapack, see `construct_mumps_workspace`). Rather than
+# have MUMPS factor the full (n+m)×(n+m) K2 system
+#   [ B+σI  Aᵀ ]
+#   [ A    -αI ]
+# every time, we designate the last m (dual/constraint) indices as Schur
+# variables: MUMPS factors only the large n×n leading block and hands back
+# the small, dense m×m Schur complement
+#   S = -αI - A(B+σI)⁻¹Aᵀ,
+# which we factor ourselves with a Bunch-Kaufman (LAPACK) factorization.
+# Solves then use MUMPS's own reduced-RHS mechanism (ICNTL(19)=3 /
+# ICNTL(26)) to do the forward/backward elimination around the large block,
+# with the small system in between solved via our LAPACK factors. This is
+# not used for the CompactBFGS case, which already has its own cheap
+# Sherman-Morrison-based `solve_system!`.
+mutable struct PenaltyMUMPSSchurLAPACKWorkspace{
+  WP<:Mumps,
+  K2<:AbstractMatrix,
+  V<:AbstractVector,
+  T<:Real,
+} <: AbstractMUMPSWorkspace
+  M::WP
+  H::K2
+  x::V           # full (n+m) solution/rhs buffer, registered with MUMPS once
+  σ::T
+  n::Int
+  m::Int
+  S::Matrix{T}   # dense m×m Schur complement, factored in place (uplo = 'U')
+  _redrhs::Vector{T}     # MUMPS reduced-RHS buffer (length m), registered once
+  _ipiv::Vector{BlasInt}  # Bunch-Kaufman pivots for S
+  _work::Vector{T}        # LAPACK workspace for sytrf!
+  _info::Base.RefValue{BlasInt}
+  status::Symbol
+  factorized::Bool
+  _n_fact::Int
+end
+
+function get_H(
+  solver_workspace::PenaltyMUMPSSchurLAPACKWorkspace{WP,K2},
+) where {T,M,WP,K2<:Symmetric{T,M}}
+  return solver_workspace.H.data
+end
+
+function construct_mumps_schur_lapack_workspace(
+  H::M,
+  u1::V,
+  n,
+  m,
+) where {T,V<:AbstractVector{T},M<:Symmetric}
+  cntl = T == Float64 ? default_cntl64 : default_cntl32
+  icntl = default_icntl
+
+  cntl[1] = eps(T)
+  cntl[2] = eps(T) # Tolerance for iterative refinement
+
+  # Deactivate Logging
+  icntl[2], icntl[3], icntl[4] = 0, 0, 0
+
+  # Max number of iterative refinement steps
+  icntl[10] = 10
+
+  # ICNTL(11): error analysis
+  icntl[11] = 2
+
+  # CNTL(13): process the root sequentially, needed to read off the
+  # inertia of the leading block from INFOG(12)/INFOG(28) below.
+  icntl[13] = 1
+
+  # ICNTL(24): null pivot row detection.
+  icntl[24] = 1
+
+  # ICNTL(8): turn off scaling — not supported together with the Schur
+  # complement (MUMPS would otherwise warn on every factorization).
+  icntl[8] = 0
+
+  S = Mumps{T}(mumps_symmetric, icntl, cntl)
+
+  # Associate the row, cols and vals of the mumps structure with those of H.
+  irn, jcn, a = H.data.rows, H.data.cols, H.data.vals
+  S.irn, S.jcn, S.a = pointer.((irn, jcn, a))
+  S.n = m + n
+  S.nnz = length(irn)
+  S._irn_gc_haven = irn
+  S._jcn_gc_haven = jcn
+  S._a_gc_haven = a
+
+  # Designate the m dual (constraint) variables — the last m indices of the
+  # augmented K2 system — as Schur variables, so MUMPS eliminates the
+  # leading n×n block internally and returns the dense m×m Schur
+  # complement.
+  schur_inds = collect((n+1):(n+m))
+  MUMPS.set_schur_centralized_by_column!(S, schur_inds)
+
+  # Associate the size and number of the right hand side. This buffer is
+  # registered with MUMPS once and reused (in place) for every solve.
+  x = similar(u1)
+  S.lrhs = n + m
+  S.nrhs = 1
+  S.rhs = pointer(x)
+  S._y_gc_haven = x
+
+  # MUMPS's reduced-RHS buffer for the Schur (dual) block, also registered
+  # once and reused across solves.
+  redrhs = zeros(T, m)
+  S.redrhs = pointer(redrhs)
+  S.lredrhs = m
+
+  Sd = Matrix{T}(undef, m, m)
+  ipiv = Vector{BlasInt}(undef, m)
+  # A generously-sized fixed workspace for sytrf! (m is small — at most
+  # max_m_lapack — so this is cheap): avoids the extra ccall needed for a
+  # proper LWORK query.
+  work = Vector{T}(undef, max(1, 64 * m))
+
+  return PenaltyMUMPSSchurLAPACKWorkspace(
+    S,
+    H,
+    x,
+    zero(T),
+    n,
+    m,
+    Sd,
+    redrhs,
+    ipiv,
+    work,
+    Ref{BlasInt}(0),
+    :uninitialized,
+    false,
+    0,
+  )
+end
+
+function update_workspace!(
+  solver_workspace::PenaltyMUMPSSchurLAPACKWorkspace,
+  B::M,
+  A,
+  σ,
+  α,
+) where {M<:SparseMatrixCOO}
+  n, m = solver_workspace.n, solver_workspace.m
+  nnz_B, nnz_A = length(B.vals), length(A.vals)
+
+  H = get_H(solver_workspace)
+
+  H.vals[1:nnz_B] .= B.vals
+  H.vals[(nnz_B+1):(nnz_B+nnz_A)] .= A.vals
+  H.vals[(nnz_B+nnz_A+1):(nnz_B+nnz_A+n)] .= σ
+  H.vals[(nnz_B+nnz_A+n+1):(nnz_B+nnz_A+n+m)] .= -α
+
+  solver_workspace.σ = σ
+  solver_workspace.factorized = false
+end
+
+function update_workspace!(solver_workspace::PenaltyMUMPSSchurLAPACKWorkspace, A, σ, α)
+  # Warning: Considers that B is a zero matrix.
+  n, m = solver_workspace.n, solver_workspace.m
+  nnz_A = length(A.vals)
+  H = get_H(solver_workspace)
+  nnz_B = length(H.vals) - nnz_A - n - m
+
+  H.vals .= 0
+  H.vals[(nnz_B+1):(nnz_B+nnz_A)] .= A.vals
+  H.vals[(nnz_B+nnz_A+1):(nnz_B+nnz_A+n)] .= σ
+  H.vals[(nnz_B+nnz_A+n+1):(nnz_B+nnz_A+n+m)] .= -α
+
+  solver_workspace.σ = σ
+  solver_workspace.factorized = false
+end
+
+function set_dual_inertia!(solver_workspace::PenaltyMUMPSSchurLAPACKWorkspace, α)
+  n, m = solver_workspace.n, solver_workspace.m
+  H = get_H(solver_workspace)
+  H.vals[(end-m+1):end] .= -α
+  solver_workspace.factorized = false
+end
+
+function set_primal_inertia!(solver_workspace::PenaltyMUMPSSchurLAPACKWorkspace, σ)
+  n, m = solver_workspace.n, solver_workspace.m
+  H = get_H(solver_workspace)
+  H.vals[(end-m-n+1):(end-m)] .= σ
+  solver_workspace.σ = σ
+  solver_workspace.factorized = false
+end
+
+function solve_system!(
+  workspace::PenaltyMUMPSSchurLAPACKWorkspace{WP,K2},
+  u::V,
+) where {V<:AbstractVector,WP,K2}
+  workspace.status = :success
+  mumps = workspace.M
+  n, m = workspace.n, workspace.m
+
+  if !workspace.factorized
+    mumps.job = MUMPS.INITIALIZE
+    factorize!(mumps)
+    workspace._n_fact += 1
+
+    k, max_iter = 0, 5
+    # See the plain PenaltyMUMPSWorkspace solve_system! for context on
+    # infog(1) == -9 (workarray too small) retries.
+    while mumps.infog[1] == -9 && k < max_iter
+      MUMPS.set_icntl!(mumps, 14, mumps.icntl[14] * 2)
+      mumps.job = MUMPS.FACTOR
+      factorize!(mumps)
+      workspace._n_fact += 1
+      k = k + 1
+    end
+
+    if mumps.infog[1] < 0
+      workspace.status = :failed
+      return
+    else
+      workspace.factorized = true
+    end
+
+    # Retrieve the dense m×m Schur complement MUMPS assembled while
+    # eliminating the leading n×n block, and Bunch-Kaufman-factor it so we
+    # can both solve against it and read off its inertia (see
+    # `get_inertia` below).
+    MUMPS.get_schur_complement!(workspace.S, mumps)
+
+    info_f = sytrf!(
+      'U',
+      BlasInt(m),
+      workspace.S,
+      BlasInt(m),
+      workspace._ipiv,
+      workspace._work,
+      BlasInt(length(workspace._work)),
+      workspace._info,
+    )
+    if info_f < 0
+      # A negative info indicates an illegal ccall argument: a bug, not a
+      # numerical failure.
+      workspace.status = :failed
+      return
+    end
+    # info_f > 0 (an exactly-zero pivot) is not treated as a hard failure
+    # here: it is picked up as a zero eigenvalue by `get_inertia` instead.
+  end
+
+  # Forward step: partial solve to obtain the reduced RHS on the Schur
+  # (dual) block. `workspace.x` is the same buffer registered with MUMPS
+  # at construction time, so writing into it in place is enough to update
+  # the RHS MUMPS sees.
+  workspace.x .= u
+  MUMPS.set_icntl!(mumps, 26, 1; displaylevel = 0)
+  mumps.job = MUMPS.SOLVE
+  MUMPS.invoke_mumps!(mumps)
+
+  if mumps.infog[1] < 0
+    workspace.status = :failed
+    return
+  end
+
+  # Solve the small dense Schur system in place, using the Bunch-Kaufman
+  # factors computed above.
+  info_s = sytrs!(
+    'U',
+    BlasInt(m),
+    BlasInt(1),
+    workspace.S,
+    BlasInt(m),
+    workspace._ipiv,
+    workspace._redrhs,
+    BlasInt(m),
+    workspace._info,
+  )
+  if info_s != 0 || any(isnan, workspace._redrhs)
+    workspace.status = :failed
+    return
+  end
+
+  # Backward step: expand the full (n+m) solution from the (now solved)
+  # reduced RHS, written back into `workspace.x`.
+  MUMPS.set_icntl!(mumps, 26, 2; displaylevel = 0)
+  mumps.job = MUMPS.SOLVE
+  MUMPS.invoke_mumps!(mumps)
+
+  if any(isnan, workspace.x) || mumps.infog[1] < 0
+    workspace.status = :failed
+  end
+
+  update_pivtol!(workspace)
+
+  return
+end
+
+# Combines, via Sylvester's law of inertia, the inertia of the leading n×n
+# block (eliminated by MUMPS, read off INFOG(12)/INFOG(28)) with the
+# inertia of the dense m×m Schur complement (from our Bunch-Kaufman
+# factorization): inertia(K2) = inertia(leading block) + inertia(schur
+# complement).
+function get_inertia(workspace::PenaltyMUMPSSchurLAPACKWorkspace)
+  n, m = workspace.n, workspace.m
+  mumps = workspace.M
+
+  nneg_block = mumps.infog[12]
+  rank_block = n - mumps.infog[28]
+  nzero_block = n - rank_block
+  npos_block = n - nzero_block - nneg_block
+
+  npos_s, nzero_s, nneg_s = bunchkaufman_inertia(workspace.S, workspace._ipiv, m; uplo = 'U')
+
+  return npos_block + npos_s, nzero_block + nzero_s, nneg_block + nneg_s
+end
+
+# `up_lblock_is_pos_def`'s generic (::PenaltyWorkspace, ::Any) fallback
+# already gives the right answer here (it calls `get_inertia`, which now
+# dispatches to the method above). `up_lblock_is_singular` still needs its
+# own override, following the same "correct full-system inertia" check.
+up_lblock_is_singular(workspace::PenaltyMUMPSSchurLAPACKWorkspace, ::AbstractMatrix) =
+  get_inertia(workspace)[2] > 0
+
+function SolverCore.reset!(workspace::PenaltyMUMPSSchurLAPACKWorkspace)
   set_n_fact!(workspace, 0)
   MUMPS.set_icntl!(workspace.M, 10, 10)
   MUMPS.set_cntl!(workspace.M, 1, eps(eltype(workspace.x)))
