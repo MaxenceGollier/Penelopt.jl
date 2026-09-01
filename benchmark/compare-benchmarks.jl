@@ -145,26 +145,38 @@ function infeasibility_pair(stats, keys)
 
   @assert parts_2[1] == :ipopt
 
-  @info "Checking infeasibility results for $(parts_1[2]) Hessian approximation."
+  hessian = parts_1[2]
 
-  # Names for which L2Penalty (keys[1]) declared infeasibility. These are the
-  # candidates that need to be certified as locally infeasible.
-  infeasible_candidates = String[]
+  @info "Checking infeasibility results for $(hessian) Hessian approximation."
+
+  rows = NamedTuple[]
   for i = 1:nrow(df_1)
     @assert df_1[i, :name] == df_2[i, :name]
-    if df_1[i, :status] == :infeasible && df_2[i, :status] == :infeasible
-      @info "IPOPT and L2Penalty both declared $(df_1[i, :name]) infeasible"
-      push!(infeasible_candidates, df_1[i, :name])
-    elseif df_1[i, :status] == :infeasible
-      @info "L2Penalty declared $(df_1[i, :name]) infeasible, but IPOPT terminated with status $(df_2[i, :status])"
-      push!(infeasible_candidates, df_1[i, :name])
-    elseif df_2[i, :status] == :infeasible
-      @info "IPOPT declared $(df_1[i, :name]) infeasible, but L2Penalty terminated with status $(df_1[i, :status])"
-    end
-  end
-  @info ""
+    name = df_1[i, :name]
+    l2penalty_status = df_1[i, :status]
+    ipopt_status = df_2[i, :status]
 
-  return infeasible_candidates
+    l2penalty_status != :infeasible && ipopt_status != :infeasible && continue
+
+    # Certify against whichever run actually declared infeasibility. If both
+    # did, we only need to reproduce one of them (L2Penalty's, since that is
+    # the run whose status feeds the performance profiles).
+    key = l2penalty_status == :infeasible ? keys[1] : keys[2]
+    certified = certify_local_infeasibility(name, key)
+
+    push!(
+      rows,
+      (
+        name = name,
+        hessian = hessian,
+        l2penalty_status = l2penalty_status,
+        ipopt_status = ipopt_status,
+        certified_locally_infeasible = certified,
+      ),
+    )
+  end
+
+  return DataFrame(rows)
 end
 
 current_dir = joinpath("artifacts", "current")
@@ -187,17 +199,23 @@ load_stats(ipopt_dir, stats, "")
 # the profiles' costs treat the :infeasible status.
 @info "Infeasibility results\n"
 
-exact_candidates = infeasibility_pair(stats, [:l2penalty_exact_current, :ipopt_exact])
-lbfgs_candidates = infeasibility_pair(stats, [:l2penalty_lbfgs_current, :ipopt_lbfgs])
-infeasible_candidates = union(exact_candidates, lbfgs_candidates)
+exact_report = infeasibility_pair(stats, [:l2penalty_exact_current, :ipopt_exact])
+lbfgs_report = infeasibility_pair(stats, [:l2penalty_lbfgs_current, :ipopt_lbfgs])
+infeasibility_report = vcat(exact_report, lbfgs_report)
 
-@info "Certifying local infeasibility for $(length(infeasible_candidates)) candidate problem(s)"
-certified_infeasible = Set{String}()
-for name in infeasible_candidates
-  if certify_local_infeasibility(name)
-    push!(certified_infeasible, name)
-  end
-end
+@info "Infeasibility certification results:\n" *
+      sprint(show, infeasibility_report; allrows = true, allcols = true)
+
+mkpath("benchmark/result")
+@save "benchmark/result/infeasibility_report.jld2" infeasibility_report
+
+# Only L2Penalty's own :infeasible calls affect the performance profiles, and
+# only when the certificator conclusively (i.e. not `missing`) confirmed the
+# point is locally infeasible.
+certified_infeasible = Set(
+  row.name for row in eachrow(infeasibility_report) if
+  row.l2penalty_status == :infeasible && row.certified_locally_infeasible === true
+)
 
 p = plot(
   pairwise_plot(
@@ -216,7 +234,6 @@ p = plot(
   size = (1920, 1080),
 )
 
-mkpath("benchmark/result")
 savefig(p, "benchmark/result/benchmark_comparison.svg")
 
 # Plot IPOPT
