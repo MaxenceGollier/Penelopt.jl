@@ -25,7 +25,6 @@ makedocs(;
       "CUTEst" => "tutorials/CUTEst.md",
       "JuMP" => "tutorials/JuMP.md",
       "HSL" => "tutorials/HSL.md",
-      "MUMPS" => "tutorials/MUMPS.md",
       "LDLFactorizations" => "tutorials/LDLFactorizations.md",
     ],
     "Developers" =>
