@@ -2,7 +2,7 @@ abstract type PenaltyWorkspace end
 abstract type PenaltyDirectWorkspace <: PenaltyWorkspace end
 abstract type PenaltyIterativeWorkspace <: PenaltyWorkspace end
 
-function construct_workspace(H::M, u1::V, n::Int, m::Int; solver = :minres_qlp) where {M,V}
+function construct_workspace(H::M, u1::V, n::Int, m::Int; solver = :mumps) where {M,V}
   if solver == :minres_qlp
     return construct_minres_qlp_workspace(H, u1, n, m)
   elseif solver == :ldlt
@@ -32,11 +32,14 @@ end
 
 abstract type AbstractKrylovWorkspace <: PenaltyIterativeWorkspace end
 
-# MUMPS Misc.
-function construct_mumps_workspace(H, u1, n, m)
-  error("MUMPS not available. Load PeneloptMUMPSExt.")
+# LDLFactorizations Misc.
+function construct_ldlt_workspace(H, u1, n, m)
+  error("LDLFactorizations not available. Load PeneloptLDLFactorizationsExt.")
 end
 
+abstract type AbstractLDLTWorkspace <: PenaltyDirectWorkspace end
+
+# MUMPS Misc.
 abstract type AbstractMUMPSWorkspace <: PenaltyDirectWorkspace end
 
 get_n_fact(workspace::PenaltyIterativeWorkspace) = 0

@@ -13,7 +13,7 @@ for (solver_name, solver_constructor) in zip(solver_names, solvers)
       n, m = 10, 2
       small_instance_boundary, solution =
         generate_instance(n, m, 0.5, Hessian_modifier = x -> sparse(tril(x)))
-      solver = eval(solver_constructor)(small_instance_boundary)
+      solver = eval(solver_constructor)(small_instance_boundary; solver = :ldlt)
       stats = GenericExecutionStats(
         small_instance_boundary.model;
         solver_specific = Dict{Symbol,Float64}(:alpha => 0.0),
@@ -37,7 +37,7 @@ for (solver_name, solver_constructor) in zip(solver_names, solvers)
 
       small_instance_interior, solution =
         generate_instance(n, m, 0.0, Hessian_modifier = x -> sparse(tril(x)))
-      solver = eval(solver_constructor)(small_instance_interior)
+      solver = eval(solver_constructor)(small_instance_interior; solver = :ldlt)
       stats = GenericExecutionStats(
         small_instance_interior.model;
         solver_specific = Dict{Symbol,Float64}(:alpha => 0.0),
@@ -62,7 +62,7 @@ for (solver_name, solver_constructor) in zip(solver_names, solvers)
       n, m = 100, 20
       medium_instance_boundary, solution =
         generate_instance(n, m, 0.5, Hessian_modifier = x -> sparse(tril(x)))
-      solver = eval(solver_constructor)(medium_instance_boundary)
+      solver = eval(solver_constructor)(medium_instance_boundary; solver = :ldlt)
       stats = GenericExecutionStats(
         medium_instance_boundary.model;
         solver_specific = Dict{Symbol,Float64}(:alpha => 0.0),
@@ -86,7 +86,7 @@ for (solver_name, solver_constructor) in zip(solver_names, solvers)
 
       medium_instance_interior, solution =
         generate_instance(n, m, 0.0, Hessian_modifier = x -> sparse(tril(x)))
-      solver = eval(solver_constructor)(medium_instance_interior)
+      solver = eval(solver_constructor)(medium_instance_interior; solver = :ldlt)
       stats = GenericExecutionStats(
         medium_instance_interior.model;
         solver_specific = Dict{Symbol,Float64}(:alpha => 0.0),
@@ -114,7 +114,7 @@ for (solver_name, solver_constructor) in zip(solver_names, solvers)
         reg_nlp =
           read_instance(instance, type = Float64, Hessian_modifier = x -> sparse(tril(x)))
         n = reg_nlp.model.meta.nvar
-        solver = eval(solver_constructor)(reg_nlp)
+        solver = eval(solver_constructor)(reg_nlp; solver = :ldlt)
         stats = GenericExecutionStats(
           reg_nlp.model;
           solver_specific = Dict{Symbol,Float64}(:alpha => 0.0),

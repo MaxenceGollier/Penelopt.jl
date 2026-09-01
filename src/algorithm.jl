@@ -25,7 +25,7 @@ end
 function L2PenaltySolver(
   nlp::AbstractNLPModel{T,V};
   r2n_m_monotone::Int = 12,
-  linear_solver::String = "ldlt",
+  linear_solver::String = "mumps",
 ) where {T,V}
   x0 = nlp.meta.x0
   x, xn, s, s0 = similar(x0), similar(x0), similar(x0), zero(x0)
@@ -155,7 +155,7 @@ You can also use the `sub_callback` keyword argument which has exactly the same 
 function L2Penalty(
   nlp::AbstractNLPModel{T,V};
   r2n_m_monotone::Int = 12,
-  linear_solver::String = "ldlt",
+  linear_solver::String = "mumps",
   qn_hessian_approximation::String = "exact",
   qn_mem::Int = 6,
   qn_scaling::Bool = true,

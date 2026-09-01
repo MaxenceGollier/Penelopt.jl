@@ -5,10 +5,10 @@
 
   nlp = CUTEstModel("BT1")
 
-  @test_warn "Penelopt.jl: MUMPS extension is not loaded. Please install MPI.jl and MUMPS.jl. Switching to LDLFactorizations.jl..." begin
-    L2Penalty(nlp, linear_solver = "mumps")
+  @test_warn "Penelopt.jl: LDLFactorizations extension is not loaded. Please install LDLFactorizations.jl. Switching to MUMPS..." begin
+    L2Penalty(nlp, linear_solver = "ldlt")
   end
-  @test_warn "Penelopt.jl: HSL extension is not loaded. Please install HSL.jl. Switching to LDLFactorizations.jl..." begin
+  @test_warn "Penelopt.jl: HSL extension is not loaded. Please install HSL.jl. Switching to MUMPS..." begin
     L2Penalty(nlp, linear_solver = "ma57")
   end
 

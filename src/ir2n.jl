@@ -24,7 +24,7 @@ end
 function PenaltyR2NSolver(
   penalty_nlp::AbstractPenalizedProblem{T,V};
   m_monotone::Int = 12,
-  linear_solver::String = "ldlt",
+  linear_solver::String = "mumps",
 ) where {T,V}
   x0 = penalty_nlp.model.meta.x0
 
