@@ -16,29 +16,35 @@ function check_local_infeasibility(nlp::AbstractNLPModel, x::AbstractVector)
   # Starting from x and with high precision.
   tol = 1e-12
 
-  x0 = vcat(x, zeros(nlp.meta.ncon))
-  println(feas_nlp.meta.nvar)
-  println(length(x))
-  println(nlp.meta.ncon)
-  println(length(x0))
+  x0 = vcat(x, cons(nlp, x))
   stats = ipopt(
     feas_nlp,
     x0 = x0,
     tol = tol,
+    max_iter = 10
   )
 
   # Step 3: check if the solution is such that ||c(x)|| neq 0.
   xsol = stats.solution[1:nlp.meta.nvar]
   primal_feas = norm(cons(nlp, xsol), Inf)
 
-  println(primal_feas)
+  println("----------------------")
+  println("PROBLEM : $(nlp.meta.name)")
+  println("Infeasibility check: ||c(x)|| = $primal_feas")
+  println("Infeasibility check: ||x-xsol||//||xsol|| = $(norm(x - xsol) / norm(xsol))")
+  println("----------------------")
 end
 
-nlp = CUTEstModel("VANDANIUMS")
+nlp = CUTEstModel("ARTIF")
+preprocess_nlp = nlp
 
-stats = L2Penalty(nlp, print_level = 1, atol = 1e-6, rtol = 0.0)
-x = stats.solution
+if length(nlp.meta.ifix) > 0
+  preprocess_nlp = remove_fixed_variables(nlp)
+end
 
-check_local_infeasibility(nlp, x)
+stats = L2Penalty(preprocess_nlp, print_level = 1, atol = 1e-6, rtol = 0.0)
+x = stats.solution[nlp.meta.ifree]
+
+check_local_infeasibility(preprocess_nlp, x)
 
 finalize(nlp)
