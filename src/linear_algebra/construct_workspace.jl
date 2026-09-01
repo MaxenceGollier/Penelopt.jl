@@ -56,3 +56,29 @@ end
 function SolverCore.reset!(workspace::PenaltyWorkspace)
   set_n_fact!(workspace, 0)
 end
+
+# Returns whether H + σI is positive definite, where H is the current
+# Hessian (of the Lagrangian) approximation stored in `workspace` and σ is
+# the associated primal regularization parameter.
+
+up_lblock_is_pos_def(workspace::PenaltyWorkspace) = up_lblock_is_pos_def(workspace, workspace.H)
+
+function up_lblock_is_pos_def(workspace::PenaltyWorkspace, ::Any) 
+  npos, nzero, nneg = get_inertia(workspace)
+  return npos == workspace.n && nneg == workspace.m
+end 
+
+# A BFGS Hessian approximation is positive definite by
+# construction, so H + σI is always positive definite for σ ≥ 0.
+up_lblock_is_pos_def(::PenaltyWorkspace, ::CompactBFGSK2) = true
+
+# Returns whether H + σI is singular, where H is the current Hessian (of the
+# Lagrangian) approximation stored in `workspace` and σ is the associated
+# primal regularization parameter.
+up_lblock_is_singular(workspace::PenaltyWorkspace) = up_lblock_is_singular(workspace, workspace.H)
+
+# TODO: implement an actual singularity check (e.g. from the inertia of the
+# factorization, or a null pivot count for direct solvers). For now, we
+# conservatively assume it never is, for both the BFGS and non-BFGS cases.
+up_lblock_is_singular(::PenaltyWorkspace, ::CompactBFGSK2) = false
+up_lblock_is_singular(::PenaltyWorkspace, ::Any) = false

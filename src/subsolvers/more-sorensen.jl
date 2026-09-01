@@ -106,6 +106,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   @. u1[1:n] = -reg_nlp.model.data.c
   @. u1[(n+1):(n+m)] = -reg_nlp.h.b
 
+  αmin = αmin1
   α = α0
   update_workspace!(
     solver_workspace,
@@ -115,6 +116,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     α,
   )
 
+  # Logging
   if print_level > 0
     @info introduction_message(solver, Δ)
     @info separator(type = :ms_loop)
@@ -122,8 +124,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     @info separator(type = :ms_loop)
   end
 
-  αmin = αmin1
-
+  # Step 1. Solve the system
   # [ H + σI Aᵀ][x] = -[∇f]
   # [   A    0 ][y] = -[c] 
   solve_system!(solver_workspace, u1)
@@ -131,8 +132,16 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   npos, nzero, nneg = get_inertia(solver_workspace)
   status = get_status(solver_workspace)
 
-  # Get correct inertia
-  # If the factorization/solver failed, it in indicates we should add a minimal regularization too.
+  # Step 2. Check rank defficiency/singularity.
+
+  # Step 2.1 Check whether H + σI is singular.
+  is_singular = up_lblock_is_singular(solver_workspace)
+  if is_singular
+    increase_sigma!(solver, reg_nlp, stats; μσ = μσ, σmax = σmax, print_level = print_level)
+  end
+
+  # Step 2.2 Update α (if J is rank defficient)
+  # If the factorization/solver failed, it indicates we should add a minimal regularization too.
   if nneg < m || status == :failed
     α = αmin
     set_dual_inertia!(solver_workspace, α)
@@ -152,7 +161,18 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     end
   end
 
-  while (npos < n || status == :failed) && reg_nlp.model.data.σ <= σmax
+  # Step 3. Check whether H + σI is positive definite or singular.
+  is_positive_definite = up_lblock_is_pos_def(solver_workspace)
+
+  # Step 4. If H + σI is not positive definite, either increase σ or verify Cauchy decrease
+  while (!is_positive_definite || status == :failed) && reg_nlp.model.data.σ <= σmax
+
+    # Step 4.1: Check Cauchy decrease
+    if status == :success
+      # TODO
+    end
+    
+    # Step 4.2: Increase σ and try again
     reg_nlp.model.data.σ *= μσ
     set_primal_inertia!(solver_workspace, reg_nlp.model.data.σ)
 
@@ -162,10 +182,13 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     get_solution!(x1, solver_workspace)
     npos, nzero, nneg = get_inertia(solver_workspace)
     status = get_status(solver_workspace)
+
+    is_positive_definite = up_lblock_is_pos_def(solver_workspace)
   end
 
+  # Step 5. If H + σI is still not positive definite, we have reached the maximum σ allowed.
   # Solve with H = 0 instead.
-  if reg_nlp.model.data.σ > σmax && (npos < n || status == :failed)
+  if reg_nlp.model.data.σ > σmax && (!is_positive_definite || status == :failed)
     isa(reg_nlp.model.data.H, CompactBFGS) ? NLPModels.reset!(reg_nlp.model.data.H) :
     reg_nlp.model.data.H.vals .= 0
     update_workspace!(solver_workspace, reg_nlp.h.A, reg_nlp.model.data.σ, α)
@@ -175,9 +198,12 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     get_solution!(x1, solver_workspace)
     npos, nzero, nneg = get_inertia(solver_workspace)
     status = get_status(solver_workspace)
+
+    is_positive_definite = up_lblock_is_pos_def(solver_workspace)
   end
 
-  if (npos < n || status == :failed)
+  # Step 6. Validate that H + σI is positive definite. If not, return an exception.
+  if (!is_positive_definite || status == :failed)
     set_status!(stats, :exception)
     return
   end
@@ -185,6 +211,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   is_descent = check_descent(reg_nlp, @view x1[1:n])
   norm_x1 = norm(@view x1[(n+1):(n+m)])
 
+  # Logging
   if print_level > 0 && stats.iter % verbose == 0
     @info log_ms_iteration(
       stats,
@@ -200,79 +227,44 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     )
   end
 
+  # Step 7. Check interior solution
   if norm_x1 <= Δ || (is_descent && accept_descent)
     set_solution!(stats, @view x1[1:n])
     set_status!(stats, :first_order)
 
-    !is_descent && set_status!(stats, :not_desc)
     set_solver_specific!(stats, :alpha, α)
     print_level > 0 && @info conclusion_message(solver, stats)
 
     return
   end
 
-  # [ H + σI Aᵀ][x'] = -[0]
-  # [   A    0 ][y'] = -[x] 
-  @views @. u2[(n+1):(n+m)] = -x1[(n+1):(n+m)]
-  solve_system!(solver_workspace, u2)
-  get_solution!(x2, solver_workspace)
+  # Step 8. Newton's method for the secular equation
+  while abs(norm_x1 - Δ) > atol && stats.iter < max_iter && stats.elapsed_time < max_time && (!is_descent || !accept_descent)
 
-  while abs(norm_x1 - Δ) > atol && stats.iter < max_iter && stats.elapsed_time < max_time
+    # Step 8.1: Compute derivatives
+    # [ H + σI Aᵀ][x'] = -[0]
+    # [   A    0 ][y'] = -[x] 
+    @views @. u2[(n+1):(n+m)] = -x1[(n+1):(n+m)]
+    solve_system!(solver_workspace, u2)
+    get_solution!(x2, solver_workspace)
+
+    # Step 8.2: Apply Newton step
     # α = α + (‖y‖/Δ - 1)*‖y‖²/(yᵀy')
     @views α₊ = α + norm_x1^2/dot(x1[(n+1):(n+m)], x2[(n+1):(n+m)])*(norm_x1/Δ - 1)
 
     α = α₊ ≤ 0 ? max(μα*α, αmin) : α₊
     set_dual_inertia!(solver_workspace, α)
 
+    # Step 8.3: Resolve the system with the new α
     # [ H + σI  Aᵀ ][x] = -[∇f]
     # [   A    -αI ][y] = -[c] 
     solve_system!(solver_workspace, u1)
     get_solution!(x1, solver_workspace)
 
+    # Step 8.4: Logging and Convergence check
     # Check whether x1 decreases the model.
     is_descent = check_descent(reg_nlp, @view x1[1:n])
     norm_x1 = norm(@view x1[(n+1):(n+m)])
-
-    if is_descent && accept_descent
-      set_solution!(stats, @view x1[1:n])
-      set_status!(stats, :first_order)
-      set_solver_specific!(stats, :alpha, α)
-      set_iter!(stats, stats.iter + 1)
-      if print_level > 0 && stats.iter % verbose == 0
-        @info log_ms_iteration(
-          stats,
-          reg_nlp.model.data.σ,
-          α,
-          norm_x1,
-          Δ,
-          npos,
-          nzero,
-          nneg,
-          status,
-          is_descent,
-        )
-      end
-      print_level > 0 && @info conclusion_message(solver, stats)
-      return
-    end
-
-    # Check whether the matrix still has the correct inertia. (We may have failed to detect earlier)
-    npos, nzero, nneg = get_inertia(solver_workspace)
-    if npos < n
-      reg_nlp.model.data.σ *= μσ
-      if reg_nlp.model.data.σ >= σmax
-        set_status!(stats, :exception)
-        print_level > 0 && @info conclusion_message(solver, stats)
-        return
-      end
-      solve!(solver, reg_nlp, stats)
-    end
-
-    # [ H + σI  Aᵀ ][x'] = -[0]
-    # [   A    -αI ][y'] = -[x]
-    @views @. u2[(n+1):(n+m)] = -x1[(n+1):(n+m)]
-    solve_system!(solver_workspace, u2)
-    get_solution!(x2, solver_workspace)
 
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time()-start_time)
@@ -292,6 +284,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
       )
     end
 
+    # Step 8.5: If α is at its minimum value, break the loop.
     α == αmin && break
   end
 
@@ -301,16 +294,26 @@ function SolverCore.solve!( #TODO add verbose and kwargs
 
   stats.iter >= max_iter && set_status!(stats, :max_iter)
   stats.elapsed_time >= max_time && set_status!(stats, :max_time)
-  !check_descent(reg_nlp, @view x1[1:n]) && set_status!(stats, :not_desc)
-  if !check_descent(reg_nlp, @view x1[1:n])
-    reg_nlp.model.data.σ *= μσ
-    if reg_nlp.model.data.σ >= σmax
-      set_status!(stats, :not_desc)
-      print_level > 0 && @info conclusion_message(solver, stats)
-      return
-    end
-    solve!(solver, reg_nlp, stats)
+  if !is_descent
+    increase_sigma!(solver, reg_nlp, stats; μσ = μσ, σmax = σmax, print_level = print_level)
   end
+end
+
+function increase_sigma!(
+  solver::MoreSorensenSolver{T,V},
+  reg_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
+  stats::GenericExecutionStats{T,V,V};
+  μσ::T = T(10),
+  σmax::T = 1 / eps(T)^(0.8),
+  print_level::Int = 0,
+) where {T,V,M,H,P}
+  reg_nlp.model.data.σ *= μσ
+  if reg_nlp.model.data.σ >= σmax
+    set_status!(stats, :exception)
+    print_level > 0 && @info conclusion_message(solver, stats)
+    return
+  end
+  solve!(solver, reg_nlp, stats)
 end
 
 function get_primal_dual_sol!(s, y, solver::MoreSorensenSolver)
