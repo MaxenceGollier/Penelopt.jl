@@ -18,8 +18,14 @@ function test_problem(
   # Test with R2
 
   !ignore_null_hessian && @testset "NullHessian" begin
-    stats =
-      L2Penalty(nlp, atol = tol, rtol = tol, qn_hessian_approximation = "null", linear_solver = linear_solver, τ0 = 1.0)
+    stats = L2Penalty(
+      nlp,
+      atol = tol,
+      rtol = tol,
+      qn_hessian_approximation = "null",
+      linear_solver = linear_solver,
+      τ0 = 1.0,
+    )
 
     # Test whether the outputs are well defined
     @test stats.status == expected_status
@@ -174,7 +180,8 @@ end
   primal_solution = [1, 0]
   dual_solution = [-99.5]
   linear_solver =
-    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" : "mumps"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" :
+    "mumps"
   test_problem(
     "BT1",
     primal_solution,
@@ -189,7 +196,8 @@ end
   primal_solution = [1, 0]
   dual_solution = [0.499999]
   linear_solver =
-    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" : "mumps"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" :
+    "mumps"
   test_problem(
     "MARATOS",
     primal_solution,
@@ -233,7 +241,8 @@ end
   ]
   dual_solution = zeros(5)
   linear_solver =
-    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" : "mumps"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" :
+    "mumps"
   test_problem(
     "AIRCRFTA",
     primal_solution,
@@ -256,7 +265,8 @@ end
   ]
   dual_solution = [0.0, 0.0, 0.0, 1.44]
   linear_solver =
-    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" : "mumps"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" :
+    "mumps"
   test_problem(
     "HS56",
     primal_solution,
