@@ -4,7 +4,7 @@
   nlp = CUTEstModel(&quot;BT7&quot;)
   stats = L2Penalty(nlp; print_level = 1)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">┌ Info: </span></span>
 <span class="sgr36"><span class="sgr1">│ </span></span>This is Penelopt.jl v0.1.0.
-<span class="sgr36"><span class="sgr1">│ </span></span>Running with linear solver MUMPS v5.9.1.
+<span class="sgr36"><span class="sgr1">│ </span></span>Running with linear solver MUMPS v5.8.2.
 <span class="sgr36"><span class="sgr1">│ </span></span>
 <span class="sgr36"><span class="sgr1">│ </span></span>  Problem name: BT7
 <span class="sgr36"><span class="sgr1">│ </span></span>   All variables: ████████████████████ 5      All constraints: ████████████████████ 3
@@ -44,7 +44,7 @@
   nlp = CUTEstModel(&quot;BT7&quot;)
   stats = L2Penalty(nlp; print_level = 2)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">┌ Info: </span></span>
 <span class="sgr36"><span class="sgr1">│ </span></span>This is Penelopt.jl v0.1.0.
-<span class="sgr36"><span class="sgr1">│ </span></span>Running with linear solver MUMPS v5.9.1.
+<span class="sgr36"><span class="sgr1">│ </span></span>Running with linear solver MUMPS v5.8.2.
 <span class="sgr36"><span class="sgr1">│ </span></span>
 <span class="sgr36"><span class="sgr1">│ </span></span>  Problem name: BT7
 <span class="sgr36"><span class="sgr1">│ </span></span>   All variables: ████████████████████ 5      All constraints: ████████████████████ 3
@@ -70,7 +70,7 @@
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | ----------------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | Iter   sIter  Objective       pfeas       dfeas       σ           ρ           ‖x‖         ‖s‖
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | ----------------------------------------------------------------------------------------------------------
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 0      0      +5.7728911e+03  Inf         Inf         2.22e-16    +0.00e+00   2.83e+00    1.55e-309
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 0      0      +5.7728911e+03  Inf         Inf         2.22e-16    +0.00e+00   2.83e+00    1.39e-309
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 1      0      +4.6709605e+03  4.00e+00    1.37e+03    7.40e+01    +1.83e-01   2.87e+00    2.30e+00
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 2      0      +2.9029691e+03  4.37e+00    7.70e+02    2.47e+02    +3.72e-01   2.30e+00    1.71e+00
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 3      0      +1.7076691e+03  2.80e+00    3.82e+02    8.22e+01    +6.23e-01   1.46e+00    1.63e+00
@@ -152,7 +152,7 @@
   nlp = CUTEstModel(&quot;BT7&quot;)
   stats = L2Penalty(nlp; print_level = 3)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">┌ Info: </span></span>
 <span class="sgr36"><span class="sgr1">│ </span></span>This is Penelopt.jl v0.1.0.
-<span class="sgr36"><span class="sgr1">│ </span></span>Running with linear solver MUMPS v5.9.1.
+<span class="sgr36"><span class="sgr1">│ </span></span>Running with linear solver MUMPS v5.8.2.
 <span class="sgr36"><span class="sgr1">│ </span></span>
 <span class="sgr36"><span class="sgr1">│ </span></span>  Problem name: BT7
 <span class="sgr36"><span class="sgr1">│ </span></span>   All variables: ████████████████████ 5      All constraints: ████████████████████ 3
@@ -178,7 +178,7 @@
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | ----------------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | Iter   sIter  Objective       pfeas       dfeas       σ           ρ           ‖x‖         ‖s‖
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | ----------------------------------------------------------------------------------------------------------
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 0      0      +5.7728911e+03  Inf         Inf         2.22e-16    +0.00e+00   2.83e+00    2.12e-313
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 0      0      +5.7728911e+03  Inf         Inf         2.22e-16    +0.00e+00   2.83e+00    9.81e-310
 <span class="sgr36"><span class="sgr1">┌ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">│ </span></span>                  |  Computing step ( H + σI    Jᵀ )(s) = -(∇f)
 <span class="sgr36"><span class="sgr1">└ </span></span>           |                 ( J        -αI )(y) = -(c ), with ‖y‖ ≤ 1.03e+03...
@@ -242,9 +242,6 @@
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 0      9.14e+03    2.22e-16    2.18e+04    1.03e+03    (5,0,3)     success     false
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 1      9.14e+03    1.79e-04    1.51e+03    1.03e+03    (5,0,3)     success     true
-<span class="sgr36"><span class="sgr1">┌ Info: </span></span>            |
-<span class="sgr36"><span class="sgr1">│ </span></span>                  |  Step computed with status first_order after 1 iterations.
-<span class="sgr36"><span class="sgr1">└ </span></span>                  | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 6      1      +3.3219848e+02  2.64e+00    6.26e+03    3.05e+03    +1.01e+00   2.34e+00    5.64e-01
 <span class="sgr36"><span class="sgr1">┌ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">│ </span></span>                  |  Computing step ( H + σI    Jᵀ )(s) = -(∇f)
@@ -254,9 +251,6 @@
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 0      3.05e+03    2.22e-16    6.49e+03    1.03e+03    (5,0,3)     success     false
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 1      3.05e+03    1.41e-04    1.04e+03    1.03e+03    (5,0,3)     success     true
-<span class="sgr36"><span class="sgr1">┌ Info: </span></span>            |
-<span class="sgr36"><span class="sgr1">│ </span></span>                  |  Step computed with status first_order after 1 iterations.
-<span class="sgr36"><span class="sgr1">└ </span></span>                  | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 7      1      +2.7243130e+02  1.72e-01    3.79e+03    1.02e+03    +1.00e+00   2.36e+00    5.56e-02
 <span class="sgr36"><span class="sgr1">┌ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">│ </span></span>                  |  Computing step ( H + σI    Jᵀ )(s) = -(∇f)
@@ -266,9 +260,6 @@
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 0      1.02e+03    2.22e-16    3.23e+03    1.03e+03    (5,0,3)     success     false
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 1      1.02e+03    1.28e-04    1.04e+03    1.03e+03    (5,0,3)     success     true
-<span class="sgr36"><span class="sgr1">┌ Info: </span></span>            |
-<span class="sgr36"><span class="sgr1">│ </span></span>                  |  Step computed with status first_order after 1 iterations.
-<span class="sgr36"><span class="sgr1">└ </span></span>                  | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 8      1      +2.6756062e+02  1.37e-01    1.06e+02    3.38e+02    +1.00e+00   2.38e+00    5.99e-02
 <span class="sgr36"><span class="sgr1">┌ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">│ </span></span>                  |  Computing step ( H + σI    Jᵀ )(s) = -(∇f)
@@ -278,9 +269,6 @@
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 0      3.38e+02    2.22e-16    2.22e+03    1.03e+03    (5,0,3)     success     false
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 1      3.38e+02    1.17e-04    1.03e+03    1.03e+03    (5,0,3)     success     true
-<span class="sgr36"><span class="sgr1">┌ Info: </span></span>            |
-<span class="sgr36"><span class="sgr1">│ </span></span>                  |  Step computed with status first_order after 1 iterations.
-<span class="sgr36"><span class="sgr1">└ </span></span>                  | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 9      1      +2.6538496e+02  1.21e-01    4.71e+01    1.13e+02    +1.00e+00   2.41e+00    5.82e-02
 <span class="sgr36"><span class="sgr1">┌ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">│ </span></span>                  |  Computing step ( H + σI    Jᵀ )(s) = -(∇f)
@@ -290,9 +278,6 @@
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 0      1.13e+02    2.22e-16    1.83e+03    1.03e+03    (5,0,3)     success     false
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 1      1.13e+02    1.10e-04    1.03e+03    1.03e+03    (5,0,3)     success     true
-<span class="sgr36"><span class="sgr1">┌ Info: </span></span>            |
-<span class="sgr36"><span class="sgr1">│ </span></span>                  |  Step computed with status first_order after 1 iterations.
-<span class="sgr36"><span class="sgr1">└ </span></span>                  | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 10     1      +2.6494735e+02  1.10e-01    1.37e+01    3.76e+01    +1.00e+00   2.44e+00    3.64e-02
 <span class="sgr36"><span class="sgr1">┌ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">│ </span></span>                  |  Computing step ( H + σI    Jᵀ )(s) = -(∇f)
@@ -302,9 +287,6 @@
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 0      3.76e+01    2.22e-16    1.69e+03    1.03e+03    (5,0,3)     success     false
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 1      3.76e+01    1.07e-04    1.03e+03    1.03e+03    (5,0,3)     success     true
-<span class="sgr36"><span class="sgr1">┌ Info: </span></span>            |
-<span class="sgr36"><span class="sgr1">│ </span></span>                  |  Step computed with status first_order after 1 iterations.
-<span class="sgr36"><span class="sgr1">└ </span></span>                  | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 11     1      +2.6492031e+02  1.04e-01    3.01e+00    1.25e+01    +1.00e+00   2.45e+00    1.13e-02
 <span class="sgr36"><span class="sgr1">┌ Info: </span></span>      |
 <span class="sgr36"><span class="sgr1">│ </span></span>            |  Subproblem solved with status first_order after 11 iterations.
@@ -325,9 +307,6 @@
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 0      1.25e+01    2.22e-16    1.65e+03    1.03e+03    (5,0,3)     success     false
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 1      1.25e+01    1.07e-04    1.03e+03    1.03e+03    (5,0,3)     success     true
-<span class="sgr36"><span class="sgr1">┌ Info: </span></span>            |
-<span class="sgr36"><span class="sgr1">│ </span></span>                  |  Step computed with status first_order after 1 iterations.
-<span class="sgr36"><span class="sgr1">└ </span></span>                  | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 1      1      +2.6492001e+02  1.02e-01    3.29e-01    4.18e+00    +1.00e+00   2.45e+00    1.36e-03
 <span class="sgr36"><span class="sgr1">┌ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">│ </span></span>                  |  Computing step ( H + σI    Jᵀ )(s) = -(∇f)
@@ -338,9 +317,6 @@
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 0      4.18e+00    2.22e-16    1.64e+03    1.03e+03    (5,0,3)     success     false
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 1      4.18e+00    1.07e-04    1.03e+03    1.03e+03    (5,0,3)     success     false
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 2      4.18e+00    1.07e-04    1.03e+03    1.03e+03    (5,0,3)     success     true
-<span class="sgr36"><span class="sgr1">┌ Info: </span></span>            |
-<span class="sgr36"><span class="sgr1">│ </span></span>                  |  Step computed with status first_order after 2 iterations.
-<span class="sgr36"><span class="sgr1">└ </span></span>                  | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 2      2      +2.6492001e+02  1.01e-01    1.30e-02    1.39e+00    +1.00e+00   2.45e+00    6.91e-06
 <span class="sgr36"><span class="sgr1">┌ Info: </span></span>      |
 <span class="sgr36"><span class="sgr1">│ </span></span>            |  Subproblem solved with status first_order after 2 iterations.
@@ -361,9 +337,6 @@
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 0      1.39e+00    2.22e-16    1.76e+03    1.36e+03    (5,0,3)     success     false
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 1      1.39e+00    4.39e-05    1.36e+03    1.36e+03    (5,0,3)     success     true
-<span class="sgr36"><span class="sgr1">┌ Info: </span></span>            |
-<span class="sgr36"><span class="sgr1">│ </span></span>                  |  Step computed with status first_order after 1 iterations.
-<span class="sgr36"><span class="sgr1">└ </span></span>                  | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 1      1      +2.9193260e+02  4.66e-02    1.03e+02    4.64e-01    +1.00e+00   2.66e+00    1.98e-02
 <span class="sgr36"><span class="sgr1">┌ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">│ </span></span>                  |  Computing step ( H + σI    Jᵀ )(s) = -(∇f)
@@ -373,9 +346,6 @@
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 0      4.64e-01    2.22e-16    1.79e+03    1.36e+03    (5,0,3)     success     false
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>            | 1      4.64e-01    4.34e-05    1.36e+03    1.36e+03    (5,0,3)     success     true
-<span class="sgr36"><span class="sgr1">┌ Info: </span></span>            |
-<span class="sgr36"><span class="sgr1">│ </span></span>                  |  Step computed with status first_order after 1 iterations.
-<span class="sgr36"><span class="sgr1">└ </span></span>                  | -----------------------------------------------------------------------------------------------------
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>      | 2      1      +2.9193044e+02  5.49e-02    1.89e+00    1.55e-01    +1.00e+00   2.66e+00    3.58e-03
 <span class="sgr36"><span class="sgr1">┌ Info: </span></span>      |
 <span class="sgr36"><span class="sgr1">│ </span></span>            |  Subproblem solved with status first_order after 2 iterations.
@@ -446,4 +416,4 @@
 <span class="sgr36"><span class="sgr1">│ </span></span>Dual Feasibility....:  1.259058925667255e-11
 <span class="sgr36"><span class="sgr1">│ </span></span>
 <span class="sgr36"><span class="sgr1">│ </span></span>
-<span class="sgr36"><span class="sgr1">└ </span></span>EXIT: first_order.</code></pre><div class="admonition is-success" id="Reading-lsolve-6caf778b5c0b9304"><header class="admonition-header">Reading `lsolve`<a class="admonition-anchor" href="#Reading-lsolve-6caf778b5c0b9304" title="Permalink"></a></header><div class="admonition-body"><p>The <code>lsolve</code> column reports the status returned directly by the chosen <code>linear_solver</code> (see <a href="../options/#Linear-Solver">options</a>) for the corresponding factorization/solve. A value other than <code>success</code> typically triggers either a regularization increase or a fallback strategy (e.g., switching MUMPS to an indefinite factorization), and does not necessarily indicate that the overall Moré–Sorensen iteration failed.</p></div></div></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../options/">« Options</a><a class="docs-footer-nextpage" href="../performance/">Performance »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.18.0 on <span class="colophon-date" title="Tuesday 1 September 2026 18:23">Tuesday 1 September 2026</span>. Using Julia version 1.12.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<span class="sgr36"><span class="sgr1">└ </span></span>EXIT: first_order.</code></pre><div class="admonition is-success" id="Reading-lsolve-6caf778b5c0b9304"><header class="admonition-header">Reading `lsolve`<a class="admonition-anchor" href="#Reading-lsolve-6caf778b5c0b9304" title="Permalink"></a></header><div class="admonition-body"><p>The <code>lsolve</code> column reports the status returned directly by the chosen <code>linear_solver</code> (see <a href="../options/#Linear-Solver">options</a>) for the corresponding factorization/solve. A value other than <code>success</code> typically triggers either a regularization increase or a fallback strategy (e.g., switching MUMPS to an indefinite factorization), and does not necessarily indicate that the overall Moré–Sorensen iteration failed.</p></div></div></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../options/">« Options</a><a class="docs-footer-nextpage" href="../performance/">Performance »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.18.0 on <span class="colophon-date" title="Tuesday 1 September 2026 19:45">Tuesday 1 September 2026</span>. Using Julia version 1.12.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
