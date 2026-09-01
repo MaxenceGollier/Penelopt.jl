@@ -19,7 +19,7 @@ function test_problem(
 
   !ignore_null_hessian && @testset "NullHessian" begin
     stats =
-      L2Penalty(nlp, atol = tol, rtol = tol, qn_hessian_approximation = "null", τ0 = 1.0)
+      L2Penalty(nlp, atol = tol, rtol = tol, qn_hessian_approximation = "null", linear_solver = linear_solver, τ0 = 1.0)
 
     # Test whether the outputs are well defined
     @test stats.status == expected_status
