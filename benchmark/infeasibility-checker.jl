@@ -143,8 +143,17 @@ NLPModels.hess_coord_residual!(
 ) = hess_coord_residual!(M.feas_nls, x, v, vals)
 
 # --- our one extra general constraint: ||J(x̄)(x - x̄)||² ≤ Δ² ---
-function NLPModels.cons!(M::TrustRegionNLS, x::AbstractVector, c::AbstractVector)
-  increment!(M, :neval_cons)
+#
+# FeasibilityFormNLS calls the *_nln (nonlinear-constraint) variants on the
+# wrapped model directly - jac_structure!/jac_coord! are themselves built
+# from jac_nln_structure!/jac_nln_coord! by NLPModels' generic API layer,
+# not the other way around - so those are what must be implemented here
+# (our one constraint is nonlinear, and since we never declare any `lin`
+# indices in the meta, it's automatically classified as such). Hessian is
+# not split this way (it's of the full Lagrangian), so hess_structure!/
+# hess_coord! below stay unsuffixed.
+function NLPModels.cons_nln!(M::TrustRegionNLS, x::AbstractVector, c::AbstractVector)
+  increment!(M, :neval_cons_nln)
   # Stored as ||J(x̄)(x - x̄)||² ≤ Δ² rather than ||J(x̄)(x - x̄)|| ≤ Δ so
   # that the constraint (and its gradient) stays smooth at x = x̄, which is
   # exactly the starting point we solve from.
@@ -153,7 +162,7 @@ function NLPModels.cons!(M::TrustRegionNLS, x::AbstractVector, c::AbstractVector
   return c
 end
 
-function NLPModels.jac_structure!(
+function NLPModels.jac_nln_structure!(
   M::TrustRegionNLS,
   rows::AbstractVector{<:Integer},
   cols::AbstractVector{<:Integer},
@@ -164,8 +173,8 @@ function NLPModels.jac_structure!(
   return rows, cols
 end
 
-function NLPModels.jac_coord!(M::TrustRegionNLS, x::AbstractVector, vals::AbstractVector)
-  increment!(M, :neval_jac)
+function NLPModels.jac_nln_coord!(M::TrustRegionNLS, x::AbstractVector, vals::AbstractVector)
+  increment!(M, :neval_jac_nln)
   Jd = M.Jxbar * (x - M.xbar)
   vals .= 2 .* (M.Jxbar' * Jd)
   return vals
