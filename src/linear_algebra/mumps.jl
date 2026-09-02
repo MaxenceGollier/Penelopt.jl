@@ -16,6 +16,8 @@ mutable struct PenaltyMUMPSWorkspace{
   status::Symbol
   factorized::Bool
   _n_fact::Int
+  _primal_diag::V # Preallocated buffer for up_lb_is_pos_def
+  _primal_row_sum::V # Preallocated buffer for up_lb_is_pos_def
 end
 
 function get_H(
@@ -99,6 +101,8 @@ function construct_mumps_workspace(
     :uninitialized,
     false,
     0,
+    zeros(T, n),
+    zeros(T, n),
   )
 end
 
@@ -172,6 +176,8 @@ function construct_mumps_workspace(
     :uninitialized,
     false,
     0,
+    zeros(T, n),
+    zeros(T, n),
   )
 end
 
@@ -530,4 +536,114 @@ function SolverCore.reset!(workspace::PenaltyMUMPSWorkspace)
   set_n_fact!(workspace, 0)
   MUMPS.set_icntl!(workspace.M, 10, 10)
   MUMPS.set_cntl!(workspace.M, 1, eps(eltype(workspace.x)))
+end
+
+# up_lb_is_pos_def for a MUMPS workspace with a concrete (non-BFGS) Hessian:
+# a cascade of increasingly expensive checks, each of which returns as soon
+# as it can settle the question, ending with an exact (but more costly)
+# factorization of H + σI on its own.
+function up_lb_is_pos_def(workspace::PenaltyMUMPSWorkspace, ::Symmetric)
+  n, m = workspace.n, workspace.m
+
+  # Step 1: the inertia of the augmented K2 system, already available from
+  # the last factorization, is a necessary (but not sufficient) condition
+  # for H + σI to be positive definite. If it is not even trustworthy
+  # (factorization failed), or the necessary condition already fails, we
+  # can conclude H + σI is not (confirmed) positive definite.
+  npos, nzero, nneg = get_inertia(workspace)
+  status = get_status(workspace)
+  (status == :failed || npos != n || nneg != m) && return false
+
+  # Step 2 & 3: cheap sufficient/necessary conditions on H + σI's own
+  # entries: a symmetric matrix with a nonpositive diagonal entry cannot be
+  # positive definite, and one with a positive diagonal that is (weakly)
+  # diagonally dominant is guaranteed to be positive (semi)definite.
+  d, s = primal_diagonal_and_row_sums(workspace)
+  is_diagonally_dominant = true
+  for i = 1:n
+    d[i] <= 0 && return false
+    is_diagonally_dominant &= d[i] >= s[i]
+  end
+  is_diagonally_dominant && return true
+
+  # Step 4: none of the cheap checks above could settle the question --
+  # fall back to an exact check by factorizing H + σI on its own (in a
+  # separate, small, n×n MUMPS instance -- as opposed to requesting a Schur
+  # complement on the shared (n+m)×(n+m) instance, which would still
+  # allocate a dense m×m buffer as a side effect, and could be very large)
+  # and inspecting its inertia.
+  return up_lb_is_pos_def_exact!(workspace)
+end
+
+# Extracts the (row, col, val) COO triples of H + σI (the leading n×n block
+# of the K2 matrix stored in `workspace`) as fresh, standalone vectors.
+function primal_block_coo(workspace::PenaltyMUMPSWorkspace)
+  n = workspace.n
+  H = get_H(workspace)
+  Ti = eltype(H.rows)
+  Tv = eltype(H.vals)
+  irn, jcn, a = Ti[], Ti[], Tv[]
+  for k in eachindex(H.vals)
+    i, j = H.rows[k], H.cols[k]
+    if i <= n && j <= n
+      push!(irn, i)
+      push!(jcn, j)
+      push!(a, H.vals[k])
+    end
+  end
+  return irn, jcn, a
+end
+
+# Exact (but expensive) check of whether H + σI, the leading n×n block of
+# the K2 matrix, is positive definite: factorize it on its own, in a fresh,
+# small MUMPS instance, and inspect its inertia.
+function up_lb_is_pos_def_exact!(workspace::PenaltyMUMPSWorkspace)
+  n = workspace.n
+  T = eltype(workspace.x)
+  irn, jcn, a = primal_block_coo(workspace)
+
+  cntl = T == Float64 ? default_cntl64 : default_cntl32
+  icntl = default_icntl
+
+  cntl[1] = eps(T)
+  cntl[2] = eps(T)
+
+  # Deactivate logging.
+  icntl[2], icntl[3], icntl[4] = 0, 0, 0
+
+  # ICNTL(11): error analysis. 2: Main statistics (recommended).
+  icntl[11] = 2
+
+  # CNTL(13) controls the parallelism of the root node; needed to get a
+  # reliable inertia from INFOG(12) (see construct_mumps_workspace).
+  icntl[13] = 1
+
+  # ICNTL(24): null pivot row detection.
+  icntl[24] = 1
+
+  S = Mumps{T}(mumps_symmetric, icntl, cntl)
+
+  S.irn, S.jcn, S.a = pointer.((irn, jcn, a))
+  S.n = n
+  S.nnz = length(irn)
+  S._irn_gc_haven = irn
+  S._jcn_gc_haven = jcn
+  S._a_gc_haven = a
+
+  S.job = MUMPS.INITIALIZE
+  is_pos_def = try
+    factorize!(S)
+    if S.infog[1] < 0
+      false
+    else
+      nneg = S.infog[12]
+      rank = n - S.infog[28]
+      npos = rank - nneg
+      npos == n
+    end
+  finally
+    MUMPS.finalize!(S)
+  end
+
+  return is_pos_def
 end

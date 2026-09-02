@@ -19,6 +19,8 @@ mutable struct PenaltyMA57Workspace{
   status::Symbol
   factorized::Bool
   _n_fact::Int
+  _primal_diag::V # Preallocated buffer for up_lb_is_pos_def
+  _primal_row_sum::V # Preallocated buffer for up_lb_is_pos_def
 end
 
 function get_H(
@@ -53,6 +55,8 @@ function construct_ma57_workspace(
     :uninitialized,
     false,
     0,
+    zeros(T, n),
+    zeros(T, n),
   )
 end
 

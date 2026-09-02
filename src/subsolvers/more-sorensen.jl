@@ -201,13 +201,27 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   end
 
   if norm_x1 <= Δ || (is_descent && accept_descent)
-    set_solution!(stats, @view x1[1:n])
-    set_status!(stats, :first_order)
+    if up_lb_is_pos_def(solver_workspace)
+      set_solution!(stats, @view x1[1:n])
+      set_status!(stats, :first_order)
 
-    !is_descent && set_status!(stats, :not_desc)
-    set_solver_specific!(stats, :alpha, α)
-    print_level > 0 && @info conclusion_message(solver, stats)
+      !is_descent && set_status!(stats, :not_desc)
+      set_solver_specific!(stats, :alpha, α)
+      print_level > 0 && @info conclusion_message(solver, stats)
 
+      return
+    end
+
+    # H + σI was not confirmed to be positive definite: we cannot certify
+    # x1 as a global solution of the trust-region subproblem, so increase σ
+    # and re-solve instead of accepting it here.
+    reg_nlp.model.data.σ *= μσ
+    if reg_nlp.model.data.σ >= σmax
+      set_status!(stats, :exception)
+      print_level > 0 && @info conclusion_message(solver, stats)
+      return
+    end
+    solve!(solver, reg_nlp, stats)
     return
   end
 
