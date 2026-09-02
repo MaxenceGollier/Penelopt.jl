@@ -1,7 +1,7 @@
 abstract type AbstractCompositeNorm end
 
 @doc raw"""
-    CompositeNormL2(λ, c!, J!, A, b; store_previous_jacobian::Bool = false)
+    CompositeNormL2(λ, c!, J!, A, b)
 
 Returns function `c` composed with the `ℓ₂` norm:
 ```math
@@ -21,8 +21,6 @@ such that `J` is the Jacobian of `c`. It is expected that `m ≤ n`.
     c!(b <: AbstractVector{Real}, xk <: AbstractVector{Real})
     J!(A <: AbstractSparseMatrixCOO{Real, Integer}, xk <: AbstractVector{Real})
 ```
-Moreover, if you want shifted instances of the operator to store the previous Jacobian on each shift, you can specify `store_previous_jacobian = true`.
-This is particularly useful for quasi-Newton updates in the context of constrained optimization.
 """
 mutable struct CompositeNormL2{
   T<:Real,
@@ -36,7 +34,6 @@ mutable struct CompositeNormL2{
   J!::F1
   A::M
   b::V
-  store_previous_jacobian::Bool
 
   function CompositeNormL2(
     λ::T,
@@ -44,20 +41,12 @@ mutable struct CompositeNormL2{
     J!::Function,
     A::AbstractMatrix{T},
     b::AbstractVector{T};
-    store_previous_jacobian::Bool = false,
   ) where {T<:Real}
     λ > 0 || error("CompositeNormL2: λ should be positive")
     length(b) == size(A, 1) || error(
       "Composite Norm L2: Wrong input dimensions, the length of c(x) should be the same as the number of rows of J(x)",
     )
-    new{T,typeof(c!),typeof(J!),typeof(A),typeof(b)}(
-      NormL2(λ),
-      c!,
-      J!,
-      A,
-      b,
-      store_previous_jacobian,
-    )
+    new{T,typeof(c!),typeof(J!),typeof(A),typeof(b)}(NormL2(λ), c!, J!, A, b)
   end
 end
 

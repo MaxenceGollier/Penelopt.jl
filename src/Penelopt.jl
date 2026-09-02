@@ -22,6 +22,10 @@ using NLPModels, NLPModelsModifiers
 using LinearOperators, QuadraticModels, SolverCore, SparseMatricesCOO
 using MPI, MUMPS
 
+# Import BLAS functions
+import LinearAlgebra.BLAS: @blasfunc
+import LinearAlgebra: BlasInt, libblastrampoline
+
 import SolverCore: get_status, reset!
 
 function __init__()
@@ -47,6 +51,7 @@ include("types/pre-processing/FixedVariable.jl")
 include("linear_algebra/K2.jl")
 include("linear_algebra/construct_workspace.jl")
 include("linear_algebra/mumps.jl")
+include("linear_algebra/lapack.jl")
 
 include("types/PenalizedProblem.jl")
 include("types/ShiftedPenalizedProblem.jl")

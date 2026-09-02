@@ -45,14 +45,5 @@ function read_instance(file::String; type = Float64, Hessian_modifier = H -> H)
     end
   end
   h = ShiftedCompositeNormL2(data["tau"], c!, J!, SparseMatrixCOO(data["J"]), data["c"])
-  return ShiftedL2PenalizedProblem(
-    model,
-    h,
-    nothing,
-    model.meta,
-    nothing,
-    nothing,
-    nothing,
-    true,
-  )
+  return ShiftedL2PenalizedProblem(model, h, nothing, model.meta, nothing, nothing, true)
 end

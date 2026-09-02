@@ -5,9 +5,14 @@ using Penelopt
 
 using LinearAlgebra, SparseMatricesCOO
 
+# Import BLAS functions
+import LinearAlgebra.BLAS: @blasfunc
+import LinearAlgebra: BlasInt, libblastrampoline
+
 import Penelopt: AbstractHSLWorkspace
 import Penelopt: construct_ma57_workspace, solve_system!, update_workspace!
 import Penelopt: get_inertia, get_solution!, get_status
+import Penelopt: getrf!, getrs!
 import Penelopt: set_dual_inertia!, set_primal_inertia!
 
 function __init__()
