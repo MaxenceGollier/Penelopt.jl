@@ -60,11 +60,19 @@ function pairwise_plot(
   stats,
   keys;
   compare_n_fact = false,
-  certified_infeasible = Set{String}(),
+  certified_infeasible = Dict{Symbol,Set{String}}(),
 )
+  df_1 = stats[keys[1]]
+  df_2 = stats[keys[2]]
+
+  # Each of the two runs being compared can only be credited for its *own*
+  # certified problems: which set applies is picked by matching `df` (the
+  # dataframe `solved` is called on, either df_1 or df_2) to the right key.
+  cert_1 = get(certified_infeasible, keys[1], Set{String}())
+  cert_2 = get(certified_infeasible, keys[2], Set{String}())
   solved(df) =
     (df.status .== :first_order) .|
-    ((df.status .== :infeasible) .& in.(df.name, Ref(certified_infeasible)))
+    ((df.status .== :infeasible) .& in.(df.name, Ref(df === df_1 ? cert_1 : cert_2)))
   costs = [
     df -> .!solved(df) * Inf + df.elapsed_time,
     df -> .!solved(df) * Inf + df.neval_obj,
@@ -158,20 +166,27 @@ function infeasibility_pair(stats, keys)
 
     l2penalty_status != :infeasible && ipopt_status != :infeasible && continue
 
-    # Certify against whichever run actually declared infeasibility. If both
-    # did, we only need to reproduce one of them (L2Penalty's, since that is
-    # the run whose status feeds the performance profiles).
-    key = l2penalty_status == :infeasible ? keys[1] : keys[2]
-    certified = certify_local_infeasibility(name, key)
+    # Certify each solver's own claim against its own reproduced point:
+    # crediting IPOPT's :infeasible status requires certifying IPOPT's own
+    # x̄, not L2Penalty's (and vice versa) - the two runs can land on
+    # different points, so one being certified doesn't say anything about
+    # the other.
+    l2penalty_certified =
+      l2penalty_status == :infeasible ? certify_local_infeasibility(name, keys[1]) : missing
+    ipopt_certified =
+      ipopt_status == :infeasible ? certify_local_infeasibility(name, keys[2]) : missing
 
     push!(
       rows,
       (
         name = name,
         hessian = hessian,
+        l2penalty_key = keys[1],
+        ipopt_key = keys[2],
         l2penalty_status = l2penalty_status,
         ipopt_status = ipopt_status,
-        certified_locally_infeasible = certified,
+        l2penalty_certified_locally_infeasible = l2penalty_certified,
+        ipopt_certified_locally_infeasible = ipopt_certified,
       ),
     )
   end
@@ -209,13 +224,22 @@ infeasibility_report = vcat(exact_report, lbfgs_report)
 mkpath("benchmark/result")
 @save "benchmark/result/infeasibility_report.jld2" infeasibility_report
 
-# Only L2Penalty's own :infeasible calls affect the performance profiles, and
-# only when the certificator conclusively (i.e. not `missing`) confirmed the
-# point is locally infeasible.
-certified_infeasible = Set(
-  row.name for row in eachrow(infeasibility_report) if
-  row.l2penalty_status == :infeasible && row.certified_locally_infeasible === true
-)
+# Build, for each solver run (stats key), the set of problem names that run
+# is allowed to be credited for. A problem only ends up in
+# certified_infeasible[key] when *that specific run's own* reproduced point
+# was certified locally infeasible - L2Penalty's :infeasible status is never
+# credited off the back of IPOPT's certification, or vice versa, since the
+# two solvers can (and do) land on different candidate points x̄ for the
+# same problem.
+certified_infeasible = Dict{Symbol,Set{String}}()
+for row in eachrow(infeasibility_report)
+  if row.l2penalty_certified_locally_infeasible === true
+    push!(get!(() -> Set{String}(), certified_infeasible, row.l2penalty_key), row.name)
+  end
+  if row.ipopt_certified_locally_infeasible === true
+    push!(get!(() -> Set{String}(), certified_infeasible, row.ipopt_key), row.name)
+  end
+end
 
 p = plot(
   pairwise_plot(

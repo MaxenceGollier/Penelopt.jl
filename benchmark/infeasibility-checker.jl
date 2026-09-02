@@ -66,84 +66,146 @@ const BENCHMARK_SOLVERS = Dict(
 
 # ------------------------------------------------------------------------- #
 # min_x 1/2 ||c(x)||² s.t. ||J(x̄)(x - x̄)|| ≤ Δ
-#
-# A trust-region-constrained feasibility model, centered at a fixed point
-# x̄, with a *constant* Jacobian J(x̄) baked into the (single, quadratic)
-# constraint. Only obj/grad/cons/jac are implemented: hess_available is set
-# to false, so NLPModelsIpopt automatically falls back to IPOPT's
-# limited-memory (L-BFGS) Hessian approximation for this diagnostic solve.
 # ------------------------------------------------------------------------- #
-mutable struct TrustRegionFeasibilityModel <: AbstractNLPModel{Float64,Vector{Float64}}
+mutable struct TrustRegionNLS{S<:AbstractNLSModel} <: AbstractNLSModel{Float64,Vector{Float64}}
   meta::NLPModelMeta{Float64,Vector{Float64}}
-  counters::Counters
-  nlp::AbstractNLPModel
+  nls_meta::NLSMeta{Float64,Vector{Float64}}
+  counters::NLSCounters
+  feas_nls::S
   xbar::Vector{Float64}
   Jxbar::Any
+  Hxbar::Matrix{Float64} # constant Hessian of the constraint: 2 J(x̄)ᵀJ(x̄)
   Δ::Float64
 end
 
-function TrustRegionFeasibilityModel(nlp::AbstractNLPModel, xbar::AbstractVector, Δ::Real)
+function TrustRegionNLS(nlp::AbstractNLPModel, xbar::AbstractVector, Δ::Real)
+  feas_nls = FeasibilityResidual(nlp)
   n = nlp.meta.nvar
   Jxbar = jac(nlp, xbar)
+  Hxbar = 2 .* Matrix(Jxbar' * Jxbar)
 
   meta = NLPModelMeta(
     n;
     x0 = copy(xbar),
-    lvar = nlp.meta.lvar,
-    uvar = nlp.meta.uvar,
+    lvar = feas_nls.meta.lvar,
+    uvar = feas_nls.meta.uvar,
     ncon = 1,
     lcon = [-Inf],
     ucon = [Δ^2], # constraint is stored in its squared form, see cons!
     nnzj = n,
-    hess_available = false,
-    name = "TrustRegionFeasibility($(nlp.meta.name))",
+    nnzh = div(n * (n + 1), 2),
+    name = "TrustRegionNLS($(nlp.meta.name))",
   )
 
-  return TrustRegionFeasibilityModel(meta, Counters(), nlp, Vector{Float64}(xbar), Jxbar, Float64(Δ))
+  return TrustRegionNLS(
+    meta,
+    feas_nls.nls_meta,
+    NLSCounters(),
+    feas_nls,
+    Vector{Float64}(xbar),
+    Jxbar,
+    Hxbar,
+    Float64(Δ),
+  )
 end
 
-function NLPModels.obj(model::TrustRegionFeasibilityModel, x::AbstractVector)
-  increment!(model, :neval_obj)
-  cx = cons(model.nlp, x)
-  return 0.5 * dot(cx, cx)
-end
+# --- residual machinery: forward verbatim to FeasibilityResidual(nlp) ---
+NLPModels.residual!(M::TrustRegionNLS, x::AbstractVector, Fx::AbstractVector) =
+  residual!(M.feas_nls, x, Fx)
+NLPModels.jac_structure_residual!(
+  M::TrustRegionNLS,
+  rows::AbstractVector{<:Integer},
+  cols::AbstractVector{<:Integer},
+) = jac_structure_residual!(M.feas_nls, rows, cols)
+NLPModels.jac_coord_residual!(M::TrustRegionNLS, x::AbstractVector, vals::AbstractVector) =
+  jac_coord_residual!(M.feas_nls, x, vals)
+NLPModels.jprod_residual!(
+  M::TrustRegionNLS,
+  x::AbstractVector,
+  v::AbstractVector,
+  Jv::AbstractVector,
+) = jprod_residual!(M.feas_nls, x, v, Jv)
+NLPModels.jtprod_residual!(
+  M::TrustRegionNLS,
+  x::AbstractVector,
+  v::AbstractVector,
+  Jtv::AbstractVector,
+) = jtprod_residual!(M.feas_nls, x, v, Jtv)
+NLPModels.hess_structure_residual!(
+  M::TrustRegionNLS,
+  rows::AbstractVector{<:Integer},
+  cols::AbstractVector{<:Integer},
+) = hess_structure_residual!(M.feas_nls, rows, cols)
+NLPModels.hess_coord_residual!(
+  M::TrustRegionNLS,
+  x::AbstractVector,
+  v::AbstractVector,
+  vals::AbstractVector,
+) = hess_coord_residual!(M.feas_nls, x, v, vals)
 
-function NLPModels.grad!(model::TrustRegionFeasibilityModel, x::AbstractVector, g::AbstractVector)
-  increment!(model, :neval_grad)
-  cx = cons(model.nlp, x)
-  jtprod!(model.nlp, x, cx, g)
-  return g
-end
-
-function NLPModels.cons!(model::TrustRegionFeasibilityModel, x::AbstractVector, c::AbstractVector)
-  increment!(model, :neval_cons)
+# --- our one extra general constraint: ||J(x̄)(x - x̄)||² ≤ Δ² ---
+function NLPModels.cons!(M::TrustRegionNLS, x::AbstractVector, c::AbstractVector)
+  increment!(M, :neval_cons)
   # Stored as ||J(x̄)(x - x̄)||² ≤ Δ² rather than ||J(x̄)(x - x̄)|| ≤ Δ so
   # that the constraint (and its gradient) stays smooth at x = x̄, which is
   # exactly the starting point we solve from.
-  Jd = model.Jxbar * (x - model.xbar)
+  Jd = M.Jxbar * (x - M.xbar)
   c[1] = dot(Jd, Jd)
   return c
 end
 
 function NLPModels.jac_structure!(
-  model::TrustRegionFeasibilityModel,
+  M::TrustRegionNLS,
   rows::AbstractVector{<:Integer},
   cols::AbstractVector{<:Integer},
 )
-  n = model.meta.nvar
+  n = M.meta.nvar
   rows .= 1
   cols .= 1:n
   return rows, cols
 end
 
-function NLPModels.jac_coord!(
-  model::TrustRegionFeasibilityModel,
-  x::AbstractVector,
-  vals::AbstractVector,
+function NLPModels.jac_coord!(M::TrustRegionNLS, x::AbstractVector, vals::AbstractVector)
+  increment!(M, :neval_jac)
+  Jd = M.Jxbar * (x - M.xbar)
+  vals .= 2 .* (M.Jxbar' * Jd)
+  return vals
+end
+
+function NLPModels.hess_structure!(
+  M::TrustRegionNLS,
+  rows::AbstractVector{<:Integer},
+  cols::AbstractVector{<:Integer},
 )
-  increment!(model, :neval_jac)
-  Jd = model.Jxbar * (x - model.xbar)
-  vals .= 2 .* (model.Jxbar' * Jd)
+  n = M.meta.nvar
+  idx = 1
+  for j = 1:n, i = j:n
+    rows[idx] = i
+    cols[idx] = j
+    idx += 1
+  end
+  return rows, cols
+end
+
+function NLPModels.hess_coord!(
+  M::TrustRegionNLS,
+  x::AbstractVector,
+  y::AbstractVector,
+  vals::AbstractVector;
+  obj_weight = 1.0,
+)
+  # obj_weight is irrelevant here: FeasibilityFormNLS always calls this with
+  # obj_weight = 0.0 (TrustRegionNLS's own "objective" - unused, since
+  # FeasibilityFormNLS's objective is purely 1/2||r||² - never contributes),
+  # so only the constraint's constant Hessian, weighted by y[1], matters.
+  increment!(M, :neval_hess)
+  n = M.meta.nvar
+  yc = length(y) > 0 ? y[1] : 0.0
+  idx = 1
+  for j = 1:n, i = j:n
+    vals[idx] = yc * M.Hxbar[i, j]
+    idx += 1
+  end
   return vals
 end
 
@@ -155,7 +217,9 @@ locally infeasible point by solving
 
     min_x 1/2 ||c(x)||² s.t. ||J(x̄)(x - x̄)|| ≤ Δ
 
-with IPOPT (absolute tolerance `tol`), starting from `x̄`.
+with IPOPT (absolute tolerance `tol`), starting from `x̄`. Internally this
+is built as `FeasibilityFormNLS(TrustRegionNLS(nlp, xbar, Δ))`, i.e. as the
+(x, r) problem `min 1/2||r||² s.t. c(x) - r = 0, ||J(x̄)(x-x̄)||² ≤ Δ²`.
 
 The problem is declared certifiably locally infeasible if, at the solution
 `x` of the trust-region subproblem:
@@ -178,17 +242,21 @@ function check_local_infeasibility(
   tol = 1e-9,
   feas_tol = 1e-3,
 )
-  model = TrustRegionFeasibilityModel(nlp, xbar, Δ)
+  M = TrustRegionNLS(nlp, xbar, Δ)
+  model = FeasibilityFormNLS(M)
 
-  stats = ipopt(model, x0 = copy(xbar), tol = tol, print_level = 0)
+  # (x, r) start: r₀ = c(x̄), so the F(x) - r = 0 block is satisfied at x0.
+  x0 = vcat(xbar, cons(nlp, xbar))
+  stats = ipopt(model, x0 = x0, tol = tol, print_level = 0)
 
   if stats.status != :first_order
     @warn "Local infeasibility check for $(nlp.meta.name) was inconclusive (inner IPOPT solve terminated with status $(stats.status))"
     return missing
   end
 
-  xsol = stats.solution
-  tr_residual = norm(model.Jxbar * (xsol - xbar))
+  n = nlp.meta.nvar
+  xsol = stats.solution[1:n]
+  tr_residual = norm(M.Jxbar * (xsol - xbar))
   primal_feas = norm(cons(nlp, xsol))
 
   if tr_residual >= Δ
