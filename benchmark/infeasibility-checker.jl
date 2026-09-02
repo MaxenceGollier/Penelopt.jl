@@ -1,4 +1,3 @@
-using MPI, MUMPS
 using CUTEst, Penelopt, NLPModels, NLPModelsIpopt, NLPModelsModifiers, LinearAlgebra
 
 import NLPModels: increment!
