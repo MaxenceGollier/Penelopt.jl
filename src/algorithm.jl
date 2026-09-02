@@ -382,7 +382,7 @@ function SolverCore.solve!(
 
       ## R2N Specific arguments
       σmin = r2n_σmin,
-      σk = 1 / νsub,
+      σk = max(1 / νsub, r2n_σmin),
       η1 = r2n_η1,
       η2 = r2n_η2,
       ηC = r2n_ηC,
