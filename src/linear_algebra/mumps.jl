@@ -631,19 +631,18 @@ function up_lb_is_pos_def_exact!(workspace::PenaltyMUMPSWorkspace)
   S._a_gc_haven = a
 
   S.job = MUMPS.INITIALIZE
-  is_pos_def = try
-    factorize!(S)
-    if S.infog[1] < 0
-      false
-    else
-      nneg = S.infog[12]
-      rank = n - S.infog[28]
-      npos = rank - nneg
-      npos == n
-    end
-  finally
-    MUMPS.finalize!(S)
+  factorize!(S)
+
+  is_pos_def = if S.infog[1] < 0
+    false
+  else
+    nneg = S.infog[12]
+    rank = n - S.infog[28]
+    npos = rank - nneg
+    npos == n
   end
+
+  MUMPS.finalize!(S)
 
   return is_pos_def
 end
