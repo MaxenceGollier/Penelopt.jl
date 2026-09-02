@@ -195,9 +195,6 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
  * `r2n_σmin::T = eps(T)^2` (*advanced*): minimum quadratic regularization parameter.
     > The quadratic regularization parameter is bounded from below by `r2n_σmin`. When `T == Float64`, the default value is $\approx 10^{-32}$. This value should be very small.
 
- * `r2n_ηC::T = eps(T)^2` (*advanced*): Cauchy decrease threshold.
-    > Steps are accepted only if the ratio of first-order decrease with the optimality measure is larger than `r2n_ηC`. This is $\eta_C$ in the implementation paper. When `T == Float64`, the default value is $\approx 10^{-32}$. This value should be very small, we refer to the paper for more details. 
-
  * `r2n_m_monotone::Int = 12` (*advanced*): non-monotone memory parameter.
     > When computing the ratio of the actual decrease and the first-order decrease (see `r2n_η1`), the decrease is computed with respect to the maximum of the last `r2n_m_monotone` values of the objective.
 
