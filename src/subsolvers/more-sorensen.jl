@@ -90,7 +90,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   αmin2::T = eps(T)^(0.6),
   σmax::T = 1 / eps(T)^(0.8),
   accept_descent::Bool = true, # Whether we accept inexact steps that decrease the quadratic model.
-  ηC::T = T(1e-2), # Cauchy decrease acceptance constant, see up_lb_is_pos_def fallback below.
+  ηC::T = eps(T), # Cauchy decrease acceptance constant, see up_lb_is_pos_def fallback below.
 ) where {T,V,M,H,P}
   start_time = time()
   set_time!(stats, 0.0)
