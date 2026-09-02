@@ -46,13 +46,7 @@ mutable struct CompositeNormL2{
     length(b) == size(A, 1) || error(
       "Composite Norm L2: Wrong input dimensions, the length of c(x) should be the same as the number of rows of J(x)",
     )
-    new{T,typeof(c!),typeof(J!),typeof(A),typeof(b)}(
-      NormL2(λ),
-      c!,
-      J!,
-      A,
-      b,
-    )
+    new{T,typeof(c!),typeof(J!),typeof(A),typeof(b)}(NormL2(λ), c!, J!, A, b)
   end
 end
 

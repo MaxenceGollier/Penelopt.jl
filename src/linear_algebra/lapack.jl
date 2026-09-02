@@ -1,5 +1,4 @@
-for (getrf, getrs, T) in
-  ((:sgetrf_, :sgetrs_, :Float32), (:dgetrf_, :dgetrs_, :Float64))
+for (getrf, getrs, T) in ((:sgetrf_, :sgetrs_, :Float32), (:dgetrf_, :dgetrs_, :Float64))
   @eval begin
 
     function getrf!(
@@ -10,9 +9,17 @@ for (getrf, getrs, T) in
       ipiv::AbstractVector{BlasInt},
       info::Base.RefValue{BlasInt},
     )
-      ccall((@blasfunc($getrf), libblastrampoline), Cvoid,
-            (Ref{BlasInt}, Ref{BlasInt}, Ptr{$T}, Ref{BlasInt}, Ptr{BlasInt}, Ref{BlasInt}),
-            m, n, a, lda, ipiv, info)
+      ccall(
+        (@blasfunc($getrf), libblastrampoline),
+        Cvoid,
+        (Ref{BlasInt}, Ref{BlasInt}, Ptr{$T}, Ref{BlasInt}, Ptr{BlasInt}, Ref{BlasInt}),
+        m,
+        n,
+        a,
+        lda,
+        ipiv,
+        info,
+      )
       return info[]
     end
 
@@ -27,10 +34,32 @@ for (getrf, getrs, T) in
       ldb::BlasInt,
       info::Base.RefValue{BlasInt},
     )
-      ccall((@blasfunc($getrs), libblastrampoline), Cvoid,
-            (Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ptr{$T}, Ref{BlasInt}, Ptr{BlasInt},
-             Ptr{$T}, Ref{BlasInt}, Ref{BlasInt}, Clong),
-            trans, n, nrhs, a, lda, ipiv, b, ldb, info, 1)
+      ccall(
+        (@blasfunc($getrs), libblastrampoline),
+        Cvoid,
+        (
+          Ref{UInt8},
+          Ref{BlasInt},
+          Ref{BlasInt},
+          Ptr{$T},
+          Ref{BlasInt},
+          Ptr{BlasInt},
+          Ptr{$T},
+          Ref{BlasInt},
+          Ref{BlasInt},
+          Clong,
+        ),
+        trans,
+        n,
+        nrhs,
+        a,
+        lda,
+        ipiv,
+        b,
+        ldb,
+        info,
+        1,
+      )
       return info[]
     end
   end

@@ -160,8 +160,7 @@ function shift!(
 }
   nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
   φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
-  qn_y, qn_x_prev = shifted_penalty_nlp._qn_y,
-  shifted_penalty_nlp._qn_x_prev
+  qn_y, qn_x_prev = shifted_penalty_nlp._qn_y, shifted_penalty_nlp._qn_x_prev
   is_first_shift = shifted_penalty_nlp._is_first_shift
 
   qn_s = qn_x_prev

@@ -51,14 +51,7 @@ mutable struct ShiftedCompositeNormL2{
 
     g = similar(b)
 
-    new{T,typeof(c!),typeof(J!),typeof(A),typeof(b)}(
-      NormL2(λ),
-      c!,
-      J!,
-      A,
-      b,
-      g,
-    )
+    new{T,typeof(c!),typeof(J!),typeof(A),typeof(b)}(NormL2(λ), c!, J!, A, b, g)
   end
 end
 
@@ -69,13 +62,7 @@ shifted(
   begin
     A = ψ.A
     b = similar(ψ.b)
-    ShiftedCompositeNormL2(
-      ψ.h.lambda,
-      ψ.c!,
-      ψ.J!,
-      A,
-      b,
-    )
+    ShiftedCompositeNormL2(ψ.h.lambda, ψ.c!, ψ.J!, A, b)
   end
 
 fun_name(ψ::ShiftedCompositeNormL2) = "shifted `ℓ₂` norm"

@@ -349,14 +349,24 @@ function solve_system!(
     # (I + Fᵀ [σI+ξI  Aᵀ]⁻¹ E )⁻¹[y₁]
     # (       [A     -αI]     )  [y₁]
     # using LAPACK
-    @views info_f = getrf!(BlasInt(2p), BlasInt(2p), Z2, stride(Z2, 2), workspace._ipiv, workspace._info)
+    @views info_f =
+      getrf!(BlasInt(2p), BlasInt(2p), Z2, stride(Z2, 2), workspace._ipiv, workspace._info)
     if info_f != 0
       workspace.status = :failed
       return
     end
 
-    @views info_s = getrs!('N', BlasInt(2p), BlasInt(1), Z2[1:(2p), 1:(2p)], stride(Z2, 2),
-                            workspace._ipiv, y1[1:(2p)], BlasInt(2p), workspace._info)
+    @views info_s = getrs!(
+      'N',
+      BlasInt(2p),
+      BlasInt(1),
+      Z2[1:(2p), 1:(2p)],
+      stride(Z2, 2),
+      workspace._ipiv,
+      y1[1:(2p)],
+      BlasInt(2p),
+      workspace._info,
+    )
     if info_s != 0
       workspace.status = :failed
       return

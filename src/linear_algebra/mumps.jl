@@ -87,7 +87,19 @@ function construct_mumps_workspace(
   S.rhs = pointer(x)
   S._y_gc_haven = x
 
-  return PenaltyMUMPSWorkspace(S, H, x, nothing, Ref{BlasInt}(0), zero(T), n, m, :uninitialized, false, 0)
+  return PenaltyMUMPSWorkspace(
+    S,
+    H,
+    x,
+    nothing,
+    Ref{BlasInt}(0),
+    zero(T),
+    n,
+    m,
+    :uninitialized,
+    false,
+    0,
+  )
 end
 
 function construct_mumps_workspace(
@@ -148,7 +160,19 @@ function construct_mumps_workspace(
   S.rhs = pointer(x)
   S._y_gc_haven = x
 
-  return PenaltyMUMPSWorkspace(S, H, x, Vector{LinearAlgebra.BlasInt}(undef, 2 * H.B._mem), Ref{BlasInt}(0), zero(T), n, m, :uninitialized, false, 0)
+  return PenaltyMUMPSWorkspace(
+    S,
+    H,
+    x,
+    Vector{LinearAlgebra.BlasInt}(undef, 2 * H.B._mem),
+    Ref{BlasInt}(0),
+    zero(T),
+    n,
+    m,
+    :uninitialized,
+    false,
+    0,
+  )
 end
 
 function update_workspace!(
@@ -374,7 +398,7 @@ function solve_system!(
       return
     end
 
-  update_pivtol!(workspace)
+    update_pivtol!(workspace)
 
     # Step 4.2: Compute 
     # Z₂ = FᵀZ₁ = UᵀZ₁[1:n]
@@ -393,14 +417,24 @@ function solve_system!(
     # (I + Fᵀ [σI+ξI  Aᵀ]⁻¹ E )⁻¹[y₁]
     # (       [A     -αI]     )  [y₁]
     # using LAPACK
-    @views info_f = getrf!(BlasInt(2p), BlasInt(2p), Z2, stride(Z2, 2), workspace._ipiv, workspace._info)
+    @views info_f =
+      getrf!(BlasInt(2p), BlasInt(2p), Z2, stride(Z2, 2), workspace._ipiv, workspace._info)
     if info_f != 0
       workspace.status = :failed
       return
     end
 
-    @views info_s = getrs!('N', BlasInt(2p), BlasInt(1), Z2[1:(2p), 1:(2p)], stride(Z2, 2),
-                            workspace._ipiv, y1[1:(2p)], BlasInt(2p), workspace._info)
+    @views info_s = getrs!(
+      'N',
+      BlasInt(2p),
+      BlasInt(1),
+      Z2[1:(2p), 1:(2p)],
+      stride(Z2, 2),
+      workspace._ipiv,
+      y1[1:(2p)],
+      BlasInt(2p),
+      workspace._info,
+    )
     if info_s != 0
       workspace.status = :failed
       return
@@ -429,7 +463,7 @@ function solve_system!(
       return
     end
 
-  update_pivtol!(workspace)
+    update_pivtol!(workspace)
 
     # Step 8:
     # [B  Aᵀ]⁻¹[u] = x₁ - x₃ 
