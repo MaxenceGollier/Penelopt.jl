@@ -1,6 +1,8 @@
 using MPI, MUMPS
 using CUTEst, Penelopt, NLPModels, NLPModelsIpopt, NLPModelsModifiers, LinearAlgebra
 
+import NLPModels: increment!
+
 # Solver/Hessian-model combinations, reproducing *exactly* the kwargs used in
 # the corresponding benchmark scripts (benchmark-cutest-exact-hessian.jl,
 # benchmark-cutest-lbfgs.jl, benchmark-cutest-ipopt-exact-hessian.jl,
@@ -62,63 +64,141 @@ const BENCHMARK_SOLVERS = Dict(
     ),
 )
 
+# ------------------------------------------------------------------------- #
+# min_x 1/2 ||c(x)||² s.t. ||J(x̄)(x - x̄)|| ≤ Δ
+#
+# A trust-region-constrained feasibility model, centered at a fixed point
+# x̄, with a *constant* Jacobian J(x̄) baked into the (single, quadratic)
+# constraint. Only obj/grad/cons/jac are implemented: hess_available is set
+# to false, so NLPModelsIpopt automatically falls back to IPOPT's
+# limited-memory (L-BFGS) Hessian approximation for this diagnostic solve.
+# ------------------------------------------------------------------------- #
+mutable struct TrustRegionFeasibilityModel <: AbstractNLPModel{Float64,Vector{Float64}}
+  meta::NLPModelMeta{Float64,Vector{Float64}}
+  counters::Counters
+  nlp::AbstractNLPModel
+  xbar::Vector{Float64}
+  Jxbar::Any
+  Δ::Float64
+end
+
+function TrustRegionFeasibilityModel(nlp::AbstractNLPModel, xbar::AbstractVector, Δ::Real)
+  n = nlp.meta.nvar
+  Jxbar = jac(nlp, xbar)
+
+  meta = NLPModelMeta(
+    n;
+    x0 = copy(xbar),
+    lvar = nlp.meta.lvar,
+    uvar = nlp.meta.uvar,
+    ncon = 1,
+    lcon = [-Inf],
+    ucon = [Δ^2], # constraint is stored in its squared form, see cons!
+    nnzj = n,
+    hess_available = false,
+    name = "TrustRegionFeasibility($(nlp.meta.name))",
+  )
+
+  return TrustRegionFeasibilityModel(meta, Counters(), nlp, Vector{Float64}(xbar), Jxbar, Float64(Δ))
+end
+
+function NLPModels.obj(model::TrustRegionFeasibilityModel, x::AbstractVector)
+  increment!(model, :neval_obj)
+  cx = cons(model.nlp, x)
+  return 0.5 * dot(cx, cx)
+end
+
+function NLPModels.grad!(model::TrustRegionFeasibilityModel, x::AbstractVector, g::AbstractVector)
+  increment!(model, :neval_grad)
+  cx = cons(model.nlp, x)
+  jtprod!(model.nlp, x, cx, g)
+  return g
+end
+
+function NLPModels.cons!(model::TrustRegionFeasibilityModel, x::AbstractVector, c::AbstractVector)
+  increment!(model, :neval_cons)
+  # Stored as ||J(x̄)(x - x̄)||² ≤ Δ² rather than ||J(x̄)(x - x̄)|| ≤ Δ so
+  # that the constraint (and its gradient) stays smooth at x = x̄, which is
+  # exactly the starting point we solve from.
+  Jd = model.Jxbar * (x - model.xbar)
+  c[1] = dot(Jd, Jd)
+  return c
+end
+
+function NLPModels.jac_structure!(
+  model::TrustRegionFeasibilityModel,
+  rows::AbstractVector{<:Integer},
+  cols::AbstractVector{<:Integer},
+)
+  n = model.meta.nvar
+  rows .= 1
+  cols .= 1:n
+  return rows, cols
+end
+
+function NLPModels.jac_coord!(
+  model::TrustRegionFeasibilityModel,
+  x::AbstractVector,
+  vals::AbstractVector,
+)
+  increment!(model, :neval_jac)
+  Jd = model.Jxbar * (x - model.xbar)
+  vals .= 2 .* (model.Jxbar' * Jd)
+  return vals
+end
+
 """
-    check_local_infeasibility(nlp, x; kwargs...)
+    check_local_infeasibility(nlp, xbar; Δ=10.0, tol=1e-9, feas_tol=1e-3)
 
-Given a candidate point `x̄ = x` for `nlp`, check whether `x` is a locally
-infeasible point.
+Given a candidate point `x̄ = xbar` for `nlp`, check whether `x̄` is a
+locally infeasible point by solving
 
-This converts
+    min_x 1/2 ||c(x)||² s.t. ||J(x̄)(x - x̄)|| ≤ Δ
 
-    min_x f(x) s.t. c(x) = 0
+with IPOPT (absolute tolerance `tol`), starting from `x̄`.
 
-into
+The problem is declared certifiably locally infeasible if, at the solution
+`x` of the trust-region subproblem:
+  - the trust-region constraint is *inactive*, i.e. ||J(x̄)(x - x̄)|| < Δ
+    (so the result isn't just an artifact of the trust-region radius), and
+  - ||c(x)|| > feas_tol (no nearby feasible point was found).
 
-    min_{x,r} 1/2 ||r||² s.t. c(x) = r,
-
-and solves it with IPOPT, starting from `x`, at high precision. If the
-residual ||c(x)|| does not vanish at the solution of that problem, `x` is
-declared a locally infeasible point.
-
-Returns `true`/`false` when the check is conclusive (the inner IPOPT solve
-reaches `:first_order`), and `missing` when it is not (e.g. the inner solve
-hits `max_cpu_time` or otherwise fails to converge), meaning the result is
-not certain.
+Returns:
+  - `true`  if both conditions above hold (certified locally infeasible),
+  - `false` if the trust-region constraint is inactive and ||c(x)|| ≤ feas_tol
+    (a nearby point essentially satisfies the constraints),
+  - `missing` if the result is inconclusive: either the inner IPOPT solve
+    did not reach `:first_order`, or it stopped at the trust-region boundary
+    (in which case Δ may be too small to tell).
 """
 function check_local_infeasibility(
   nlp::AbstractNLPModel,
-  x::AbstractVector;
-  tol = 1e-12,
-  max_cpu_time = 300.0,
-  feas_tol = 1e-6,
+  xbar::AbstractVector;
+  Δ = 10.0,
+  tol = 1e-9,
+  feas_tol = 1e-3,
 )
-  # Step 1: convert min_x f(x) s.t. c(x) = 0
-  # into min_{x,r} 1/2 ||r||^2 s.t. c(x) = r, where r is a slack variable.
+  model = TrustRegionFeasibilityModel(nlp, xbar, Δ)
 
-  # Step 1.1: convert min_x f(x) s.t. c(x) = 0 into min_{x,r} 1/2 ||c(x)||^2.
-  feas_nls = FeasibilityResidual(nlp)
-
-  # Step 1.2: convert min_{x,r} 1/2 ||c(x)||^2 into min_{x,r} 1/2 ||r||^2 s.t. c(x) = r.
-  feas_nlp = FeasibilityFormNLS(feas_nls)
-
-  # Step 2: check if the problem is locally infeasible at x.
-  # For this, solve the problem min_{x,r} 1/2 ||r||^2 s.t. c(x) = r using IPOPT,
-  # starting from x and with high precision.
-  x0 = vcat(x, cons(nlp, x))
-  stats = ipopt(feas_nlp, x0 = x0, tol = tol, max_cpu_time = max_cpu_time, print_level = 0)
+  stats = ipopt(model, x0 = copy(xbar), tol = tol, print_level = 0)
 
   if stats.status != :first_order
     @warn "Local infeasibility check for $(nlp.meta.name) was inconclusive (inner IPOPT solve terminated with status $(stats.status))"
     return missing
   end
 
-  # Step 3: the problem is certified locally infeasible if the residual
-  # ||c(x)|| does not vanish at the solution.
-  xsol = stats.solution[1:nlp.meta.nvar]
-  primal_feas = norm(cons(nlp, xsol), Inf)
+  xsol = stats.solution
+  tr_residual = norm(model.Jxbar * (xsol - xbar))
+  primal_feas = norm(cons(nlp, xsol))
+
+  if tr_residual >= Δ
+    @warn "Local infeasibility check for $(nlp.meta.name) was inconclusive (trust-region constraint active at the solution; Δ = $Δ may be too small)"
+    return missing
+  end
+
   certified = primal_feas > feas_tol
 
-  @info "Local infeasibility check for $(nlp.meta.name): ||c(xsol)|| = $primal_feas -> $(certified ? "certified infeasible" : "not certified")"
+  @info "Local infeasibility check for $(nlp.meta.name): ||c(xsol)|| = $primal_feas, ||J(x̄)(x-x̄)|| = $tr_residual -> $(certified ? "certified infeasible" : "not certified")"
 
   return certified
 end
