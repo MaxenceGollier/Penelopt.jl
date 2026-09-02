@@ -10,9 +10,9 @@ mutable struct PenaltyMA57Workspace{
   x::V
   work::V
   _qn_work::V
+  _ipiv::VI # For CompactBFGS LU factorization
   _info::Base.RefValue{BlasInt}  # For CompactBFGS LU factorization
   dx::V
-  _ipiv::VI # For CompactBFGS LU factorization
   σ::T
   n::Int
   m::Int
