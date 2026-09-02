@@ -81,7 +81,7 @@ function SolverCore.solve!(
   max_time::Float64 = 30.0,
   max_eval::Int = -1,
   σk::T = eps(T)^(1 / 5),
-  σmin::T = eps(T),
+  σmin::T = eps(T)^2,
   η1::T = √√eps(T),
   η2::T = T(0.1),
   ηC::T = eps(T)^2,
@@ -256,7 +256,7 @@ function SolverCore.solve!(
     end
 
     if η2 ≤ ρk < Inf && ηC ≤ Ck
-      σk = σk / γ
+      σk = max(σk / γ, σmin)
     end
 
     if ρk < η1 || ρk == Inf || Ck < ηC

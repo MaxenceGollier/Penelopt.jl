@@ -245,7 +245,7 @@ function SolverCore.solve!(
   r2n_η1::T = √√eps(T),
   r2n_η2::T = isa(nlp, QuasiNewtonModel) ? T(0.9) : T(0.1),
   r2n_ηC::T = eps(T)^2,
-  r2n_σmin::T = eps(T),
+  r2n_σmin::T = eps(T)^2,
   r2n_γ::T = T(3),
   r2n_watchdog_max_iter::Int = 10,
   r2n_watchdog_η0::T = √eps(T),
@@ -382,7 +382,7 @@ function SolverCore.solve!(
 
       ## R2N Specific arguments
       σmin = r2n_σmin,
-      σk = 1 / νsub,
+      σk = max(1 / νsub, r2n_σmin),
       η1 = r2n_η1,
       η2 = r2n_η2,
       ηC = r2n_ηC,
