@@ -4,6 +4,7 @@ mutable struct PenaltyMUMPSWorkspace{
   V<:AbstractVector,
   VI<:Union{Nothing,AbstractVector},
   T<:Real,
+  WPC<:Union{Nothing,Mumps}
 } <: AbstractMUMPSWorkspace
   M::WP
   H::K2
@@ -18,7 +19,7 @@ mutable struct PenaltyMUMPSWorkspace{
   _n_fact::Int
   _primal_diag::V # Preallocated buffer for up_lb_is_pos_def
   _primal_row_sum::V # Preallocated buffer for up_lb_is_pos_def
-  _Hcheck::WP # Preallocated, reused MUMPS instance for up_lb_is_pos_def_exact!
+  _Hcheck::WPC # Preallocated, reused MUMPS instance for up_lb_is_pos_def_exact!
   _Hcheck_idx::Vector{Int} # Fixed indices into H.data.vals for the H + σI block
   _Hcheck_a::V # Preallocated values buffer for _Hcheck, refreshed on each call
 end
@@ -210,12 +211,6 @@ function construct_mumps_workspace(
   S.rhs = pointer(x)
   S._y_gc_haven = x
 
-  # H is a CompactBFGS operator here: up_lb_is_pos_def always returns true
-  # without ever factorizing H + σI, so _Hcheck is never used -- keep it
-  # trivial instead of preallocating an n×n buffer for nothing.
-  cntl_check = T == Float64 ? default_cntl64 : default_cntl32
-  Scheck = Mumps{T}(mumps_symmetric, default_icntl, cntl_check)
-
   return PenaltyMUMPSWorkspace(
     S,
     H,
@@ -230,7 +225,7 @@ function construct_mumps_workspace(
     0,
     zeros(T, 0),
     zeros(T, 0),
-    Scheck,
+    nothing,
     Int[],
     zeros(T, 0),
   )
