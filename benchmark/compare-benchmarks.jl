@@ -7,6 +7,18 @@ using Plots
 
 include(joinpath(@__DIR__, "infeasibility-checker.jl"))
 
+# Certifying a problem's local infeasibility means re-solving it from
+# scratch (once per flagged solver/Hessian-model combination), which is by
+# far the most expensive part of this comparison - it's what pushed a
+# recent run to ~1h30. Off by default; set CERTIFY_INFEASIBILITY=true (the
+# CI workflow does this when the PR carries the "certify infeasibility"
+# label) to opt into the full certification pass. When off, the report
+# below still lists every problem either solver declared :infeasible, just
+# without attempting to certify any of them (certified_locally_infeasible
+# stays `missing` throughout, so :infeasible is conservatively treated as
+# unsolved in the performance profiles - same as before this feature).
+const CERTIFY_INFEASIBILITY = lowercase(get(ENV, "CERTIFY_INFEASIBILITY", "false")) == "true"
+
 const METHODS = (:exact, :lbfgs)
 
 function load_stats(dir::AbstractString, stats, suffix = "")
@@ -156,6 +168,9 @@ function infeasibility_pair(stats, keys)
   hessian = parts_1[2]
 
   @info "Checking infeasibility results for $(hessian) Hessian approximation."
+  if !CERTIFY_INFEASIBILITY
+    @info "CERTIFY_INFEASIBILITY is off: listing flagged problems without certifying them."
+  end
 
   rows = NamedTuple[]
   for i = 1:nrow(df_1)
@@ -172,9 +187,11 @@ function infeasibility_pair(stats, keys)
     # different points, so one being certified doesn't say anything about
     # the other.
     l2penalty_certified =
-      l2penalty_status == :infeasible ? certify_local_infeasibility(name, keys[1]) : missing
+      (CERTIFY_INFEASIBILITY && l2penalty_status == :infeasible) ?
+      certify_local_infeasibility(name, keys[1]) : missing
     ipopt_certified =
-      ipopt_status == :infeasible ? certify_local_infeasibility(name, keys[2]) : missing
+      (CERTIFY_INFEASIBILITY && ipopt_status == :infeasible) ?
+      certify_local_infeasibility(name, keys[2]) : missing
 
     push!(
       rows,
@@ -219,7 +236,7 @@ lbfgs_report = infeasibility_pair(stats, [:l2penalty_lbfgs_current, :ipopt_lbfgs
 infeasibility_report = vcat(exact_report, lbfgs_report)
 
 @info "Infeasibility certification results:\n" *
-      sprint(show, infeasibility_report; allrows = true, allcols = true)
+      sprint(io -> show(io, infeasibility_report; allrows = true, allcols = true))
 
 mkpath("benchmark/result")
 @save "benchmark/result/infeasibility_report.jld2" infeasibility_report

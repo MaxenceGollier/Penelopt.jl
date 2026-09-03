@@ -9,11 +9,21 @@ on:
           Leave empty to use the latest successful run on this branch.
         required: false
         type: string
+      certify_infeasibility:
+        description: >
+          Certify flagged :infeasible problems (re-solves each one from
+          scratch - much slower, ~1h30 on a full run). Off by default.
+        required: false
+        type: boolean
+        default: false
   workflow_call:
 
 jobs:
   Compare:
     runs-on: windows-latest
+
+    env:
+      CERTIFY_INFEASIBILITY: ${{ inputs.certify_infeasibility }}
 
     steps:
       - uses: actions/checkout@v4

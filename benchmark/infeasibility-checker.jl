@@ -274,7 +274,7 @@ function check_local_infeasibility(
 
   certified = primal_feas > feas_tol
 
-  @info "Local infeasibility check for $(nlp.meta.name): ||c(xsol)|| = $primal_feas, ||J(x̄)(x-x̄)|| = $tr_residual -> $(certified ? "certified infeasible" : "not certified")"
+  @info "Local infeasibility check for $(nlp.meta.name): ||c(x̄)|| = $primal_feas, ||J(x̄)(x-x̄)|| = $tr_residual -> $(certified ? "certified infeasible" : "not certified")"
 
   return certified
 end

@@ -118,6 +118,15 @@ jobs:
       github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'run CUTEst benchmark')
 
+    # Certifying flagged :infeasible problems re-solves each of them from
+    # scratch and is by far the most expensive part of this job (a recent
+    # run took ~1h30 because of it). Off by default; opt in with the
+    # "certify infeasibility" label on top of "run CUTEst benchmark" when
+    # you actually need the certified perf-profile reclassification, rather
+    # than just the (fast) list of flagged problems.
+    env:
+      CERTIFY_INFEASIBILITY: ${{ contains(github.event.pull_request.labels.*.name, 'certify infeasibility') }}
+
     steps:
       - uses: actions/checkout@v4
 
