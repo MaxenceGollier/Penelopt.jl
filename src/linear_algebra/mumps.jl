@@ -4,7 +4,7 @@ mutable struct PenaltyMUMPSWorkspace{
   V<:AbstractVector,
   VI<:Union{Nothing,AbstractVector},
   T<:Real,
-  WPC<:Union{Nothing,Mumps}
+  WPC<:Union{Nothing,Mumps},
 } <: AbstractMUMPSWorkspace
   M::WP
   H::K2
