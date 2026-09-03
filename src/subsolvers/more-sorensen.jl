@@ -366,11 +366,6 @@ function check_cauchy_decrease(
 
   model_decrease = τ * norm(reg_nlp.h.b) - dot(∇f, s) - reg_nlp.h(s)
 
-  # From the first block row of the KKT system, (Hₗ+σₗI)sₗ + J(xₗ)ᵀyₗ =
-  # -∇f(xₗ), so (Hₗ+σₗI)sₗ = -∇f(xₗ) - J(xₗ)ᵀyₗ. This avoids needing direct
-  # access to Hₗ (which may, e.g., be an implicit BFGS operator). Reuse the
-  # quadratic model's own preallocated Hessian-vector product buffer
-  # (`.data.v`) instead of allocating a new one.
   Hs = reg_nlp.model.data.v
   mul!(Hs, reg_nlp.h.A', y)
   @. Hs += ∇f

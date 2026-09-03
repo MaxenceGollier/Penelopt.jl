@@ -57,43 +57,23 @@ function SolverCore.reset!(workspace::PenaltyWorkspace)
   set_n_fact!(workspace, 0)
 end
 
-# up_lb_is_pos_def: whether the leading ("upper-left"/primal) block H + σI of
+# up_lb_is_pos_def: whether the H + σI of
 # the augmented K2 system is positive definite. `H` is the current Hessian
 # (of the Lagrangian) approximation stored in `workspace` and σ is the
 # associated primal regularization parameter.
-#
-# The default implementations below dispatch on the type of `workspace.H`.
-# Individual linear-solver workspaces (see e.g. linear_algebra/mumps.jl) may
-# override these with a more expensive, but conclusive, check.
-
 up_lb_is_pos_def(workspace::PenaltyWorkspace) = up_lb_is_pos_def(workspace, workspace.H)
 
-# A (compact) BFGS Hessian approximation is positive definite by
-# construction, so H + σI is positive definite for every σ ≥ 0.
 up_lb_is_pos_def(::PenaltyWorkspace, ::CompactBFGSK2) = true
 
-# LinearOperator-backed K2 systems (e.g. used by iterative solvers): the
-# inertia of the augmented K2 system is (n, 0, m) if, and only if, H + σI is
-# positive definite and A has full row rank. This is only a necessary
-# condition in general (see the `Symmetric` method below and its docstring),
-# but it is all we have access to without a dedicated factorization of
-# H + σI on its own, so we use it as the default here.
+# LinearOperator-backed K2 systems (e.g. used by iterative solvers): fallback to the inertia; #TODO: implement a necessary and sufficient condition
 function up_lb_is_pos_def(workspace::PenaltyWorkspace, ::AbstractLinearOperator)
   npos, nzero, nneg = get_inertia(workspace)
   return npos == workspace.n && nneg == workspace.m
 end
 
 # Direct-solver K2 systems where H is stored as a concrete (sparse) matrix:
-# same necessary inertia condition as above, plus a check that all the
-# diagonal entries of H + σI are positive (also necessary, but cheap).
-#
-# NOTE: neither of these conditions is sufficient to conclude that H + σI is
-# positive definite in general -- the inertia of the K2 system only implies
-# positive definiteness of H + σI via the Haynsworth inertia additivity
-# formula when H + σI is itself invertible, which is exactly what we are
-# trying to determine. This method is therefore kept intentionally cheap and
-# "optimistic"; workspaces that can afford a conclusive check should
-# override it (see PenaltyMUMPSWorkspace in linear_algebra/mumps.jl).
+# try simple necessary/sufficient conditions. #TODO: implement a necessary and 
+# sufficient condition (Cholesky facto).
 function up_lb_is_pos_def(workspace::PenaltyWorkspace, ::Symmetric)
   npos, nzero, nneg = get_inertia(workspace)
   (npos == workspace.n && nneg == workspace.m) || return false
@@ -112,10 +92,8 @@ off-diagonal entries of row `i` of `H + σI`. Only the leading n×n
 ("primal") block is considered; entries coupling to the constraint
 Jacobian, or to the dual (-αI) block, are ignored.
 
-`H` is assumed to store (at least) an upper-triangular view of a symmetric
-matrix, possibly with repeated (row, col) entries that must be summed
-(as produced e.g. by `SparseMatrixCOO`); duplicate entries in `H`, if any,
-are correctly accumulated.
+`H` is assumed to store a triangular view of a symmetric
+matrix; duplicate entries in `H`, if any, are correctly accumulated.
 
 The returned vectors alias `workspace`'s internal buffers and are
 overwritten on the next call; this function performs no allocation.

@@ -538,26 +538,17 @@ function SolverCore.reset!(workspace::PenaltyMUMPSWorkspace)
   MUMPS.set_cntl!(workspace.M, 1, eps(eltype(workspace.x)))
 end
 
-# up_lb_is_pos_def for a MUMPS workspace with a concrete (non-BFGS) Hessian:
-# a cascade of increasingly expensive checks, each of which returns as soon
-# as it can settle the question, ending with an exact (but more costly)
-# factorization of H + σI on its own.
 function up_lb_is_pos_def(workspace::PenaltyMUMPSWorkspace, ::Symmetric)
   n, m = workspace.n, workspace.m
 
-  # Step 1: the inertia of the augmented K2 system, already available from
-  # the last factorization, is a necessary (but not sufficient) condition
-  # for H + σI to be positive definite. If it is not even trustworthy
-  # (factorization failed), or the necessary condition already fails, we
-  # can conclude H + σI is not (confirmed) positive definite.
+  # Step 1: check inertia
   npos, nzero, nneg = get_inertia(workspace)
   status = get_status(workspace)
   (status == :failed || npos != n || nneg != m) && return false
 
-  # Step 2 & 3: cheap sufficient/necessary conditions on H + σI's own
-  # entries: a symmetric matrix with a nonpositive diagonal entry cannot be
-  # positive definite, and one with a positive diagonal that is (weakly)
-  # diagonally dominant is guaranteed to be positive (semi)definite.
+  # Step 2 & 3: cheap sufficient/necessary conditions:
+  # 1. Check if the diagonal has a negative entry,
+  # 2. Check if the matrix is diagonally dominant.
   d, s = primal_diagonal_and_row_sums(workspace)
   is_diagonally_dominant = true
   for i = 1:n
@@ -566,12 +557,7 @@ function up_lb_is_pos_def(workspace::PenaltyMUMPSWorkspace, ::Symmetric)
   end
   is_diagonally_dominant && return true
 
-  # Step 4: none of the cheap checks above could settle the question --
-  # fall back to an exact check by factorizing H + σI on its own (in a
-  # separate, small, n×n MUMPS instance -- as opposed to requesting a Schur
-  # complement on the shared (n+m)×(n+m) instance, which would still
-  # allocate a dense m×m buffer as a side effect, and could be very large)
-  # and inspecting its inertia.
+  # Step 4: fallback to Cholesky factorization.
   return up_lb_is_pos_def_exact!(workspace)
 end
 
@@ -594,9 +580,7 @@ function primal_block_coo(workspace::PenaltyMUMPSWorkspace)
   return irn, jcn, a
 end
 
-# Exact (but expensive) check of whether H + σI, the leading n×n block of
-# the K2 matrix, is positive definite: factorize it on its own, in a fresh,
-# small MUMPS instance, and inspect its inertia.
+# Perform Cholesky facto of H + σI to check positive definiteness.
 function up_lb_is_pos_def_exact!(workspace::PenaltyMUMPSWorkspace)
   n = workspace.n
   T = eltype(workspace.x)
@@ -606,13 +590,10 @@ function up_lb_is_pos_def_exact!(workspace::PenaltyMUMPSWorkspace)
   icntl = default_icntl
 
   cntl[1] = eps(T)
-  cntl[2] = eps(T)
 
   # Deactivate logging.
   icntl[2], icntl[3], icntl[4] = 0, 0, 0
 
-  # ICNTL(11): error analysis. 2: Main statistics (recommended).
-  icntl[11] = 2
 
   # CNTL(13) controls the parallelism of the root node; needed to get a
   # reliable inertia from INFOG(12) (see construct_mumps_workspace).
