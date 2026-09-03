@@ -76,8 +76,8 @@ function construct_ldlt_workspace(
     m,
     :uninitialized,
     0,
-    zeros(T, n),
-    zeros(T, n),
+    zeros(T, 0),
+    zeros(T, 0),
   )
 end
 

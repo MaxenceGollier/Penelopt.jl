@@ -89,6 +89,8 @@ function construct_ma57_workspace(
     :uninitialized,
     false,
     0,
+    zeros(T, 0),
+    zeros(T, 0),
   )
 end
 

@@ -18,6 +18,9 @@ mutable struct PenaltyMUMPSWorkspace{
   _n_fact::Int
   _primal_diag::V # Preallocated buffer for up_lb_is_pos_def
   _primal_row_sum::V # Preallocated buffer for up_lb_is_pos_def
+  _Hcheck::WP # Preallocated, reused MUMPS instance for up_lb_is_pos_def_exact!
+  _Hcheck_idx::Vector{Int} # Fixed indices into H.data.vals for the H + σI block
+  _Hcheck_a::V # Preallocated values buffer for _Hcheck, refreshed on each call
 end
 
 function get_H(
@@ -28,6 +31,44 @@ end
 
 function get_H(solver_workspace::PenaltyMUMPSWorkspace{WP,K2}) where {WP,K2<:CompactBFGSK2}
   return solver_workspace.H.H.data
+end
+
+"""
+    build_up_lb_check(H::SparseMatrixCOO{T}, n) -> (S, idx, a)
+
+Preallocate a MUMPS instance `S`, sized n×n, dedicated to the exact check
+performed by `up_lb_is_pos_def_exact!`: factorizing H + σI (the leading
+n×n block of the K2 matrix stored in `H`) on its own. `idx` are the fixed
+indices into `H.vals` for the entries of that block (its sparsity pattern
+does not change across calls, only the values do), and `a` is the
+preallocated values buffer `S` is associated with -- refresh it in place
+(e.g. `a .= H.vals[idx]`) before each `factorize!(S)` call.
+"""
+function build_up_lb_check(H::SparseMatrixCOO{T}, n) where {T}
+  idx = findall(k -> H.rows[k] <= n && H.cols[k] <= n, eachindex(H.vals))
+  irn = Int32.(H.rows[idx])
+  jcn = Int32.(H.cols[idx])
+  a = Vector{T}(undef, length(idx))
+
+  cntl = T == Float64 ? default_cntl64 : default_cntl32
+  icntl = default_icntl
+  cntl[1] = eps(T)
+  icntl[2], icntl[3], icntl[4] = 0, 0, 0
+  # CNTL(13) controls the parallelism of the root node; needed to get a
+  # reliable inertia from INFOG(12) (see construct_mumps_workspace).
+  icntl[13] = 1
+  # ICNTL(24): null pivot row detection.
+  icntl[24] = 1
+
+  S = Mumps{T}(mumps_symmetric, icntl, cntl)
+  S.irn, S.jcn, S.a = pointer.((irn, jcn, a))
+  S.n = n
+  S.nnz = length(idx)
+  S._irn_gc_haven = irn
+  S._jcn_gc_haven = jcn
+  S._a_gc_haven = a
+
+  return S, idx, a
 end
 
 function construct_mumps_workspace(
@@ -89,6 +130,8 @@ function construct_mumps_workspace(
   S.rhs = pointer(x)
   S._y_gc_haven = x
 
+  Scheck, idx, a_check = build_up_lb_check(H.data, n)
+
   return PenaltyMUMPSWorkspace(
     S,
     H,
@@ -103,6 +146,9 @@ function construct_mumps_workspace(
     0,
     zeros(T, n),
     zeros(T, n),
+    Scheck,
+    idx,
+    a_check,
   )
 end
 
@@ -164,6 +210,12 @@ function construct_mumps_workspace(
   S.rhs = pointer(x)
   S._y_gc_haven = x
 
+  # H is a CompactBFGS operator here: up_lb_is_pos_def always returns true
+  # without ever factorizing H + σI, so _Hcheck is never used -- keep it
+  # trivial instead of preallocating an n×n buffer for nothing.
+  cntl_check = T == Float64 ? default_cntl64 : default_cntl32
+  Scheck = Mumps{T}(mumps_symmetric, default_icntl, cntl_check)
+
   return PenaltyMUMPSWorkspace(
     S,
     H,
@@ -176,8 +228,11 @@ function construct_mumps_workspace(
     :uninitialized,
     false,
     0,
-    zeros(T, n),
-    zeros(T, n),
+    zeros(T, 0),
+    zeros(T, 0),
+    Scheck,
+    Int[],
+    zeros(T, 0),
   )
 end
 
@@ -561,56 +616,17 @@ function up_lb_is_pos_def(workspace::PenaltyMUMPSWorkspace, ::Symmetric)
   return up_lb_is_pos_def_exact!(workspace)
 end
 
-# Extracts the (row, col, val) COO triples of H + σI (the leading n×n block
-# of the K2 matrix stored in `workspace`) as fresh, standalone vectors.
-function primal_block_coo(workspace::PenaltyMUMPSWorkspace)
-  n = workspace.n
-  H = get_H(workspace)
-  Ti = eltype(H.rows)
-  Tv = eltype(H.vals)
-  irn, jcn, a = Ti[], Ti[], Tv[]
-  for k in eachindex(H.vals)
-    i, j = H.rows[k], H.cols[k]
-    if i <= n && j <= n
-      push!(irn, i)
-      push!(jcn, j)
-      push!(a, H.vals[k])
-    end
-  end
-  return irn, jcn, a
-end
-
 # Perform Cholesky facto of H + σI to check positive definiteness.
 function up_lb_is_pos_def_exact!(workspace::PenaltyMUMPSWorkspace)
   n = workspace.n
-  T = eltype(workspace.x)
-  irn, jcn, a = primal_block_coo(workspace)
+  H = get_H(workspace)
+  idx = workspace._Hcheck_idx
+  a = workspace._Hcheck_a
+  @inbounds for k in eachindex(idx)
+    a[k] = H.vals[idx[k]]
+  end
 
-  cntl = T == Float64 ? default_cntl64 : default_cntl32
-  icntl = default_icntl
-
-  cntl[1] = eps(T)
-
-  # Deactivate logging.
-  icntl[2], icntl[3], icntl[4] = 0, 0, 0
-
-
-  # CNTL(13) controls the parallelism of the root node; needed to get a
-  # reliable inertia from INFOG(12) (see construct_mumps_workspace).
-  icntl[13] = 1
-
-  # ICNTL(24): null pivot row detection.
-  icntl[24] = 1
-
-  S = Mumps{T}(mumps_symmetric, icntl, cntl)
-
-  S.irn, S.jcn, S.a = pointer.((irn, jcn, a))
-  S.n = n
-  S.nnz = length(irn)
-  S._irn_gc_haven = irn
-  S._jcn_gc_haven = jcn
-  S._a_gc_haven = a
-
+  S = workspace._Hcheck
   S.job = MUMPS.INITIALIZE
   factorize!(S)
 
@@ -622,8 +638,6 @@ function up_lb_is_pos_def_exact!(workspace::PenaltyMUMPSWorkspace)
     npos = rank - nneg
     npos == n
   end
-
-  MUMPS.finalize!(S)
 
   return is_pos_def
 end
