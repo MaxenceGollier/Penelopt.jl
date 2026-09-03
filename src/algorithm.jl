@@ -244,7 +244,6 @@ function SolverCore.solve!(
   ## R2N Specific arguments
   r2n_η1::T = √√eps(T),
   r2n_η2::T = isa(nlp, QuasiNewtonModel) ? T(0.9) : T(0.1),
-  r2n_ηC::T = eps(T)^2,
   r2n_σmin::T = eps(T)^2,
   r2n_γ::T = T(3),
   r2n_watchdog_max_iter::Int = 10,
@@ -261,6 +260,7 @@ function SolverCore.solve!(
   ms_α0::T = eps(T),
   ms_αmin1::T = eps(T)^(0.8),
   ms_αmin2::T = eps(T)^(0.6),
+  ms_ηC::T = eps(T),
 ) where {T,V}
   reset!(stats)
 
@@ -385,7 +385,6 @@ function SolverCore.solve!(
       σk = max(1 / νsub, r2n_σmin),
       η1 = r2n_η1,
       η2 = r2n_η2,
-      ηC = r2n_ηC,
       γ = r2n_γ,
       watchdog_max_iter = r2n_watchdog_max_iter,
       watchdog_η0 = r2n_watchdog_η0,
@@ -404,6 +403,7 @@ function SolverCore.solve!(
       ms_α0 = ms_α0,
       ms_αmin1 = ms_αmin1,
       ms_αmin2 = ms_αmin2,
+      ms_ηC = ms_ηC,
     )
 
     if solver.substats.status == :unbounded
