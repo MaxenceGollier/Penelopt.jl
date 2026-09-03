@@ -235,6 +235,9 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
  * `ms_αmin2::T = eps(T)^(0.6)`, (*advanced*): second minimum value for the MS method.
       > When a rank defficient Jacobian is detected, and the linear solver failed with `α = ms_αmin2`, the MS method is restarted with `α = ms_αmin2`. This is $\alpha_{\text{trial}}^2$ in the implementation paper. When `T == Float64`, the default value is $\approx 10^{-10}$.
 
+ * `ms_ηC::T = eps(T)`, (*advanced*): Cauchy decrease acceptance constant.
+      > When $H + \sigma I$ is not positive definite, the first-order model decrease should be larger than `ms_ηC` times the optimality measure squared. Refer to the implementation paper for more information. When `T == Float64`, the default value is $\approx 10^{-16}$.
+
 ## Linear Solver
 
  * `linear_solver::Sring = "mumps"`: Linear solver library used for step computations.

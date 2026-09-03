@@ -260,6 +260,7 @@ function SolverCore.solve!(
   ms_α0::T = eps(T),
   ms_αmin1::T = eps(T)^(0.8),
   ms_αmin2::T = eps(T)^(0.6),
+  ms_ηC::T = eps(T),
 ) where {T,V}
   reset!(stats)
 
@@ -402,6 +403,7 @@ function SolverCore.solve!(
       ms_α0 = ms_α0,
       ms_αmin1 = ms_αmin1,
       ms_αmin2 = ms_αmin2,
+      ms_ηC = ms_ηC,
     )
 
     if solver.substats.status == :unbounded
