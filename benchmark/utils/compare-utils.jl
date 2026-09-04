@@ -132,13 +132,12 @@ function lookup_certification(report, name::AbstractString, hessian::Symbol)
 end
 
 """
-    register_precomputed_certified!(certified_infeasible, report, key)
+    register_certified!(certified_infeasible, report, key)
 
 Add every problem in `report` certified locally infeasible to
-`certified_infeasible[key]`. Used for `reference`, which doesn't go
-through `infeasibility_pair`.
+`certified_infeasible[key]`.
 """
-function register_precomputed_certified!(
+function register_certified!(
   certified_infeasible::Dict{Symbol,Set{String}},
   report,
   key::Symbol,
@@ -151,66 +150,4 @@ function register_precomputed_certified!(
     end
   end
   return certified_infeasible
-end
-
-function infeasibility_pair(
-  stats,
-  keys,
-  certified_infeasible::Dict{Symbol,Set{String}},
-  ipopt_certification,
-)
-  df_1 = stats[keys[1]]
-  df_2 = stats[keys[2]]
-
-  parts_1 = Symbol.(split(string(keys[1]), "_"))
-  parts_2 = Symbol.(split(string(keys[2]), "_"))
-
-  @assert parts_2[1] == :ipopt
-
-  hessian = parts_1[2]
-
-  @info "Checking infeasibility results for $(hessian) Hessian approximation."
-  if !CERTIFY_INFEASIBILITY
-    @info "CERTIFY_INFEASIBILITY is off: listing flagged problems without certifying them."
-  end
-
-  rows = NamedTuple[]
-  for i = 1:nrow(df_1)
-    @assert df_1[i, :name] == df_2[i, :name]
-    name = df_1[i, :name]
-    l2penalty_status = df_1[i, :status]
-    ipopt_status = df_2[i, :status]
-
-    l2penalty_status != :infeasible && ipopt_status != :infeasible && continue
-
-    # `current` certified fresh; `ipopt` looked up from precomputed data.
-    # "N/A" = not attempted/available; `missing` = attempted, inconclusive.
-    l2penalty_certified =
-      (l2penalty_status == :infeasible && CERTIFY_INFEASIBILITY) ?
-      certify_local_infeasibility(name, keys[1]) : "N/A"
-    ipopt_certified =
-      (ipopt_status == :infeasible && CERTIFY_INFEASIBILITY) ?
-      lookup_certification(ipopt_certification, name, hessian) : "N/A"
-
-    if l2penalty_certified === true
-      push!(get!(() -> Set{String}(), certified_infeasible, keys[1]), name)
-    end
-    if ipopt_certified === true
-      push!(get!(() -> Set{String}(), certified_infeasible, keys[2]), name)
-    end
-
-    push!(
-      rows,
-      (
-        name = name,
-        hessian = hessian,
-        l2penalty_status = l2penalty_status,
-        ipopt_status = ipopt_status,
-        l2penalty_certified_locally_infeasible = l2penalty_certified,
-        ipopt_certified_locally_infeasible = ipopt_certified,
-      ),
-    )
-  end
-
-  return DataFrame(rows)
 end

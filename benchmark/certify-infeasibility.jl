@@ -14,7 +14,7 @@ load_stats("benchmark/result", stats)
 
 reports = DataFrame[]
 for key in keys(stats)
-  push!(reports, certify_own_infeasibility(stats, key))
+  push!(reports, certify_local_infeasibility(stats, key))
 end
 
 infeasibility_certification =

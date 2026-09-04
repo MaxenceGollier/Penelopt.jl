@@ -2,10 +2,8 @@ using CUTEst, Penelopt, NLPModels, NLPModelsIpopt, NLPModelsModifiers, LinearAlg
 
 include(joinpath(@__DIR__, "trust-region-nls.jl"))
 
-# Needs benchmark-utils.jl included first (BENCHMARK_SOLVERS).
-
 """
-    check_local_infeasibility(nlp, xbar; Δ=10.0, tol=1e-9, feas_tol=1e-3)
+    certify_local_infeasibility(nlp, xbar; Δ=10.0, tol=1e-9, feas_tol=1e-3)
 
 Check whether `x̄ = xbar` is a locally infeasible point of `nlp` by solving
 
@@ -17,7 +15,7 @@ constraint is inactive at the solution and ||c(x)|| > feas_tol.
 Returns `true`/`false` when conclusive, `missing` if the inner solve didn't
 reach `:first_order` or stopped at the trust-region boundary.
 """
-function check_local_infeasibility(
+function certify_local_infeasibility(
   nlp::AbstractNLPModel,
   xbar::AbstractVector;
   Δ = 10.0,
@@ -56,11 +54,9 @@ end
 """
     certify_local_infeasibility(name, key)
 
-Reproduce the run `key` (e.g. `:l2penalty_exact_current`, `:ipopt_exact`)
-for CUTEst problem `name` and certify whether its point is locally
-infeasible. Returns `true`/`false`/`missing` (see
-[`check_local_infeasibility`](@ref)), or `missing` if the run can't be
-reproduced.
+Check whether the benchmark run of `key` (e.g. `:l2penalty_exact_current`, `:ipopt_exact`),
+on CUTEst problem `name` is locally infeasible. 
+Reproduces the benchmark run to get the solution point, then calls `certify_local_infeasibility(nlp, xbar)`.
 """
 function certify_local_infeasibility(name::AbstractString, key::Symbol)
   parts = Symbol.(split(string(key), "_"))
@@ -87,24 +83,21 @@ function certify_local_infeasibility(name::AbstractString, key::Symbol)
       x = x[nlp.meta.ifree]
     end
 
-    return check_local_infeasibility(preprocess_nlp, x)
+    return certify_local_infeasibility(preprocess_nlp, x)
   finally
     finalize(nlp)
   end
 end
 
 """
-    certify_own_infeasibility(stats, key)
+    certify_local_infeasibility(stats, key)
 
-Certify every `:infeasible` problem in `stats[key]` against its own point.
-Used to precompute reference/ipopt certification once (see
-certify-infeasibility.jl), instead of re-certifying fixed baselines on
-every PR run.
+Given a benchmark stats dictionary and a key (e.g. `:l2penalty_exact_current`), certify every problem in `stats[key]` that has status `:infeasible`.
 
 Returns a DataFrame with columns `name`, `hessian`, `status`,
 `certified_locally_infeasible`.
 """
-function certify_own_infeasibility(stats::Dict{Symbol,DataFrame}, key::Symbol)
+function certify_local_infeasibility(stats::Dict{Symbol,DataFrame}, key::Symbol)
   df = stats[key]
   parts = Symbol.(split(string(key), "_"))
   hessian = parts[2]
