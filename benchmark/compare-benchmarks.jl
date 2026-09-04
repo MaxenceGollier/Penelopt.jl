@@ -15,7 +15,7 @@ include(joinpath(@__DIR__, "infeasibility-checker.jl"))
 # label) to opt into the full certification pass. When off, the report
 # below still lists every problem either solver declared :infeasible, just
 # without attempting to certify any of them (certified_locally_infeasible
-# stays `missing` throughout, so :infeasible is conservatively treated as
+# stays "N/A" throughout, so :infeasible is conservatively treated as
 # unsolved in the performance profiles - same as before this feature).
 const CERTIFY_INFEASIBILITY = lowercase(get(ENV, "CERTIFY_INFEASIBILITY", "false")) == "true"
 
@@ -156,7 +156,7 @@ function pairwise_plot(
   return p
 end
 
-function infeasibility_pair(stats, keys)
+function infeasibility_pair(stats, keys, certified_infeasible::Dict{Symbol,Set{String}})
   df_1 = stats[keys[1]]
   df_2 = stats[keys[2]]
 
@@ -185,21 +185,29 @@ function infeasibility_pair(stats, keys)
     # crediting IPOPT's :infeasible status requires certifying IPOPT's own
     # x̄, not L2Penalty's (and vice versa) - the two runs can land on
     # different points, so one being certified doesn't say anything about
-    # the other.
+    # the other. "N/A" means certification wasn't even attempted (status
+    # wasn't :infeasible in the first place, or CERTIFY_INFEASIBILITY is
+    # off); `missing` is reserved for a certification that *was* attempted
+    # but came back inconclusive.
     l2penalty_certified =
-      (CERTIFY_INFEASIBILITY && l2penalty_status == :infeasible) ?
-      certify_local_infeasibility(name, keys[1]) : missing
+      (l2penalty_status == :infeasible && CERTIFY_INFEASIBILITY) ?
+      certify_local_infeasibility(name, keys[1]) : "N/A"
     ipopt_certified =
-      (CERTIFY_INFEASIBILITY && ipopt_status == :infeasible) ?
-      certify_local_infeasibility(name, keys[2]) : missing
+      (ipopt_status == :infeasible && CERTIFY_INFEASIBILITY) ?
+      certify_local_infeasibility(name, keys[2]) : "N/A"
+
+    if l2penalty_certified === true
+      push!(get!(() -> Set{String}(), certified_infeasible, keys[1]), name)
+    end
+    if ipopt_certified === true
+      push!(get!(() -> Set{String}(), certified_infeasible, keys[2]), name)
+    end
 
     push!(
       rows,
       (
         name = name,
         hessian = hessian,
-        l2penalty_key = keys[1],
-        ipopt_key = keys[2],
         l2penalty_status = l2penalty_status,
         ipopt_status = ipopt_status,
         l2penalty_certified_locally_infeasible = l2penalty_certified,
@@ -231,8 +239,16 @@ load_stats(ipopt_dir, stats, "")
 # the profiles' costs treat the :infeasible status.
 @info "Infeasibility results\n"
 
-exact_report = infeasibility_pair(stats, [:l2penalty_exact_current, :ipopt_exact])
-lbfgs_report = infeasibility_pair(stats, [:l2penalty_lbfgs_current, :ipopt_lbfgs])
+# Populated by infeasibility_pair below, per solver run (stats key): a
+# problem only ends up in certified_infeasible[key] when *that specific
+# run's own* reproduced point was certified locally infeasible -
+# L2Penalty's :infeasible status is never credited off the back of IPOPT's
+# certification, or vice versa, since the two solvers can (and do) land on
+# different candidate points x̄ for the same problem.
+certified_infeasible = Dict{Symbol,Set{String}}()
+
+exact_report = infeasibility_pair(stats, [:l2penalty_exact_current, :ipopt_exact], certified_infeasible)
+lbfgs_report = infeasibility_pair(stats, [:l2penalty_lbfgs_current, :ipopt_lbfgs], certified_infeasible)
 infeasibility_report = vcat(exact_report, lbfgs_report)
 
 @info "Infeasibility certification results:\n" *
@@ -240,23 +256,6 @@ infeasibility_report = vcat(exact_report, lbfgs_report)
 
 mkpath("benchmark/result")
 @save "benchmark/result/infeasibility_report.jld2" infeasibility_report
-
-# Build, for each solver run (stats key), the set of problem names that run
-# is allowed to be credited for. A problem only ends up in
-# certified_infeasible[key] when *that specific run's own* reproduced point
-# was certified locally infeasible - L2Penalty's :infeasible status is never
-# credited off the back of IPOPT's certification, or vice versa, since the
-# two solvers can (and do) land on different candidate points x̄ for the
-# same problem.
-certified_infeasible = Dict{Symbol,Set{String}}()
-for row in eachrow(infeasibility_report)
-  if row.l2penalty_certified_locally_infeasible === true
-    push!(get!(() -> Set{String}(), certified_infeasible, row.l2penalty_key), row.name)
-  end
-  if row.ipopt_certified_locally_infeasible === true
-    push!(get!(() -> Set{String}(), certified_infeasible, row.ipopt_key), row.name)
-  end
-end
 
 p = plot(
   pairwise_plot(

@@ -218,7 +218,7 @@ function NLPModels.hess_coord!(
 end
 
 """
-    check_local_infeasibility(nlp, xbar; Δ=10.0, tol=1e-9, feas_tol=1e-3)
+    check_local_infeasibility(nlp, xbar; Δ=10.0, tol=1e-12, feas_tol=1e-3)
 
 Given a candidate point `x̄ = xbar` for `nlp`, check whether `x̄` is a
 locally infeasible point by solving
@@ -247,7 +247,7 @@ function check_local_infeasibility(
   nlp::AbstractNLPModel,
   xbar::AbstractVector;
   Δ = 10.0,
-  tol = 1e-9,
+  tol = 1e-12,
   feas_tol = 1e-3,
 )
   M = TrustRegionNLS(nlp, xbar, Δ)
@@ -274,7 +274,7 @@ function check_local_infeasibility(
 
   certified = primal_feas > feas_tol
 
-  @info "Local infeasibility check for $(nlp.meta.name): ||c(x̄)|| = $primal_feas, ||J(x̄)(x-x̄)|| = $tr_residual -> $(certified ? "certified infeasible" : "not certified")"
+  @debug "Local infeasibility check for $(nlp.meta.name): ||c(x̄)|| = $primal_feas, ||J(x̄)(x-x̄)|| = $tr_residual -> $(certified ? "certified infeasible" : "not certified")"
 
   return certified
 end
