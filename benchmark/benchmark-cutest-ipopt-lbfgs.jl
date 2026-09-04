@@ -2,7 +2,7 @@ using JLD2
 
 using CUTEst, NLPModelsIpopt, SolverBenchmark
 
-include(joinpath(@__DIR__, "benchmark-utils.jl"))
+include(joinpath(@__DIR__, "utils", "benchmark-utils.jl"))
 
 problem_names = CUTEst.select_sif_problems(
   min_con = 1,

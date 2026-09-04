@@ -1,8 +1,8 @@
 using DataFrames
 using JLD2
 
-include(joinpath(@__DIR__, "benchmark-utils.jl"))
-include(joinpath(@__DIR__, "infeasibility-checker.jl"))
+include(joinpath(@__DIR__, "utils", "benchmark-utils.jl"))
+include(joinpath(@__DIR__, "utils", "infeasibility-checker.jl"))
 
 # Precomputes a fixed baseline's (reference or ipopt) infeasibility
 # certification, saved once and loaded by compare-benchmarks.jl instead of

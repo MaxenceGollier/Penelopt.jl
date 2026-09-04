@@ -5,9 +5,9 @@ using Printf
 using SolverBenchmark
 using Plots
 
-include(joinpath(@__DIR__, "benchmark-utils.jl"))
-include(joinpath(@__DIR__, "infeasibility-checker.jl"))
-include(joinpath(@__DIR__, "compare-utils.jl"))
+include(joinpath(@__DIR__, "utils", "benchmark-utils.jl"))
+include(joinpath(@__DIR__, "utils", "infeasibility-checker.jl"))
+include(joinpath(@__DIR__, "utils", "compare-utils.jl"))
 
 current_dir = joinpath("artifacts", "current")
 reference_dir = joinpath("artifacts", "reference")
