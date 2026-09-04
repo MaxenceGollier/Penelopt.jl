@@ -324,17 +324,10 @@ function SolverCore.solve!(
 
   ## Scaling
   if nlp_scaling_method == "gradient-based"
-    scaling_model = nlp
-    scaling_model = isa(scaling_model, ScaledModel) ? scaling_model : get_model(scaling_model)
-    scaling_model = isa(scaling_model, ScaledModel) ? scaling_model : get_model(scaling_model)
-
-    scaling_model.d_f = gmax / norm(solver.∇fk, Inf)
-    for j in axes(ψ.A, 1)
-        nc = norm(view(ψ.A, j, :), Inf)
-        scaling_model.d_c[j] = nc > 0 ? min(1.0, gmax / nc) : 1.0
-    end
+    scaling_model = find_model(ScaledModel, nlp)
+    scaling_model === nothing && error("nlp_scaling_method = \"gradient-based\" requires a ScaledModel")
+    update_scaling!(scaling_model, solver.∇fk, ψ.A; gmax = gmax)
   end
-  
 
   ## Initialize penalty parameter
   τ = max(norm(solver.y, 1), τ0)
