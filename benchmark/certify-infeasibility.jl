@@ -4,18 +4,10 @@ using JLD2
 include(joinpath(@__DIR__, "benchmark-utils.jl"))
 include(joinpath(@__DIR__, "infeasibility-checker.jl"))
 
-# Precomputes the infeasibility certification of a *fixed* baseline (the
-# reference L2Penalty run saved by SaveBenchmark.yml, or the IPOPT run
-# saved by RunIpoptBenchmark.yml), so that PR comparisons in
-# compare-benchmarks.jl can load these results (via
-# load_precomputed_certification) instead of re-certifying two baselines
-# that don't change from one PR to the next on every single PR run.
-#
-# Expects the stats_*.jld2 files this run itself just produced to already
-# be sitting in benchmark/result (i.e. run this *after* the benchmark step,
-# before uploading the artifact - the CI jobs merge every matrix split's
-# stats first via download-artifact so all of a Hessian model's problems
-# are certified together).
+# Precomputes a fixed baseline's (reference or ipopt) infeasibility
+# certification, saved once and loaded by compare-benchmarks.jl instead of
+# re-certifying on every PR run. Expects stats_*.jld2 to already be in
+# benchmark/result (run after the benchmark step, after merging splits).
 
 stats = Dict{Symbol,DataFrame}()
 load_stats("benchmark/result", stats)

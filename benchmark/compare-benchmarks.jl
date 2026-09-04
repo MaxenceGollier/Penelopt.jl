@@ -8,26 +8,11 @@ using Plots
 include(joinpath(@__DIR__, "benchmark-utils.jl"))
 include(joinpath(@__DIR__, "infeasibility-checker.jl"))
 
-# Certifying a problem's local infeasibility means re-solving it from
-# scratch (once per flagged solver/Hessian-model combination), which is by
-# far the most expensive part of this comparison - it's what pushed a
-# recent run to ~1h30. Off by default; set CERTIFY_INFEASIBILITY=true (the
-# CI workflow does this when the PR carries the "certify infeasibility"
-# label) to opt into the full certification pass. When off, the report
-# below still lists every problem either solver declared :infeasible, just
-# without attempting to certify any of them (certified_locally_infeasible
-# stays "N/A" throughout, so :infeasible is conservatively treated as
-# unsolved in the performance profiles - same as before this feature).
-#
-# When on, only `current`'s own claims are certified fresh here (that's the
-# whole point - `current` is what actually changed). `reference` and
-# `ipopt` are both fixed baselines from the PR's point of view, so their
-# certifications are *precomputed* once - at SaveBenchmark.yml time for
-# reference, at RunIpoptBenchmark.yml time for ipopt (see
-# certify-infeasibility.jl) - and just loaded here via
-# load_precomputed_certification below. This also means reference's own
-# :infeasible problems get a fair shot at reclassification too, instead of
-# only ever being certified for `current`.
+# Certifying re-solves each flagged problem from scratch - expensive (a
+# recent run took ~1h30). Off by default; CI sets CERTIFY_INFEASIBILITY=true
+# via the "certify infeasibility" label. `current` is certified fresh here;
+# `reference`/`ipopt` are precomputed baselines loaded from
+# certify-infeasibility.jl's output instead of re-solved every PR run.
 const CERTIFY_INFEASIBILITY = lowercase(get(ENV, "CERTIFY_INFEASIBILITY", "false")) == "true"
 
 function pairwise_plot(
@@ -39,9 +24,7 @@ function pairwise_plot(
   df_1 = stats[keys[1]]
   df_2 = stats[keys[2]]
 
-  # Each of the two runs being compared can only be credited for its *own*
-  # certified problems: which set applies is picked by matching `df` (the
-  # dataframe `solved` is called on, either df_1 or df_2) to the right key.
+  # pick the right set by matching df to df_1/df_2 by identity
   cert_1 = get(certified_infeasible, keys[1], Set{String}())
   cert_2 = get(certified_infeasible, keys[2], Set{String}())
   solved(df) =
@@ -121,11 +104,9 @@ end
 """
     load_precomputed_certification(dir)
 
-Look (recursively, since `gh run download` nests artifacts in
-subdirectories) under `dir` for a `infeasibility_certification.jld2`
-produced by `certify-infeasibility.jl` (at `SaveBenchmark.yml` or
-`RunIpoptBenchmark.yml` time), and return the saved DataFrame, or `nothing`
-if none is found (e.g. an older run that predates this feature).
+Find `infeasibility_certification.jld2` (produced by
+certify-infeasibility.jl) anywhere under `dir` and return the saved
+DataFrame, or `nothing` if none is found.
 """
 function load_precomputed_certification(dir::AbstractString)
   cert_file = nothing
@@ -146,11 +127,8 @@ end
 """
     lookup_certification(report, name, hessian)
 
-Look up the certification of `name` (for the given `hessian` model) in a
-precomputed report loaded via [`load_precomputed_certification`](@ref).
-Returns "N/A" if `report` is `nothing`, or if `name`/`hessian` isn't in it
-(meaning that run never declared it `:infeasible` in the first place);
-otherwise returns the stored `true`/`false`/`missing`.
+Look up `name`'s certification (for `hessian`) in a precomputed `report`.
+Returns "N/A" if `report` is `nothing` or doesn't cover `name`.
 """
 function lookup_certification(report, name::AbstractString, hessian::Symbol)
   report === nothing && return "N/A"
@@ -162,11 +140,9 @@ end
 """
     register_precomputed_certified!(certified_infeasible, report, key)
 
-Add every problem `report` (see [`load_precomputed_certification`](@ref))
-certified locally infeasible for the given Hessian model to
-`certified_infeasible[key]`. Used for `reference`, which - unlike `ipopt` -
-never appears in [`infeasibility_pair`](@ref)'s own bookkeeping, since it
-isn't paired against IPOPT there.
+Add every problem in `report` certified locally infeasible to
+`certified_infeasible[key]`. Used for `reference`, which doesn't go
+through `infeasibility_pair`.
 """
 function register_precomputed_certified!(
   certified_infeasible::Dict{Symbol,Set{String}},
@@ -213,15 +189,8 @@ function infeasibility_pair(
 
     l2penalty_status != :infeasible && ipopt_status != :infeasible && continue
 
-    # `current` is what actually changed, so its claim is certified fresh
-    # against its own reproduced point. `ipopt` is a fixed baseline (same
-    # run reused across every PR until RunIpoptBenchmark.yml next
-    # refreshes it), so its claim is looked up from the certification
-    # precomputed at that time rather than re-solved here. "N/A" means
-    # certification wasn't even attempted/available (status wasn't
-    # :infeasible, CERTIFY_INFEASIBILITY is off, or - for ipopt - no
-    # precomputed data covers this problem); `missing` is reserved for a
-    # certification that *was* attempted but came back inconclusive.
+    # `current` certified fresh; `ipopt` looked up from precomputed data.
+    # "N/A" = not attempted/available; `missing` = attempted, inconclusive.
     l2penalty_certified =
       (l2penalty_status == :infeasible && CERTIFY_INFEASIBILITY) ?
       certify_local_infeasibility(name, keys[1]) : "N/A"
@@ -267,30 +236,22 @@ load_stats(reference_dir, stats, "_reference")
 @info "Loading ipopt benchmark results"
 load_stats(ipopt_dir, stats, "")
 
-# Infeasibility check must run before the performance profiles, since its
-# result (which problems are certified locally infeasible) feeds into how
-# the profiles' costs treat the :infeasible status.
+# Must run before the performance profiles: certified problems affect how
+# :infeasible is treated in the profiles' costs.
 @info "Infeasibility results\n"
 
-# `reference` and `ipopt` are fixed baselines from this PR's point of view,
-# so their certifications are loaded from what was precomputed once at
-# SaveBenchmark.yml/RunIpoptBenchmark.yml time (certify-infeasibility.jl),
-# rather than re-solved here on every PR run. Skipped entirely when
-# CERTIFY_INFEASIBILITY is off, since neither is used in that case.
+# reference/ipopt: precomputed baselines, loaded not re-solved. Skipped
+# when CERTIFY_INFEASIBILITY is off.
 reference_certification =
   CERTIFY_INFEASIBILITY ? load_precomputed_certification(reference_dir) : nothing
 ipopt_certification = CERTIFY_INFEASIBILITY ? load_precomputed_certification(ipopt_dir) : nothing
 
-# Populated below, per solver run (stats key): a problem only ends up in
-# certified_infeasible[key] when *that specific run's own* reproduced point
-# was certified locally infeasible - L2Penalty's :infeasible status is
-# never credited off the back of IPOPT's certification, or vice versa,
-# since the two solvers can (and do) land on different candidate points x̄
-# for the same problem.
+# certified_infeasible[key]: problems certified locally infeasible for that
+# specific run - never credited across solvers, since they can land on
+# different points.
 certified_infeasible = Dict{Symbol,Set{String}}()
 
-# `reference` never appears in infeasibility_pair's own current-vs-ipopt
-# pairing below, so it's registered directly from the precomputed report.
+# reference isn't paired against ipopt below, so register it directly.
 register_precomputed_certified!(certified_infeasible, reference_certification, :l2penalty_exact_reference)
 register_precomputed_certified!(certified_infeasible, reference_certification, :l2penalty_lbfgs_reference)
 

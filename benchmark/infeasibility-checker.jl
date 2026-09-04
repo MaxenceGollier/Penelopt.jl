@@ -2,11 +2,8 @@ using CUTEst, Penelopt, NLPModels, NLPModelsIpopt, NLPModelsModifiers, LinearAlg
 
 import NLPModels: increment!
 
-# Solver/Hessian-model combinations, reproducing *exactly* the kwargs used in
-# the corresponding benchmark scripts (benchmark-cutest-exact-hessian.jl,
-# benchmark-cutest-lbfgs.jl, benchmark-cutest-ipopt-exact-hessian.jl,
-# benchmark-cutest-ipopt-lbfgs.jl), so that the candidate point x̄ we certify
-# is the actual point produced by the benchmarked run, not a fresh solve.
+# Reproduces the exact kwargs of the corresponding benchmark script, so the
+# candidate point x̄ is the actual point produced by the benchmarked run.
 const BENCHMARK_TOL = 1e-6
 const BENCHMARK_MAX_TIME = 300.0
 
@@ -108,7 +105,7 @@ function TrustRegionNLS(nlp::AbstractNLPModel, xbar::AbstractVector, Δ::Real)
   )
 end
 
-# --- residual machinery: forward verbatim to FeasibilityResidual(nlp) ---
+# --- forward residual machinery to FeasibilityResidual(nlp) ---
 NLPModels.residual!(M::TrustRegionNLS, x::AbstractVector, Fx::AbstractVector) =
   residual!(M.feas_nls, x, Fx)
 NLPModels.jac_structure_residual!(
@@ -144,19 +141,11 @@ NLPModels.hess_coord_residual!(
 
 # --- our one extra general constraint: ||J(x̄)(x - x̄)||² ≤ Δ² ---
 #
-# FeasibilityFormNLS calls the *_nln (nonlinear-constraint) variants on the
-# wrapped model directly - jac_structure!/jac_coord! are themselves built
-# from jac_nln_structure!/jac_nln_coord! by NLPModels' generic API layer,
-# not the other way around - so those are what must be implemented here
-# (our one constraint is nonlinear, and since we never declare any `lin`
-# indices in the meta, it's automatically classified as such). Hessian is
-# not split this way (it's of the full Lagrangian), so hess_structure!/
-# hess_coord! below stay unsuffixed.
+# FeasibilityFormNLS calls the *_nln variants directly, not cons!/jac_*!.
+# Hessian isn't split this way, so hess_structure!/hess_coord! stay unsuffixed.
 function NLPModels.cons_nln!(M::TrustRegionNLS, x::AbstractVector, c::AbstractVector)
   increment!(M, :neval_cons_nln)
-  # Stored as ||J(x̄)(x - x̄)||² ≤ Δ² rather than ||J(x̄)(x - x̄)|| ≤ Δ so
-  # that the constraint (and its gradient) stays smooth at x = x̄, which is
-  # exactly the starting point we solve from.
+  # squared form keeps the constraint gradient smooth at x = x̄ (start point)
   Jd = M.Jxbar * (x - M.xbar)
   c[1] = dot(Jd, Jd)
   return c
@@ -202,10 +191,7 @@ function NLPModels.hess_coord!(
   vals::AbstractVector;
   obj_weight = 1.0,
 )
-  # obj_weight is irrelevant here: FeasibilityFormNLS always calls this with
-  # obj_weight = 0.0 (TrustRegionNLS's own "objective" - unused, since
-  # FeasibilityFormNLS's objective is purely 1/2||r||² - never contributes),
-  # so only the constraint's constant Hessian, weighted by y[1], matters.
+  # obj_weight always 0 here (FeasibilityFormNLS's own objective is 1/2||r||²)
   increment!(M, :neval_hess)
   n = M.meta.nvar
   yc = length(y) > 0 ? y[1] : 0.0
@@ -220,28 +206,15 @@ end
 """
     check_local_infeasibility(nlp, xbar; Δ=10.0, tol=1e-9, feas_tol=1e-3)
 
-Given a candidate point `x̄ = xbar` for `nlp`, check whether `x̄` is a
-locally infeasible point by solving
+Check whether `x̄ = xbar` is a locally infeasible point of `nlp` by solving
 
     min_x 1/2 ||c(x)||² s.t. ||J(x̄)(x - x̄)|| ≤ Δ
 
-with IPOPT (absolute tolerance `tol`), starting from `x̄`. Internally this
-is built as `FeasibilityFormNLS(TrustRegionNLS(nlp, xbar, Δ))`, i.e. as the
-(x, r) problem `min 1/2||r||² s.t. c(x) - r = 0, ||J(x̄)(x-x̄)||² ≤ Δ²`.
+with IPOPT, starting from `x̄`. Certified infeasible if the trust-region
+constraint is inactive at the solution and ||c(x)|| > feas_tol.
 
-The problem is declared certifiably locally infeasible if, at the solution
-`x` of the trust-region subproblem:
-  - the trust-region constraint is *inactive*, i.e. ||J(x̄)(x - x̄)|| < Δ
-    (so the result isn't just an artifact of the trust-region radius), and
-  - ||c(x)|| > feas_tol (no nearby feasible point was found).
-
-Returns:
-  - `true`  if both conditions above hold (certified locally infeasible),
-  - `false` if the trust-region constraint is inactive and ||c(x)|| ≤ feas_tol
-    (a nearby point essentially satisfies the constraints),
-  - `missing` if the result is inconclusive: either the inner IPOPT solve
-    did not reach `:first_order`, or it stopped at the trust-region boundary
-    (in which case Δ may be too small to tell).
+Returns `true`/`false` when conclusive, `missing` if the inner solve didn't
+reach `:first_order` or stopped at the trust-region boundary.
 """
 function check_local_infeasibility(
   nlp::AbstractNLPModel,
@@ -253,7 +226,7 @@ function check_local_infeasibility(
   M = TrustRegionNLS(nlp, xbar, Δ)
   model = FeasibilityFormNLS(M)
 
-  # (x, r) start: r₀ = c(x̄), so the F(x) - r = 0 block is satisfied at x0.
+  # r₀ = c(x̄), so the F(x) - r = 0 block is satisfied at x0
   x0 = vcat(xbar, cons(nlp, xbar))
   stats = ipopt(model, x0 = x0, tol = tol, print_level = 0)
 
@@ -282,13 +255,11 @@ end
 """
     certify_local_infeasibility(name, key)
 
-Reproduce the run identified by `key` (e.g. `:l2penalty_exact_current` or
-`:ipopt_exact`) for the CUTEst problem `name`, using the exact same solver
-and kwargs as the corresponding benchmark script, and certify whether the
-resulting point x̄ is locally infeasible.
-
-Returns `true`, `false`, or `missing` (see [`check_local_infeasibility`](@ref)).
-Also returns `missing` if the run itself cannot be reproduced.
+Reproduce the run `key` (e.g. `:l2penalty_exact_current`, `:ipopt_exact`)
+for CUTEst problem `name` and certify whether its point is locally
+infeasible. Returns `true`/`false`/`missing` (see
+[`check_local_infeasibility`](@ref)), or `missing` if the run can't be
+reproduced.
 """
 function certify_local_infeasibility(name::AbstractString, key::Symbol)
   parts = Symbol.(split(string(key), "_"))
@@ -324,18 +295,13 @@ end
 """
     certify_own_infeasibility(stats, key)
 
-Certify every problem that the run identified by `key` (e.g.
-`:l2penalty_exact` or `:ipopt_exact`) declared `:infeasible` in `stats[key]`,
-against its own reproduced point - no pairing with another solver involved.
-
-This is what precomputes the certification saved alongside the `reference`
-(at `SaveBenchmark.yml` time) and `ipopt` (at `RunIpoptBenchmark.yml` time)
-baselines, so that PR comparisons in `compare-benchmarks.jl` can *load*
-those results instead of re-certifying two fixed baselines on every PR run.
+Certify every `:infeasible` problem in `stats[key]` against its own point.
+Used to precompute reference/ipopt certification once (see
+certify-infeasibility.jl), instead of re-certifying fixed baselines on
+every PR run.
 
 Returns a DataFrame with columns `name`, `hessian`, `status`,
-`certified_locally_infeasible` (`true`/`false`/`missing`, see
-[`check_local_infeasibility`](@ref)).
+`certified_locally_infeasible`.
 """
 function certify_own_infeasibility(stats::Dict{Symbol,DataFrame}, key::Symbol)
   df = stats[key]

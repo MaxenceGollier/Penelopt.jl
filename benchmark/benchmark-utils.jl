@@ -6,10 +6,8 @@ const METHODS = (:exact, :lbfgs)
 """
     load_stats(dir, stats, suffix = "")
 
-Load every `stats_<method>_<split>.jld2` (or, when `suffix == ""`,
-`stats_ipopt_<method>_<split>.jld2`) file found anywhere under `dir`,
-concatenate the splits, and merge the result into `stats` under keys named
-`<original_key><suffix>`.
+Load every stats split under `dir`, concatenate, merge into `stats` under
+keys named `<key><suffix>`.
 """
 function load_stats(dir::AbstractString, stats, suffix = "")
 

@@ -106,14 +106,8 @@ jobs:
 
     runs-on: windows-latest
 
-    # Precompute reference's own infeasibility certification here, once,
-    # whenever this run is producing a new reference baseline (i.e. NOT a
-    # pull_request event - SaveBenchmark.yml calling this via
-    # workflow_call, on main pushes/schedule). PR runs never certify
-    # reference themselves; they load whatever this job last produced (see
-    # the Compare job and compare-benchmarks.jl's
-    # load_precomputed_certification). Same "if: replaces implicit needs
-    # gating" caveat as Compare below.
+    # Only on non-PR runs (SaveBenchmark on main). PRs load whatever this
+    # last produced instead of re-certifying reference themselves.
     if: >
       needs.Benchmark-LBFGS.result == 'success' &&
       needs.Benchmark-Exact-Hessian.result == 'success' &&
@@ -159,24 +153,16 @@ jobs:
 
     runs-on: windows-latest
 
-    # Only run for an actual labeled pull_request event - NOT when this
-    # workflow is invoked via workflow_call (e.g. from SaveBenchmark.yml on
-    # main pushes/schedule, where there's no PR to compare against and no
-    # need to pay for re-solving the flagged infeasible problems). Since an
-    # explicit `if:` replaces the implicit "needs succeeded" check rather
-    # than adding to it, that's re-checked here too.
+    # Only for a labeled pull_request - not workflow_call (e.g.
+    # SaveBenchmark.yml). Explicit if: replaces implicit needs gating.
     if: >
       needs.Benchmark-LBFGS.result == 'success' &&
       needs.Benchmark-Exact-Hessian.result == 'success' &&
       github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'run CUTEst benchmark')
 
-    # Certifying flagged :infeasible problems re-solves each of them from
-    # scratch and is by far the most expensive part of this job (a recent
-    # run took ~1h30 because of it). Off by default; opt in with the
-    # "certify infeasibility" label on top of "run CUTEst benchmark" when
-    # you actually need the certified perf-profile reclassification, rather
-    # than just the (fast) list of flagged problems.
+    # Certifying re-solves flagged problems - expensive (~1h30 on a recent
+    # run). Off by default; opt in with the "certify infeasibility" label.
     env:
       CERTIFY_INFEASIBILITY: ${{ contains(github.event.pull_request.labels.*.name, 'certify infeasibility') }}
 
