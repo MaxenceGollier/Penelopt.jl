@@ -25,7 +25,7 @@ end
 function L2PenaltySolver(
   nlp::AbstractNLPModel{T,V};
   r2n_m_monotone::Int = 12,
-  linear_solver::String = "ldlt",
+  linear_solver::String = "mumps",
 ) where {T,V}
   x0 = nlp.meta.x0
   x, xn, s, s0 = similar(x0), similar(x0), similar(x0), zero(x0)
@@ -155,7 +155,7 @@ You can also use the `sub_callback` keyword argument which has exactly the same 
 function L2Penalty(
   nlp::AbstractNLPModel{T,V};
   r2n_m_monotone::Int = 12,
-  linear_solver::String = "ldlt",
+  linear_solver::String = "mumps",
   qn_hessian_approximation::String = "exact",
   qn_mem::Int = 6,
   qn_scaling::Bool = true,
@@ -248,7 +248,7 @@ function SolverCore.solve!(
   ## R2N Specific arguments
   r2n_η1::T = √√eps(T),
   r2n_η2::T = isa(nlp, QuasiNewtonModel) ? T(0.9) : T(0.1),
-  r2n_σmin::T = eps(T),
+  r2n_σmin::T = eps(T)^2,
   r2n_γ::T = T(3),
   r2n_watchdog_max_iter::Int = 10,
   r2n_watchdog_η0::T = √eps(T),
@@ -264,6 +264,7 @@ function SolverCore.solve!(
   ms_α0::T = eps(T),
   ms_αmin1::T = eps(T)^(0.8),
   ms_αmin2::T = eps(T)^(0.6),
+  ms_ηC::T = eps(T),
 ) where {T,V}
   reset!(stats)
 
@@ -302,7 +303,7 @@ function SolverCore.solve!(
 
   set_solver_specific!(solver.substats, :smooth_obj, fx)
   grad!(nlp, x, solver.∇fk)
-  compute_least_square_multipliers!(solver)
+  initialize_multipliers!(solver)
   dual_feas = least_square_dual_feas!(solver)
   solver.subsolver.y .= solver.y
 
@@ -385,7 +386,7 @@ function SolverCore.solve!(
 
       ## R2N Specific arguments
       σmin = r2n_σmin,
-      σk = 1 / νsub,
+      σk = max(1 / νsub, r2n_σmin),
       η1 = r2n_η1,
       η2 = r2n_η2,
       γ = r2n_γ,
@@ -406,6 +407,7 @@ function SolverCore.solve!(
       ms_α0 = ms_α0,
       ms_αmin1 = ms_αmin1,
       ms_αmin2 = ms_αmin2,
+      ms_ηC = ms_ηC,
     )
 
     if solver.substats.status == :unbounded

@@ -29,12 +29,8 @@ end
   include("test-quasi-newton.jl")
 end
 
-@testset "Subsolvers" begin
-  include("test-subsolvers.jl")
-end
-
 @testset "CUTEst-default" begin
-  @test isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) # Check that the extension is not loaded.
+  @test isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) # Check that the extension is not loaded.
   include("test-cutest.jl")
 end
 
@@ -42,8 +38,15 @@ end
   include("test-errors.jl")
 end
 
-using MPI, MUMPS
-@testset "CUTEst-MUMPS" begin
-  @test !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt))
+# The Subsolvers allocation tests specifically exercise the zero-allocation
+# LDLFactorizations.jl path, so the extension needs to be loaded from here on.
+using LDLFactorizations
+
+@testset "Subsolvers" begin
+  include("test-subsolvers.jl")
+end
+
+@testset "CUTEst-LDLFactorizations" begin
+  @test !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt))
   include("test-cutest.jl")
 end

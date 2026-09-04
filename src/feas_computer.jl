@@ -51,7 +51,7 @@ function kkt_primal_feas!(solver::L2PenaltySolver{T}) where {T}
   return norm(solver.subsolver.subpb.h.b, Inf)
 end
 
-function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
+function initialize_multipliers!(solver::L2PenaltySolver{T}) where {T}
 
   ## Retrieve workspace
   r2n_solver, r2n_stats = solver.subsolver, solver.substats
@@ -63,11 +63,16 @@ function compute_least_square_multipliers!(solver::L2PenaltySolver{T}) where {T}
   nlp, ψ = ms_problem.model, ms_problem.h
   n, m = nlp.meta.nvar, length(ψ.b)
 
+  norm_∇f = norm(solver.∇fk)
   # Step 1: Compute
   # ( I     Jᵀ )( s ) = - ( ∇f )
   # ( J     0I )( y ) = - ( 0  )
+  # If ∇f != 0, otherwise, solve
+  # ( I     Jᵀ )( s ) = - ( 0 )
+  # ( J     0I )( y ) = - ( c )
   @. u1[1:n] = - solver.∇fk
   @. u1[(n+1):(n+m)] = 0
+  iszero(norm_∇f) && (@. u1[(n+1):(n+m)] = - ψ.b)
 
   σ, α = one(T), eps(T)
   update_workspace!(ls_workspace, ψ.A, σ, α)

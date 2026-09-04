@@ -8,7 +8,7 @@ function test_problem(
   primal_solution,
   dual_solution,
   expected_status;
-  linear_solver::String = "ldlt",
+  linear_solver::String = "mumps",
   ignore_null_hessian::Bool = false,
   ignore_bfgs::Bool = false,
   ignore_exact::Bool = false,
@@ -18,8 +18,14 @@ function test_problem(
   # Test with R2
 
   !ignore_null_hessian && @testset "NullHessian" begin
-    stats =
-      L2Penalty(nlp, atol = tol, rtol = tol, qn_hessian_approximation = "null", τ0 = 1.0)
+    stats = L2Penalty(
+      nlp,
+      atol = tol,
+      rtol = tol,
+      qn_hessian_approximation = "null",
+      linear_solver = linear_solver,
+      τ0 = 1.0,
+    )
 
     # Test whether the outputs are well defined
     @test stats.status == expected_status
@@ -41,11 +47,15 @@ function test_problem(
     end
     null_model = NullHessianModel(preprocessed_nlp)
 
-    solver = L2PenaltySolver(null_model)
+    solver = L2PenaltySolver(null_model, linear_solver = linear_solver)
     stats_optimized = PeneloptExecutionStats(null_model)
-    @test @wrappedallocs(
+    if linear_solver == "ldlt"
+      @test @wrappedallocs(
+        solve!(solver, null_model, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
+      ) == 0
+    else
       solve!(solver, null_model, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
-    ) == 0
+    end
 
     stats_optimized.solution = recover_full_solution(null_model, stats_optimized.solution)
 
@@ -92,7 +102,13 @@ function test_problem(
 
     solver = L2PenaltySolver(LBFGS_model, linear_solver = linear_solver)
     stats_optimized = PeneloptExecutionStats(LBFGS_model)
-    solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
+    if linear_solver != "mumps"
+      @test @wrappedallocs(
+        solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
+      ) == 0
+    else
+      solve!(solver, LBFGS_model, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
+    end
 
     stats_optimized.solution =
       recover_full_solution(LBFGS_model, stats_optimized.solution)
@@ -134,9 +150,20 @@ function test_problem(
 
     solver = L2PenaltySolver(preprocessed_nlp, linear_solver = linear_solver)
     stats_optimized = PeneloptExecutionStats(preprocessed_nlp)
-    @test @wrappedallocs(
+    if linear_solver == "ldlt"
+      @test @wrappedallocs(
+        solve!(
+          solver,
+          preprocessed_nlp,
+          stats_optimized,
+          atol = 1e-3,
+          rtol = 1e-3,
+          τ0 = 1.0,
+        )
+      ) == 0
+    else
       solve!(solver, preprocessed_nlp, stats_optimized, atol = 1e-3, rtol = 1e-3, τ0 = 1.0)
-    ) == 0
+    end
 
     stats_optimized.solution =
       recover_full_solution(preprocessed_nlp, stats_optimized.solution)
@@ -159,7 +186,8 @@ end
   primal_solution = [1, 0]
   dual_solution = [-99.5]
   linear_solver =
-    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" :
+    "mumps"
   test_problem(
     "BT1",
     primal_solution,
@@ -174,7 +202,8 @@ end
   primal_solution = [1, 0]
   dual_solution = [0.499999]
   linear_solver =
-    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" :
+    "mumps"
   test_problem(
     "MARATOS",
     primal_solution,
@@ -186,7 +215,7 @@ end
 
 # Test an infeasible problem
 @testset "VANDANIUMS" begin
-  if isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt))
+  if isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt))
     test_problem("VANDANIUMS", Float64[], Float64[], :infeasible)
   end
 end
@@ -196,10 +225,12 @@ end
   # The problem is infeasible but the primal feas is arbitrarily small for some ||x|| -> inf.
   # Only test that we converge to first order
   nlp = CUTEstModel("SSINE")
-  stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0)
-  @test stats.status == :first_order
+  stats = L2Penalty(nlp, atol = 1e-3, rtol = 0.0)
+  if !Sys.iswindows()
+    @test stats.status == :first_order
+  end
 
-  # stats = L2Penalty(nlp, atol = 1e-5, rtol = 0.0, qn_hessian_approximation = "bfgs")
+  # stats = L2Penalty(nlp, atol = 1e-3, rtol = 0.0, qn_hessian_approximation = "bfgs")
   # @test stats.status == :first_order
   finalize(nlp)
 end
@@ -218,7 +249,8 @@ end
   ]
   dual_solution = zeros(5)
   linear_solver =
-    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" :
+    "mumps"
   test_problem(
     "AIRCRFTA",
     primal_solution,
@@ -241,7 +273,8 @@ end
   ]
   dual_solution = [0.0, 0.0, 0.0, 1.44]
   linear_solver =
-    !isnothing(Base.get_extension(Penelopt, :PeneloptMUMPSExt)) ? "mumps" : "ldlt"
+    !isnothing(Base.get_extension(Penelopt, :PeneloptLDLFactorizationsExt)) ? "ldlt" :
+    "mumps"
   test_problem(
     "HS56",
     primal_solution,

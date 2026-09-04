@@ -17,7 +17,7 @@ end
 
 function MoreSorensenSolver(
   reg_nlp::AbstractShiftedPenalizedProblem{T,V};
-  solver = :ldlt,
+  solver = :mumps,
 ) where {T,V}
   x0 = reg_nlp.model.meta.x0
   n = reg_nlp.model.meta.nvar
@@ -29,31 +29,31 @@ function MoreSorensenSolver(
 
   # Check linear solver
 
-  # Check for MUMPS
-  mumps_loaded = !isnothing(Base.get_extension(@__MODULE__, :PeneloptMUMPSExt))
-  if !mumps_loaded && solver == :mumps
-    @warn "Penelopt.jl: MUMPS extension is not loaded. Please install MPI.jl and MUMPS.jl. Switching to LDLFactorizations.jl..."
-    solver = :ldlt
+  # Check for LDLFactorizations
+  ldlt_loaded = !isnothing(Base.get_extension(@__MODULE__, :PeneloptLDLFactorizationsExt))
+  if !ldlt_loaded && solver == :ldlt
+    @warn "Penelopt.jl: LDLFactorizations extension is not loaded. Please install LDLFactorizations.jl. Switching to MUMPS..."
+    solver = :mumps
   end
 
   # Check for HSL
   hsl_loaded = !isnothing(Base.get_extension(@__MODULE__, :PeneloptHSLExt))
   if !hsl_loaded && solver == :ma57
-    @warn "Penelopt.jl: HSL extension is not loaded. Please install HSL.jl. Switching to LDLFactorizations.jl..."
-    solver = :ldlt
+    @warn "Penelopt.jl: HSL extension is not loaded. Please install HSL.jl. Switching to MUMPS..."
+    solver = :mumps
   end
 
   hsl_isfunctional = hsl_loaded && hsl_functional()
   if !hsl_isfunctional && solver == :ma57
-    @warn "Penelopt.jl: HSL extension is not functional. Please check your license and make sure you have loaded HSL_jll.jl appropriately. Switching to LDLFactorizations.jl..."
-    solver = :ldlt
+    @warn "Penelopt.jl: HSL extension is not functional. Please check your license and make sure you have loaded HSL_jll.jl appropriately. Switching to MUMPS..."
+    solver = :mumps
   end
 
   # Check for Krylov
   krylov_loaded = !isnothing(Base.get_extension(@__MODULE__, :PeneloptKrylovExt))
   if !krylov_loaded && solver == :minres_qlp
-    @warn "Penelopt.jl: Krylov extension is not loaded. Please install Krylov.jl. Switching to LDLFactorizations.jl..."
-    solver = :ldlt
+    @warn "Penelopt.jl: Krylov extension is not loaded. Please install Krylov.jl. Switching to MUMPS..."
+    solver = :mumps
   end
 
   H = K2(
@@ -90,6 +90,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   αmin2::T = eps(T)^(0.6),
   σmax::T = 1 / eps(T)^(0.8),
   accept_descent::Bool = true, # Whether we accept inexact steps that decrease the quadratic model.
+  ηC::T = eps(T), # Cauchy decrease acceptance constant, see up_lb_is_pos_def fallback below.
 ) where {T,V,M,H,P}
   start_time = time()
   set_time!(stats, 0.0)
@@ -201,13 +202,28 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   end
 
   if norm_x1 <= Δ || (is_descent && accept_descent)
-    set_solution!(stats, @view x1[1:n])
-    set_status!(stats, :first_order)
+    if up_lb_is_pos_def(solver_workspace) ||
+       (is_descent && accept_descent && check_cauchy_decrease(solver, reg_nlp; ηC = ηC))
+      set_solution!(stats, @view x1[1:n])
+      set_status!(stats, :first_order)
 
-    !is_descent && set_status!(stats, :not_desc)
-    set_solver_specific!(stats, :alpha, α)
-    print_level > 0 && @info conclusion_message(solver, stats)
+      !is_descent && set_status!(stats, :not_desc)
+      set_solver_specific!(stats, :alpha, α)
+      print_level > 0 && @info conclusion_message(solver, stats)
 
+      return
+    end
+
+    # Neither positive-definiteness of H + σI, nor (when applicable) the
+    # Cauchy decrease condition, could certify x1: increase σ and re-solve
+    # instead of accepting it here.
+    reg_nlp.model.data.σ *= μσ
+    if reg_nlp.model.data.σ >= σmax
+      set_status!(stats, :exception)
+      print_level > 0 && @info conclusion_message(solver, stats)
+      return
+    end
+    solve!(solver, reg_nlp, stats)
     return
   end
 
@@ -319,6 +335,45 @@ function get_primal_dual_sol!(s, y, solver::MoreSorensenSolver)
   y .= @view solver.x1[(n+1):end]
 end
 
+"""
+    check_cauchy_decrease(solver::MoreSorensenSolver, reg_nlp::ShiftedL2PenalizedProblem; ηC = ...)
+
+Checks the Cauchy decrease condition on the current primal-dual step
+`solver.x1`, i.e. whether
+
+    τₖ‖c(xₗ)‖₂ - ∇f(xₗ)ᵀsₗ - τₖ‖c(xₗ) + J(xₗ)sₗ‖₂ ≥ ηC ‖(Hₗ+σₗI)sₗ‖₂²
+
+holds, where `sₗ = solver.x1[1:n]` is the primal step and
+`yₗ = solver.x1[(n+1):(n+m)]` the associated dual step from the KKT system
+just solved (`Hₗ` is the current Hessian approximation and `σₗ` the current
+primal regularization parameter, `reg_nlp.model.data.σ`). If this holds,
+`sₗ` is an acceptable step even though `Hₗ+σₗI` was not confirmed to be
+positive definite by `up_lb_is_pos_def`.
+"""
+function check_cauchy_decrease(
+  solver::MoreSorensenSolver{T,V},
+  reg_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P};
+  ηC::T = T(1e-2),
+) where {T,V,M,H,P}
+  n = reg_nlp.model.meta.nvar
+  m = length(reg_nlp.h.b)
+  x1 = solver.x1
+
+  s = @view x1[1:n]
+  y = @view x1[(n+1):(n+m)]
+  ∇f = reg_nlp.model.data.c
+  τ = reg_nlp.h.h.lambda
+
+  model_decrease = τ * norm(reg_nlp.h.b) - dot(∇f, s) - reg_nlp.h(s)
+
+  Hs = reg_nlp.model.data.v
+  mul!(Hs, reg_nlp.h.A', y)
+  @. Hs += ∇f
+  # ‖(Hₗ+σₗI)sₗ‖₂² = ‖-∇f(xₗ) - J(xₗ)ᵀyₗ‖₂² = ‖Hs‖₂² regardless of sign.
+
+  return model_decrease >= ηC * dot(Hs, Hs)
+end
+
 function SolverCore.reset!(solver::MoreSorensenSolver{T}) where {T}
-  set_n_fact!(solver.workspace, 0)
+  reset!(solver.workspace)
 end

@@ -24,7 +24,7 @@ end
 function PenaltyR2NSolver(
   penalty_nlp::AbstractPenalizedProblem{T,V};
   m_monotone::Int = 12,
-  linear_solver::String = "ldlt",
+  linear_solver::String = "mumps",
 ) where {T,V}
   x0 = penalty_nlp.model.meta.x0
 
@@ -81,7 +81,7 @@ function SolverCore.solve!(
   max_time::Float64 = 30.0,
   max_eval::Int = -1,
   σk::T = eps(T)^(1 / 5),
-  σmin::T = eps(T),
+  σmin::T = eps(T)^2,
   η1::T = √√eps(T),
   η2::T = T(0.1),
   γ::T = T(3),
@@ -103,6 +103,7 @@ function SolverCore.solve!(
   ms_α0::T = eps(T),
   ms_αmin1::T = eps(T)^(0.8),
   ms_αmin2::T = eps(T)^(0.6),
+  ms_ηC::T = eps(T),
 ) where {T,V}
   reset!(stats)
 
@@ -223,6 +224,7 @@ function SolverCore.solve!(
       α0 = ms_α0,
       αmin1 = ms_αmin1,
       αmin2 = ms_αmin2,
+      ηC = ms_ηC,
     )
     get_primal_dual_sol!(s, y, solver.subsolver)
     σk = solver.subpb.model.data.σ
@@ -234,8 +236,8 @@ function SolverCore.solve!(
     mks = dot(∇fk, s) + ψ(s)
 
     fhmax = m_monotone > 1 ? maximum(m_fh_hist) : fk + hk
-    Δobj = fhmax - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    Δmod = fhmax - (fk + mks) + max(1, abs(fhmax)) * 10 * eps()
+    Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps(T)
+    Δmod = fhmax - (fk + mks) + max(1, abs(fhmax)) * 10 * eps(T)
 
     ρk = Δmod < 0 ? 0 : Δobj / Δmod
 
@@ -250,7 +252,7 @@ function SolverCore.solve!(
     end
 
     if η2 ≤ ρk < Inf
-      σk = σk / γ
+      σk = max(σk / γ, σmin)
     end
 
     if ρk < η1 || ρk == Inf

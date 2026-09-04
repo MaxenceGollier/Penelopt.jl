@@ -192,6 +192,9 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
  * `r2n_γ::T = 3` (*advanced*): decrease/increase factor for quadratic regularization parameter.
     > When a step is rejected, the quadratic regularization paramater $\sigma_l$ is increased by a factor `r2n_γ`, when a step is "strongly" accepted (see `r2n_η2`), the quadratic regularization parameter is decreased by a factor `1/r2n_γ`. Note that `r2n_γ > 1` should hold.
 
+ * `r2n_σmin::T = eps(T)^2` (*advanced*): minimum quadratic regularization parameter.
+    > The quadratic regularization parameter is bounded from below by `r2n_σmin`. When `T == Float64`, the default value is $\approx 10^{-32}$. This value should be very small.
+
  * `r2n_m_monotone::Int = 12` (*advanced*): non-monotone memory parameter.
     > When computing the ratio of the actual decrease and the first-order decrease (see `r2n_η1`), the decrease is computed with respect to the maximum of the last `r2n_m_monotone` values of the objective.
 
@@ -232,21 +235,24 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
  * `ms_αmin2::T = eps(T)^(0.6)`, (*advanced*): second minimum value for the MS method.
       > When a rank defficient Jacobian is detected, and the linear solver failed with `α = ms_αmin2`, the MS method is restarted with `α = ms_αmin2`. This is $\alpha_{\text{trial}}^2$ in the implementation paper. When `T == Float64`, the default value is $\approx 10^{-10}$.
 
+ * `ms_ηC::T = eps(T)`, (*advanced*): Cauchy decrease acceptance constant.
+      > When $H + \sigma I$ is not positive definite, the first-order model decrease should be larger than `ms_ηC` times the optimality measure squared. Refer to the implementation paper for more information. When `T == Float64`, the default value is $\approx 10^{-16}$.
+
 ## Linear Solver
 
- * `linear_solver::Sring = "ldlt"`: Linear solver library used for step computations.
+ * `linear_solver::Sring = "mumps"`: Linear solver library used for step computations.
     > Determines which linear algebra package is to be used for the solution of the linear systems.
     >
     > Possible values:
+    > * mumps: use the [MUMPS](https://mumps-solver.org/index.php?page=doc) package (default).
     > * ldlt: use the [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl) package.
     > * ma57: use the HSL routine MA57.
     > * minres\_qlp (does not work well): use the minres\_qlp solver from [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
-    > * mumps: use the Mumps package.
     >
     > **NOTE**: Except for the default, you need to **load** corresponding packages to use each option.
+    > * ldlt: Load [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl).
     > * ma57: Load [HSL.jl](https://github.com/JuliaSmoothOptimizers/HSL.jl).
     > * minres\_qlp: Load [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
-    > * mumps: Load [MPI.jl](https://github.com/JuliaParallel/MPI.jl) and [MUMPS.jl](https://github.com/JuliaSmoothOptimizers/MUMPS.jl).
 
 ## quasi-Newton Approximations
 
