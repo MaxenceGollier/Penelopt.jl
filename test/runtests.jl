@@ -23,6 +23,7 @@ include("instances/instance-generator.jl")
 
 @testset "pre-processing" begin
   include("test-no-fixed-vars.jl")
+  include("test-no-shifted-constraints.jl")
   include("test-preprocessing-order.jl")
 end
 
