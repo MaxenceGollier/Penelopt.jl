@@ -118,6 +118,10 @@ was left untouched by [`remove_constraint_shift`](@ref)).
 constraint_shift(nlp::ShiftedConstraintModel) = nlp.shift
 constraint_shift(nlp::AbstractNLPModel{T}) where {T} = zeros(T, get_ncon(nlp))
 
+# Pass `recover_full_solution` through to the wrapped model.
+recover_full_solution(nlp::ShiftedConstraintModel, x::AbstractVector) =
+  recover_full_solution(get_model(nlp), x)
+
 # ------------------------------------------------------------------------
 # NLPModels API
 #
