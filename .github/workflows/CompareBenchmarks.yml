@@ -9,15 +9,20 @@ on:
           Leave empty to use the latest successful run on this branch.
         required: false
         type: string
+      certify_infeasibility:
+        description: >
+          Certify flagged `:infeasible` problems. Off by default.
+        required: false
+        type: boolean
+        default: false
   workflow_call:
-  workflow_run:
-    workflows: ["Run Benchmark"]
-    types:
-      - completed
 
 jobs:
   Compare:
     runs-on: windows-latest
+
+    env:
+      CERTIFY_INFEASIBILITY: ${{ inputs.certify_infeasibility }}
 
     steps:
       - uses: actions/checkout@v4
@@ -35,10 +40,7 @@ jobs:
           BRANCH: ${{ github.ref_name }}
         shell: bash
         run: |
-          if [ -n "${{ github.event.workflow_run.id }}" ]; then
-            RUN_ID="${{ github.event.workflow_run.id }}"
-            echo "Using triggering run id: $RUN_ID"
-          elif [ -n "${{ inputs.run_id }}" ]; then
+          if [ -n "${{ inputs.run_id }}" ]; then
             RUN_ID="${{ inputs.run_id }}"
             echo "Using manually supplied run id: $RUN_ID"
           else
