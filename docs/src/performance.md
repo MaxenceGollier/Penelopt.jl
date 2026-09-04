@@ -147,7 +147,7 @@ solution_full = recover_full_solution(nlp_no_fixed, stats.solution)
 If some of your equality constraints are written as $c_i(x) = v_i$ for some constant $v_i \neq 0$, Penelopt.jl automatically reformulates them as $c_i(x) - v_i = 0$ internally.
 
 ```@example shifted
-using ADNLPModels, NLPModels, Penelopt
+using ADNLPModels, Penelopt
 
 # NLP model with a shifted constraint c(x) = 5
 nlp = ADNLPModel(x -> sum(x .^ 2), ones(5), x -> [sum(x .^ 3)], [5.0], [5.0])
