@@ -30,13 +30,22 @@ load_stats(ipopt_dir, stats, "")
 
 reference_certification =
   CERTIFY_INFEASIBILITY ? load_precomputed_certification(reference_dir) : nothing
-ipopt_certification = CERTIFY_INFEASIBILITY ? load_precomputed_certification(ipopt_dir) : nothing
+ipopt_certification =
+  CERTIFY_INFEASIBILITY ? load_precomputed_certification(ipopt_dir) : nothing
 
 certified_infeasible = Dict{Symbol,Set{String}}()
 
 # reference isn't paired against ipopt below, so register it directly.
-register_certified!(certified_infeasible, reference_certification, :l2penalty_exact_reference)
-register_certified!(certified_infeasible, reference_certification, :l2penalty_lbfgs_reference)
+register_certified!(
+  certified_infeasible,
+  reference_certification,
+  :l2penalty_exact_reference,
+)
+register_certified!(
+  certified_infeasible,
+  reference_certification,
+  :l2penalty_lbfgs_reference,
+)
 
 register_certified!(certified_infeasible, ipopt_certification, :ipopt_exact)
 register_certified!(certified_infeasible, ipopt_certification, :ipopt_lbfgs)
@@ -60,7 +69,7 @@ register_certified!(certified_infeasible, exact_certification, :l2penalty_lbfgs_
 
 for key in [:l2penalty_exact_current, :l2penalty_lbfgs_current]
   @info "Infeasibility certification results:\n" *
-      sprint(io -> show(io, certified_infeasible[key]; allrows = true, allcols = true))
+        sprint(io -> show(io, certified_infeasible[key]; allrows = true, allcols = true))
 end
 
 p = plot(

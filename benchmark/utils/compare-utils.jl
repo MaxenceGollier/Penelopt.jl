@@ -4,7 +4,8 @@ using SolverBenchmark
 using Plots
 
 # Certifying re-solves each infeasible flagged problem from scratch - expensive.
-const CERTIFY_INFEASIBILITY = lowercase(get(ENV, "CERTIFY_INFEASIBILITY", "false")) == "true"
+const CERTIFY_INFEASIBILITY =
+  lowercase(get(ENV, "CERTIFY_INFEASIBILITY", "false")) == "true"
 
 function pairwise_plot(
   stats,
@@ -20,7 +21,8 @@ function pairwise_plot(
       cert =
         df === df_1 ? get(certified_infeasible, keys[1], Set{String}()) :
         get(certified_infeasible, keys[2], Set{String}())
-      (df.status .== :first_order) .| ((df.status .== :infeasible) .& in.(df.name, Ref(cert)))
+      (df.status .== :first_order) .|
+      ((df.status .== :infeasible) .& in.(df.name, Ref(cert)))
     else
       df.status .== :first_order
     end

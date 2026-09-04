@@ -1,4 +1,5 @@
-using CUTEst, Penelopt, NLPModels, NLPModelsIpopt, NLPModelsModifiers, LinearAlgebra, DataFrames
+using CUTEst,
+  Penelopt, NLPModels, NLPModelsIpopt, NLPModelsModifiers, LinearAlgebra, DataFrames
 
 include(joinpath(@__DIR__, "trust-region-nls.jl"))
 
@@ -114,7 +115,12 @@ function certify_local_infeasibility(stats::Dict{Symbol,DataFrame}, key::Symbol)
 
     push!(
       rows,
-      (name = name, hessian = hessian, status = status, certified_locally_infeasible = certified),
+      (
+        name = name,
+        hessian = hessian,
+        status = status,
+        certified_locally_infeasible = certified,
+      ),
     )
   end
 

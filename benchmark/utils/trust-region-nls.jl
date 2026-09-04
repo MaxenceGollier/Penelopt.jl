@@ -5,7 +5,8 @@ import NLPModels: increment!
 # ------------------------------------------------------------------------- #
 # min_x 1/2 ||c(x)||² s.t. ||J(x̄)(x - x̄)|| ≤ Δ
 # ------------------------------------------------------------------------- #
-mutable struct TrustRegionNLS{S<:AbstractNLSModel} <: AbstractNLSModel{Float64,Vector{Float64}}
+mutable struct TrustRegionNLS{S<:AbstractNLSModel} <:
+               AbstractNLSModel{Float64,Vector{Float64}}
   meta::NLPModelMeta{Float64,Vector{Float64}}
   nls_meta::NLSMeta{Float64,Vector{Float64}}
   counters::NLSCounters
@@ -104,7 +105,11 @@ function NLPModels.jac_nln_structure!(
   return rows, cols
 end
 
-function NLPModels.jac_nln_coord!(M::TrustRegionNLS, x::AbstractVector, vals::AbstractVector)
+function NLPModels.jac_nln_coord!(
+  M::TrustRegionNLS,
+  x::AbstractVector,
+  vals::AbstractVector,
+)
   increment!(M, :neval_jac_nln)
   Jd = M.Jxbar * (x - M.xbar)
   vals .= 2 .* (M.Jxbar' * Jd)
