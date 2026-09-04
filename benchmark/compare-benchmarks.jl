@@ -51,8 +51,10 @@ register_certified!(certified_infeasible, ipopt_certification, :ipopt_exact)
 register_certified!(certified_infeasible, ipopt_certification, :ipopt_lbfgs)
 
 reports = DataFrame[]
-for key in [:l2penalty_exact_current, :l2penalty_lbfgs_current]
-  push!(reports, certify_local_infeasibility(stats, key))
+if CERTIFY_INFEASIBILITY
+  for key in [:l2penalty_exact_current, :l2penalty_lbfgs_current]
+    push!(reports, certify_local_infeasibility(stats, key))
+  end
 end
 
 exact_certification =
@@ -68,8 +70,9 @@ register_certified!(certified_infeasible, exact_certification, :l2penalty_exact_
 register_certified!(certified_infeasible, exact_certification, :l2penalty_lbfgs_current)
 
 for key in [:l2penalty_exact_current, :l2penalty_lbfgs_current]
-  @info "Infeasibility certification results:\n" *
-        sprint(io -> show(io, certified_infeasible[key]; allrows = true, allcols = true))
+  @info "Infeasibility certification results:\n" * sprint(
+    io -> show(io, get(certified_infeasible, key, Set{String}()); allrows = true, allcols = true),
+  )
 end
 
 p = plot(
