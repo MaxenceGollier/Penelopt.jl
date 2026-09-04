@@ -101,6 +101,59 @@ jobs:
           path: benchmark/result
           if-no-files-found: error
 
+  Certify-Reference:
+    needs: [Benchmark-LBFGS, Benchmark-Exact-Hessian]
+
+    runs-on: windows-latest
+
+    # Precompute reference's own infeasibility certification here, once,
+    # whenever this run is producing a new reference baseline (i.e. NOT a
+    # pull_request event - SaveBenchmark.yml calling this via
+    # workflow_call, on main pushes/schedule). PR runs never certify
+    # reference themselves; they load whatever this job last produced (see
+    # the Compare job and compare-benchmarks.jl's
+    # load_precomputed_certification). Same "if: replaces implicit needs
+    # gating" caveat as Compare below.
+    if: >
+      needs.Benchmark-LBFGS.result == 'success' &&
+      needs.Benchmark-Exact-Hessian.result == 'success' &&
+      github.event_name != 'pull_request'
+
+    env:
+      MUMPS_SEQ: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: '1'
+
+      - name: Use Julia cache
+        uses: julia-actions/cache@v2
+
+      - name: Download benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cutest-benchmark-stats-*
+          path: benchmark/result
+          merge-multiple: true
+
+      - name: Certify infeasibility
+        run: |
+          julia --project=benchmark -e '
+            using Pkg
+            Pkg.instantiate()
+            include("benchmark/certify-infeasibility.jl")
+          '
+
+      - name: Upload infeasibility certification
+        uses: actions/upload-artifact@v4
+        with:
+          name: infeasibility-certification-reference
+          path: benchmark/result/infeasibility_certification.jld2
+          if-no-files-found: error
+
   Compare:
     needs: [Benchmark-LBFGS, Benchmark-Exact-Hessian]
 

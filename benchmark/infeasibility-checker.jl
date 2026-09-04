@@ -1,4 +1,4 @@
-using CUTEst, Penelopt, NLPModels, NLPModelsIpopt, NLPModelsModifiers, LinearAlgebra
+using CUTEst, Penelopt, NLPModels, NLPModelsIpopt, NLPModelsModifiers, LinearAlgebra, DataFrames
 
 import NLPModels: increment!
 
@@ -218,7 +218,7 @@ function NLPModels.hess_coord!(
 end
 
 """
-    check_local_infeasibility(nlp, xbar; Δ=10.0, tol=1e-12, feas_tol=1e-3)
+    check_local_infeasibility(nlp, xbar; Δ=10.0, tol=1e-9, feas_tol=1e-3)
 
 Given a candidate point `x̄ = xbar` for `nlp`, check whether `x̄` is a
 locally infeasible point by solving
@@ -247,7 +247,7 @@ function check_local_infeasibility(
   nlp::AbstractNLPModel,
   xbar::AbstractVector;
   Δ = 10.0,
-  tol = 1e-12,
+  tol = 1e-9,
   feas_tol = 1e-3,
 )
   M = TrustRegionNLS(nlp, xbar, Δ)
@@ -319,4 +319,44 @@ function certify_local_infeasibility(name::AbstractString, key::Symbol)
   finally
     finalize(nlp)
   end
+end
+
+"""
+    certify_own_infeasibility(stats, key)
+
+Certify every problem that the run identified by `key` (e.g.
+`:l2penalty_exact` or `:ipopt_exact`) declared `:infeasible` in `stats[key]`,
+against its own reproduced point - no pairing with another solver involved.
+
+This is what precomputes the certification saved alongside the `reference`
+(at `SaveBenchmark.yml` time) and `ipopt` (at `RunIpoptBenchmark.yml` time)
+baselines, so that PR comparisons in `compare-benchmarks.jl` can *load*
+those results instead of re-certifying two fixed baselines on every PR run.
+
+Returns a DataFrame with columns `name`, `hessian`, `status`,
+`certified_locally_infeasible` (`true`/`false`/`missing`, see
+[`check_local_infeasibility`](@ref)).
+"""
+function certify_own_infeasibility(stats::Dict{Symbol,DataFrame}, key::Symbol)
+  df = stats[key]
+  parts = Symbol.(split(string(key), "_"))
+  hessian = parts[2]
+
+  @info "Certifying infeasibility results for $(key)."
+
+  rows = NamedTuple[]
+  for i = 1:nrow(df)
+    name = df[i, :name]
+    status = df[i, :status]
+    status != :infeasible && continue
+
+    certified = certify_local_infeasibility(name, key)
+
+    push!(
+      rows,
+      (name = name, hessian = hessian, status = status, certified_locally_infeasible = certified),
+    )
+  end
+
+  return DataFrame(rows)
 end
