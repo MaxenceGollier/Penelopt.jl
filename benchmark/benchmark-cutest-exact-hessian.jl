@@ -2,6 +2,8 @@ using JLD2
 
 using CUTEst, Penelopt, NLPModelsModifiers, SolverBenchmark
 
+include(joinpath(@__DIR__, "benchmark-utils.jl"))
+
 problem_names = CUTEst.select_sif_problems(
   min_con = 1,
   only_equ_con = true,
@@ -30,21 +32,7 @@ problem_names = problem_names[first:last]
 
 problem_list = (CUTEstModel(name) for name in problem_names)
 
-tol = 1e-6
-max_time = 300.0
-
-solvers = Dict(
-  :l2penalty_exact =>
-    nlp -> L2Penalty(
-      nlp,
-      print_level = 0,
-      atol = tol,
-      rtol = 0.0,
-      max_time = max_time,
-      max_iter = typemax(Int),
-      linear_solver = "mumps",
-    ),
-)
+solvers = Dict(:l2penalty_exact => BENCHMARK_SOLVERS[(:l2penalty, :exact)])
 
 stats = bmark_solvers(solvers, problem_list)
 @save "benchmark/result/stats_exact_$(split).jld2" stats

@@ -106,8 +106,8 @@ jobs:
 
     runs-on: windows-latest
 
-    # Only on non-PR runs (SaveBenchmark on main). PRs load whatever this
-    # last produced instead of re-certifying reference themselves.
+    # Only on non-PR runs (SaveBenchmark on main). PRs load what this
+    # produced instead of re-certifying reference themselves.
     if: >
       needs.Benchmark-LBFGS.result == 'success' &&
       needs.Benchmark-Exact-Hessian.result == 'success' &&
@@ -154,15 +154,15 @@ jobs:
     runs-on: windows-latest
 
     # Only for a labeled pull_request - not workflow_call (e.g.
-    # SaveBenchmark.yml). Explicit if: replaces implicit needs gating.
+    # SaveBenchmark.yml).
     if: >
       needs.Benchmark-LBFGS.result == 'success' &&
       needs.Benchmark-Exact-Hessian.result == 'success' &&
       github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'run CUTEst benchmark')
 
-    # Certifying re-solves flagged problems - expensive (~1h30 on a recent
-    # run). Off by default; opt in with the "certify infeasibility" label.
+    # Certifying re-solves flagged problems - expensive.
+    # Off by default; opt in with the "certify infeasibility" label.
     env:
       CERTIFY_INFEASIBILITY: ${{ contains(github.event.pull_request.labels.*.name, 'certify infeasibility') }}
 

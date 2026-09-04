@@ -95,7 +95,7 @@ jobs:
 
     runs-on: windows-latest
 
-    # PRs load whatever this last produced instead of re-solving IPOPT's
+    # PRs load what this produced instead of re-solving IPOPT's
     # flagged problems every run.
     if: >
       needs.Benchmark-IPOPT-LBFGS.result == 'success' &&

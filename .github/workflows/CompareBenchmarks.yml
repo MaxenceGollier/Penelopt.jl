@@ -11,8 +11,7 @@ on:
         type: string
       certify_infeasibility:
         description: >
-          Certify flagged :infeasible problems (re-solves each one from
-          scratch - much slower, ~1h30 on a full run). Off by default.
+          Certify flagged `:infeasible` problems. Off by default.
         required: false
         type: boolean
         default: false

@@ -2,6 +2,8 @@ using JLD2
 
 using CUTEst, NLPModelsIpopt, SolverBenchmark
 
+include(joinpath(@__DIR__, "benchmark-utils.jl"))
+
 problem_names = CUTEst.select_sif_problems(
   min_con = 1,
   only_equ_con = true,
@@ -32,26 +34,7 @@ problem_names = problem_names[first:last]
 
 problem_list = (CUTEstModel(name) for name in problem_names)
 
-tol = 1e-6
-max_time = 300.0
-
-solvers = Dict(
-  :ipopt_lbfgs =>
-    nlp -> ipopt(
-      nlp,
-      print_level = 0,
-      tol = tol,
-      dual_inf_tol = tol,
-      constr_viol_tol = tol,
-      compl_inf_tol = Inf,
-      acceptable_iter = 0,
-      s_max = floatmax(Float64),
-      hessian_approximation = "limited-memory",
-      nlp_scaling_method = "none",
-      max_cpu_time = max_time,
-      max_iter = typemax(Int32),
-    ),
-)
+solvers = Dict(:ipopt_lbfgs => BENCHMARK_SOLVERS[(:ipopt, :lbfgs)])
 
 stats = bmark_solvers(solvers, problem_list)
 @save "benchmark/result/stats_ipopt_lbfgs_$(split).jld2" stats

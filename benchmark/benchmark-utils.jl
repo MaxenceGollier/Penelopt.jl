@@ -1,5 +1,7 @@
 using DataFrames
 using JLD2
+using Penelopt
+using NLPModelsIpopt
 
 const METHODS = (:exact, :lbfgs)
 
@@ -57,3 +59,61 @@ function load_stats(dir::AbstractString, stats, suffix = "")
 
   return stats
 end
+
+# Reproduces the exact kwargs of the corresponding benchmark script, so the
+# candidate point x̄ is the actual point produced by the benchmarked run.
+const BENCHMARK_TOL = 1e-6
+const BENCHMARK_MAX_TIME = 300.0
+
+const BENCHMARK_SOLVERS = Dict(
+  (:l2penalty, :exact) =>
+    nlp -> L2Penalty(
+      nlp,
+      print_level = 0,
+      atol = BENCHMARK_TOL,
+      rtol = 0.0,
+      max_time = BENCHMARK_MAX_TIME,
+      max_iter = typemax(Int),
+      linear_solver = "mumps",
+    ),
+  (:l2penalty, :lbfgs) =>
+    nlp -> L2Penalty(
+      nlp,
+      print_level = 0,
+      atol = BENCHMARK_TOL,
+      rtol = 0.0,
+      max_time = BENCHMARK_MAX_TIME,
+      max_iter = typemax(Int),
+      qn_hessian_approximation = "bfgs",
+      linear_solver = "mumps",
+    ),
+  (:ipopt, :exact) =>
+    nlp -> ipopt(
+      nlp,
+      print_level = 0,
+      tol = BENCHMARK_TOL,
+      dual_inf_tol = BENCHMARK_TOL,
+      constr_viol_tol = BENCHMARK_TOL,
+      compl_inf_tol = Inf,
+      acceptable_iter = 0,
+      s_max = floatmax(Float64),
+      nlp_scaling_method = "none",
+      max_cpu_time = BENCHMARK_MAX_TIME,
+      max_iter = typemax(Int32),
+    ),
+  (:ipopt, :lbfgs) =>
+    nlp -> ipopt(
+      nlp,
+      print_level = 0,
+      tol = BENCHMARK_TOL,
+      dual_inf_tol = BENCHMARK_TOL,
+      constr_viol_tol = BENCHMARK_TOL,
+      compl_inf_tol = Inf,
+      acceptable_iter = 0,
+      s_max = floatmax(Float64),
+      hessian_approximation = "limited-memory",
+      nlp_scaling_method = "none",
+      max_cpu_time = BENCHMARK_MAX_TIME,
+      max_iter = typemax(Int32),
+    ),
+)
