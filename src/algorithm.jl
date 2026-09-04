@@ -175,10 +175,7 @@ function L2Penalty(
   end
 
   # Preprocessing
-  preprocessed_nlp = nlp
-  if length(nlp.meta.ifix) > 0
-    preprocessed_nlp = remove_fixed_variables(nlp)
-  end
+  preprocessed_nlp = nlp |> remove_fixed_variables |> remove_constraint_shift
 
   if qn_hessian_approximation == "bfgs"
     preprocessed_nlp = CompactBFGSModel(

@@ -19,9 +19,6 @@ If `nlp` has no fixed variables (i.e. no `i` with `lvar[i] == uvar[i]`),
 is a no-op in that case too, so it is always safe to call both.
 """
 
-using NLPModels
-using LinearAlgebra
-
 export FixedVariableEliminationModel, remove_fixed_variables, recover_full_solution
 
 """
@@ -179,12 +176,11 @@ end
 """
     recover_full_solution(nlp, x)
 
-Given a point `x` in the reduced (free-variable) space produced by
-[`remove_fixed_variables`](@ref), return the corresponding point in the
-original variable space, with fixed variables set to their bound.
-
-If `nlp` is not a `FixedVariableEliminationModel` (i.e. there were no fixed
-variables to begin with), `x` is returned unchanged.
+Return `x` mapped back to the original variable space, restoring any fixed
+variables to their bound. Unwraps through any number of `get_model`-defined
+wrappers (e.g. `ShiftedConstraintModel`, `QuasiNewtonModel`) to find the
+underlying `FixedVariableEliminationModel`. Returns `x` unchanged if none
+is found.
 """
 function recover_full_solution(nlp::FixedVariableEliminationModel, x::AbstractVector)
   x_full = copy(nlp.x_full)
@@ -192,10 +188,8 @@ function recover_full_solution(nlp::FixedVariableEliminationModel, x::AbstractVe
   return x_full
 end
 
-recover_full_solution(::AbstractNLPModel, x::AbstractVector) = x
-
-recover_full_solution(nlp::QuasiNewtonModel, x::AbstractVector) =
-  recover_full_solution(get_model(nlp), x)
+recover_full_solution(nlp::AbstractNLPModel, x::AbstractVector) =
+  applicable(get_model, nlp) ? recover_full_solution(get_model(nlp), x) : x
 
 # ------------------------------------------------------------------------
 # NLPModels API

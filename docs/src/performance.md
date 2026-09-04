@@ -142,6 +142,35 @@ finalize(nlp) # hide
 solution_full = recover_full_solution(nlp_no_fixed, stats.solution)
 ```
 
+## Shifted Constraints
+
+If some of your equality constraints are written as $c_i(x) = v_i$ for some constant $v_i \neq 0$, Penelopt.jl automatically reformulates them as $c_i(x) - v_i = 0$ internally.
+
+```@example shifted
+using ADNLPModels, Penelopt
+
+# NLP model with a shifted constraint c(x) = 5
+nlp = ADNLPModel(x -> sum(x .^ 2), ones(5), x -> [sum(x .^ 3)], [5.0], [5.0])
+
+# You can check whether a problem has shifted constraints from its `meta`
+any(!iszero, nlp.meta.lcon) || any(!iszero, nlp.meta.ucon)
+```
+The reformulation is done automatically when calling the solver. If you wish to use a [preallocated solver](performance.md#preallocation) you are responsible for constructing the reformulated problem yourself.
+
+```@example shifted
+nlp_no_shift = remove_constraint_shift(nlp)
+
+solver = L2PenaltySolver(nlp_no_shift)
+stats = PeneloptExecutionStats(nlp_no_shift)
+
+solve!(solver, nlp_no_shift, stats)
+```
+
+If your problem has both fixed variables and shifted constraints, compose the two functions; the order does not matter.
+```julia
+nlp_preprocessed = nlp |> remove_fixed_variables |> remove_constraint_shift
+```
+
 ## Quasi-Newton Approximations
 
 If the Hessian of the Lagrangian of your nonlinear programming problem is dense, ill-conditionned, expensive to compute, or inaccessible, you may be interested in replacing it with a quasi-Newton approximation.
@@ -188,9 +217,9 @@ julia> solver = L2PenaltySolver(nlp_bfgs)
 julia> stats = PeneloptExecutionStats(nlp_bfgs)
 
 # Solve as many times as needed;
-julia> solve!(solver, nlp, stats)
+julia> solve!(solver, nlp_bfgs, stats)
 ```
 
-!!! danger "Quasi-Newton approximations and fixed variables"
-    If your problem has fixed variables, you should first remove them before constructing a quasi-Newton approximation.
-    This is because the quasi-Newton approximation is built for the reduced problem and it will not be valid for the original problem.
+!!! danger "Quasi-Newton approximations and preprocessing"
+    Apply `remove_fixed_variables` and `remove_constraint_shift` before constructing a quasi-Newton approximation, not after.
+    The quasi-Newton approximation is built for whatever problem you pass it; it will not be valid for the original, unpreprocessed problem.
