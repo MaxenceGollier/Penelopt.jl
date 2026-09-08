@@ -259,14 +259,9 @@ function SolverCore.solve!(
   ms_αmin2::T = eps(T)^(0.6),
   ms_ηC::T = eps(T),
 
-  ## Other arguments
+  ## Scaling arguments
   nlp_scaling_method::String = "gradient-based",
   gmax::T = T(100),
-  max_decreas_iter::Int = 10,
-  τ::T = T(100),
-  β1::T = T(1),
-  β3::T = 1e-4/τ,
-  β4::T = eps(T),
 ) where {T,V}
   reset!(stats)
 
@@ -325,8 +320,9 @@ function SolverCore.solve!(
   ## Scaling
   if nlp_scaling_method == "gradient-based"
     scaling_model = find_model(ScaledModel, nlp)
-    scaling_model === nothing && error("nlp_scaling_method = \"gradient-based\" requires a ScaledModel")
-    update_scaling!(scaling_model, solver.∇fk, ψ.A; gmax = gmax)
+    if scaling_model !== nothing
+      update_scaling!(scaling_model, solver.∇fk, ψ.A; gmax = gmax)
+    end
   end
 
   ## Initialize penalty parameter

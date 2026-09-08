@@ -9,21 +9,26 @@
   c(x) = [sum(x .^ 3), sum(x)]
   lcon = [1.0, 2.0]
   ucon = [1.0, 2.0]
-  nlp = ADNLPModel(f, x0, c, lcon, ucon)
-
-  nlp_scaled = scale_model(nlp; d_f = d_f, d_c = d_c)
 
   # Hand-written equivalent of the scaled problem
   f_scaled(x) = d_f * f(x)
   c_scaled(x) = d_c .* c(x)
-  nlp_scaled_ad = ADNLPModel(f_scaled, x0, c_scaled, d_c .* lcon, d_c .* ucon)
 
+  # consistent_nlps drives calls on both models and checks their counters
+  # end up equal, so each pair below needs its own fresh, otherwise-unused
+  # models: a ScaledModel's calls also increment the wrapped model's own
+  # counters, so reusing a model across two comparisons throws counters off.
+  nlp_scaled = scale_model(ADNLPModel(f, x0, c, lcon, ucon); d_f = d_f, d_c = d_c)
+  nlp_scaled_ad = ADNLPModel(f_scaled, x0, c_scaled, d_c .* lcon, d_c .* ucon)
   consistent_nlps([nlp_scaled, nlp_scaled_ad])
 
   # Default scaling factors leave the problem unchanged
-  consistent_nlps([nlp, scale_model(nlp)])
+  nlp_id = ADNLPModel(f, x0, c, lcon, ucon)
+  consistent_nlps([nlp_id, scale_model(nlp_id)])
 
   # unscale/scale round-trips
+  nlp = ADNLPModel(f, x0, c, lcon, ucon)
+  nlp_scaled = scale_model(nlp; d_f = d_f, d_c = d_c)
   x = x0
   @test unscale_objective(nlp_scaled, obj(nlp_scaled, x)) ≈ obj(nlp, x)
   @test unscale_constraints(nlp_scaled, cons(nlp_scaled, x)) ≈ cons(nlp, x)
