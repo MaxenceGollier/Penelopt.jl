@@ -22,9 +22,11 @@
   nlp_scaled_ad = ADNLPModel(f_scaled, x0, c_scaled, d_c .* lcon, d_c .* ucon)
   consistent_nlps([nlp_scaled, nlp_scaled_ad])
 
-  # Default scaling factors leave the problem unchanged
-  nlp_id = ADNLPModel(f, x0, c, lcon, ucon)
-  consistent_nlps([nlp_id, scale_model(nlp_id)])
+  # Default scaling factors leave the problem unchanged. Compare against
+  # scale_model wrapping a *separate* instance: every call consistent_nlps
+  # makes to the wrapper also bumps the wrapped model's own counters, so
+  # wrapping the same instance being compared against would double-count it.
+  consistent_nlps([ADNLPModel(f, x0, c, lcon, ucon), scale_model(ADNLPModel(f, x0, c, lcon, ucon))])
 
   # unscale/scale round-trips
   nlp = ADNLPModel(f, x0, c, lcon, ucon)
