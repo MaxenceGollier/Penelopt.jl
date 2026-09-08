@@ -178,7 +178,7 @@ nlp_preprocessed = nlp |> remove_fixed_variables |> remove_constraint_shift
 If you wish to use a [preallocated solver](performance.md#preallocation), construct the `ScaledModel` up front; `L2Penalty` will still refresh its scaling factors automatically at the start of `solve!`.
 
 ```@example scaling
-using ADNLPModels, Penelopt
+using ADNLPModels, NLPModels, Penelopt
 
 nlp = ADNLPModel(x -> sum(x .^ 2), ones(5), x -> [sum(x .^ 3)], [5.0], [5.0])
 
