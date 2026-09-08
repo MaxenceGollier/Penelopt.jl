@@ -126,7 +126,7 @@ Recompute `nlp`'s gradient-based scaling factors from the gradient `gk` and
 constraint Jacobian `Ak` of the underlying problem, and update `nlp` in place.
 """
 function update_scaling!(nlp::ScaledModel{T}, gk::AbstractVector, Ak; gmax::T) where {T}
-  nlp.d_f = gmax / norm(gk, Inf)
+  nlp.d_f = min(one(T), gmax / norm(gk, Inf))
   for j in axes(Ak, 1)
     nc = norm(view(Ak, j, :), Inf)
     nlp.d_c[j] = nc > 0 ? min(one(T), gmax / nc) : one(T)
