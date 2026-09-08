@@ -17,6 +17,7 @@ mutable struct L2PenaltySolver{
   s0::V
   ∇fk::V
   temp_b::V
+  y_report::V
   subsolver::S
   subpb::PB
   substats::GenericExecutionStats{T,V,V,T}
@@ -33,6 +34,7 @@ function L2PenaltySolver(
   dual_res = similar(x0)
   cn = similar(x0, nlp.meta.ncon)
   y = similar(x0, nlp.meta.ncon)
+  y_report = similar(x0, nlp.meta.ncon)
   ∇fk = similar(x0)
 
   penalty_subproblem = L2PenalizedProblem(nlp) # f(x) + τ‖c(x)‖₂
@@ -62,6 +64,7 @@ function L2PenaltySolver(
     s0,
     ∇fk,
     temp_b,
+    y_report,
     solver,
     penalty_subproblem,
     substats,
@@ -510,10 +513,12 @@ function SolverCore.solve!(
     set_time!(stats, time() - start_time)
     set_objective!(stats, scaling_model === nothing ? fx : unscale_objective(scaling_model, fx))
     set_residuals!(stats, primal_feas, dual_feas)
-    set_constraint_multipliers!(
-      stats,
-      scaling_model === nothing ? solver.y : unscale_multipliers(scaling_model, solver.y),
-    )
+    if scaling_model === nothing
+      set_constraint_multipliers!(stats, solver.y)
+    else
+      unscale_multipliers!(solver.y_report, scaling_model, solver.y)
+      set_constraint_multipliers!(stats, solver.y_report)
+    end
     set_solver_specific!(stats, :n_fact, solver.substats.solver_specific[:n_fact])
 
     set_status!(
