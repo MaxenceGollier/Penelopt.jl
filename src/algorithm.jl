@@ -314,7 +314,7 @@ function SolverCore.solve!(
   solved = dual_feas ≤ dual_tol && primal_feas ≤ primal_tol
 
   ## Initialize penalty parameter
-  τ = max(norm(solver.y, 1), τ0)
+  τ = min(max(norm(solver.y, 1), τ0), T(1e4))
   set_penalty!(mk, τ)
   νsub = 1 / r2n_σmin
   set_solver_specific!(solver.substats, :tau, τ)
