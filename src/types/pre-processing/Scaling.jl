@@ -40,6 +40,7 @@ export ScaledModel,
   unscale_objective,
   unscale_constraints,
   unscale_multipliers,
+  unscale_multipliers!,
   scale_multipliers
 
 """
@@ -161,6 +162,15 @@ the original problem: `y = y_scaled .* d_c ./ d_f`.
 """
 unscale_multipliers(nlp::ScaledModel, y_scaled::AbstractVector) = (y_scaled .* nlp.d_c) ./ nlp.d_f
 unscale_multipliers(::AbstractNLPModel, y) = y  # no-op fallback
+
+"""
+    unscale_multipliers!(y_out, nlp::ScaledModel, y_scaled)
+
+In-place, non-allocating version of [`unscale_multipliers`](@ref): writes the
+result into the preallocated `y_out` instead of returning a new vector.
+"""
+unscale_multipliers!(y_out::AbstractVector, nlp::ScaledModel, y_scaled::AbstractVector) =
+  (y_out .= (y_scaled .* nlp.d_c) ./ nlp.d_f)
 
 """
     scale_multipliers(nlp::ScaledModel, y)
