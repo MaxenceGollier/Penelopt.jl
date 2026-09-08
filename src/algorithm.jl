@@ -1,4 +1,4 @@
-export L2Penalty, L2PenaltySolver, solve!
+export L2Penalty, L2PenaltySolver, solve! 
 
 import SolverCore.solve!
 
