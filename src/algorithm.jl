@@ -244,7 +244,7 @@ function SolverCore.solve!(
   r2n_σmin::T = eps(T)^2,
   r2n_γ::T = T(3),
   r2n_watchdog_max_iter::Int = 10,
-  r2n_watchdog_η0::T = √eps(T),
+  r2n_watchdog_η0::T = eps(T),
   r2n_tiny_step_tol::T = eps(T),
   r2n_nmax_tiny_step::Int = 2,
 
