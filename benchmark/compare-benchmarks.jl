@@ -71,7 +71,12 @@ register_certified!(certified_infeasible, exact_certification, :l2penalty_lbfgs_
 
 for key in [:l2penalty_exact_current, :l2penalty_lbfgs_current]
   @info "Infeasibility certification results:\n" * sprint(
-    io -> show(io, get(certified_infeasible, key, Set{String}()); allrows = true, allcols = true),
+    io -> show(
+      io,
+      get(certified_infeasible, key, Set{String}());
+      allrows = true,
+      allcols = true,
+    ),
   )
 end
 
