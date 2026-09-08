@@ -51,7 +51,7 @@
   gmax = 10.0
   update_scaling!(nlp_scaled, gk, Ak; gmax = gmax)
 
-  @test nlp_scaled.d_f == gmax / norm(gk, Inf)
+  @test nlp_scaled.d_f == min(1.0, gmax / norm(gk, Inf))
   for j in axes(Ak, 1)
     nc = norm(view(Ak, j, :), Inf)
     @test nlp_scaled.d_c[j] == (nc > 0 ? min(1.0, gmax / nc) : 1.0)

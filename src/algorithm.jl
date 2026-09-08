@@ -318,11 +318,9 @@ function SolverCore.solve!(
   solved = dual_feas ≤ dual_tol && primal_feas ≤ primal_tol
 
   ## Scaling
-  if nlp_scaling_method == "gradient-based"
-    scaling_model = find_model(ScaledModel, nlp)
-    if scaling_model !== nothing
-      update_scaling!(scaling_model, solver.∇fk, ψ.A; gmax = gmax)
-    end
+  scaling_model = find_model(ScaledModel, nlp)
+  if nlp_scaling_method == "gradient-based" && scaling_model !== nothing
+    update_scaling!(scaling_model, solver.∇fk, ψ.A; gmax = gmax)
   end
 
   ## Initialize penalty parameter
@@ -510,9 +508,12 @@ function SolverCore.solve!(
     set_iter!(stats, stats.iter + 1)
     rem_eval = max_eval - neval_obj(nlp)
     set_time!(stats, time() - start_time)
-    set_objective!(stats, fx)
+    set_objective!(stats, scaling_model === nothing ? fx : unscale_objective(scaling_model, fx))
     set_residuals!(stats, primal_feas, dual_feas)
-    set_constraint_multipliers!(stats, solver.y)
+    set_constraint_multipliers!(
+      stats,
+      scaling_model === nothing ? solver.y : unscale_multipliers(scaling_model, solver.y),
+    )
     set_solver_specific!(stats, :n_fact, solver.substats.solver_specific[:n_fact])
 
     set_status!(
