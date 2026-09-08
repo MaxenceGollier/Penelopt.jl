@@ -1,4 +1,4 @@
-using NLPModels, NLPModelsModifiers, LinearAlgebra
+using NLPModels, NLPModelsModifiers, LinearAlgebra, SparseArrays
 
 import NLPModels: increment!
 
@@ -13,7 +13,11 @@ mutable struct TrustRegionNLS{S<:AbstractNLSModel} <:
   feas_nls::S
   xbar::Vector{Float64}
   Jxbar::Any
-  Hxbar::Matrix{Float64} # constant Hessian of the constraint: 2 J(x̄)ᵀJ(x̄)
+  # constant Hessian of the constraint, 2 J(x̄)ᵀJ(x̄), lower-triangular COO -
+  # kept sparse: densifying is O(n²) and OOMs on large CUTEst problems.
+  Hxbar_rows::Vector{Int}
+  Hxbar_cols::Vector{Int}
+  Hxbar_vals::Vector{Float64}
   Δ::Float64
 end
 
@@ -21,7 +25,8 @@ function TrustRegionNLS(nlp::AbstractNLPModel, xbar::AbstractVector, Δ::Real)
   feas_nls = FeasibilityResidual(nlp)
   n = nlp.meta.nvar
   Jxbar = jac(nlp, xbar)
-  Hxbar = 2 .* Matrix(Jxbar' * Jxbar)
+  Hxbar = LinearAlgebra.tril(2 .* (Jxbar' * Jxbar))
+  Hxbar_rows, Hxbar_cols, Hxbar_vals = findnz(Hxbar)
 
   meta = NLPModelMeta(
     n;
@@ -32,7 +37,7 @@ function TrustRegionNLS(nlp::AbstractNLPModel, xbar::AbstractVector, Δ::Real)
     lcon = [-Inf],
     ucon = [Δ^2], # constraint is stored in its squared form, see cons!
     nnzj = n,
-    nnzh = div(n * (n + 1), 2),
+    nnzh = length(Hxbar_vals),
     name = "TrustRegionNLS($(nlp.meta.name))",
   )
 
@@ -43,7 +48,9 @@ function TrustRegionNLS(nlp::AbstractNLPModel, xbar::AbstractVector, Δ::Real)
     feas_nls,
     Vector{Float64}(xbar),
     Jxbar,
-    Hxbar,
+    Hxbar_rows,
+    Hxbar_cols,
+    Hxbar_vals,
     Float64(Δ),
   )
 end
@@ -121,13 +128,8 @@ function NLPModels.hess_structure!(
   rows::AbstractVector{<:Integer},
   cols::AbstractVector{<:Integer},
 )
-  n = M.meta.nvar
-  idx = 1
-  for j = 1:n, i = j:n
-    rows[idx] = i
-    cols[idx] = j
-    idx += 1
-  end
+  rows .= M.Hxbar_rows
+  cols .= M.Hxbar_cols
   return rows, cols
 end
 
@@ -140,12 +142,7 @@ function NLPModels.hess_coord!(
 )
   # obj_weight always 0 here (FeasibilityFormNLS's own objective is 1/2||r||²)
   increment!(M, :neval_hess)
-  n = M.meta.nvar
   yc = length(y) > 0 ? y[1] : 0.0
-  idx = 1
-  for j = 1:n, i = j:n
-    vals[idx] = yc * M.Hxbar[i, j]
-    idx += 1
-  end
+  vals .= yc .* M.Hxbar_vals
   return vals
 end
