@@ -75,6 +75,8 @@ for key in [:l2penalty_exact_current, :l2penalty_lbfgs_current]
   )
 end
 
+mkpath("benchmark/result")
+
 p = plot(
   pairwise_plot(
     stats,
