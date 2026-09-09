@@ -173,7 +173,7 @@ nlp_preprocessed = nlp |> remove_fixed_variables |> remove_constraint_shift
 
 ## Scaling
 
-`L2Penalty` can rescale the objective and constraints by factors $d_f$ and $d_c$ before solving, to compensate for badly-scaled problems. With `nlp_scaling_method = "gradient-based"` (the default), $d_f$ and $d_c$ are recomputed automatically once the initial gradient and Jacobian are available, so you don't need to construct the scaled problem yourself in ordinary usage.
+`L2Penalty` can rescale the objective and constraints by factors $d_f$ and $d_c$ before solving, to compensate for badly-scaled problems. With `nlp_scaling_method = "gradient-based"` (the default for quasi-Newton approximations; pass it explicitly to also enable it with the exact Hessian), $d_f$ and $d_c$ are recomputed automatically once the initial gradient and Jacobian are available, so you don't need to construct the scaled problem yourself in ordinary usage.
 
 If you wish to use a [preallocated solver](performance.md#preallocation), construct the `ScaledModel` up front; `L2Penalty` will still refresh its scaling factors automatically at the start of `solve!`.
 
@@ -183,13 +183,16 @@ using ADNLPModels, NLPModels, Penelopt
 nlp = ADNLPModel(x -> sum(x .^ 2), ones(5), x -> [sum(x .^ 3)], [5.0], [5.0])
 
 # d_f and d_c default to 1 and to a vector of ones; they will be
-# overwritten by solve! when nlp_scaling_method = "gradient-based"
+# overwritten by solve! since nlp_scaling_method = "gradient-based" is
+# passed explicitly here (with the exact Hessian used in this example,
+# scaling defaults to "none"; it defaults to "gradient-based" for
+# quasi-Newton approximations instead)
 nlp_scaled = scale_model(nlp)
 
 solver = L2PenaltySolver(nlp_scaled)
 stats = PeneloptExecutionStats(nlp_scaled)
 
-solve!(solver, nlp_scaled, stats)
+solve!(solver, nlp_scaled, stats; nlp_scaling_method = "gradient-based")
 
 # Map the solution back to the original (unscaled) units
 f_orig = unscale_objective(nlp_scaled, stats.objective)
