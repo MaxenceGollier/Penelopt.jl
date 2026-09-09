@@ -136,6 +136,20 @@ function update_scaling!(nlp::ScaledModel{T}, gk::AbstractVector, Ak::SparseMatr
   return nlp
 end
 
+function update_scaling!(nlp::ScaledModel{T}, gk::AbstractVector, Ak::SparseMatrixCSC; gmax::T) where {T}
+  nlp.d_f = min(one(T), gmax / norm(gk, Inf))
+  nlp.d_c .= 1
+  rows = rowvals(Ak)
+  vals = nonzeros(Ak)
+  for j in 1:size(Ak, 2)
+    for idx in nzrange(Ak, j)
+      i, val = rows[idx], vals[idx]
+      nlp.d_c[i] = abs(val) > 0 ? min(nlp.d_c[i], gmax / abs(val)) : nlp.d_c[i]
+    end
+  end
+  return nlp
+end
+
 # --- helpers to move quantities between the scaled and original problems ---
 
 """
