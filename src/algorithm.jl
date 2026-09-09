@@ -263,7 +263,7 @@ function SolverCore.solve!(
   ms_ηC::T = eps(T),
 
   ## Scaling arguments
-  nlp_scaling_method::String = "gradient-based",
+  nlp_scaling_method::String = isa(nlp, QuasiNewtonModel) ? "gradient-based" : "none",
   gmax::T = T(100),
 ) where {T,V}
   reset!(stats)
