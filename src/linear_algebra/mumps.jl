@@ -577,6 +577,7 @@ function update_pivtol!(workspace::PenaltyMUMPSWorkspace)
   relative_error = relative_error!(workspace)
   if relative_error > sqrt(eps(eltype(workspace.x)))
     increase_pivtol!(workspace)
+    workspace.status = :failed
   elseif relative_error < eps(eltype(workspace.x)) / 100
     decrease_pivtol!(workspace)
   end
