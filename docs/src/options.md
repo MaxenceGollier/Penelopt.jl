@@ -254,6 +254,20 @@ We refer to the [outputs](outputs.md#console-output) section for an explanation 
     > * ma57: Load [HSL.jl](https://github.com/JuliaSmoothOptimizers/HSL.jl).
     > * minres\_qlp: Load [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
 
+## Scaling
+
+ * `nlp_scaling_method::String = "none"`: method used to rescale the objective and constraints before solving.
+    > Determines how the scaling factors $d_f$ (objective) and $d_c$ (constraints) are computed. They are recomputed once the initial gradient and Jacobian are available, at the start of `solve!`.
+    >
+    > Possible values:
+    > * gradient-based: pick $d_f$ and $d_c$ so that the scaled gradient and Jacobian rows have infinity norm at most `gmax` (default).
+    > * none: leave the problem unscaled ($d_f = 1$, $d_c = 1$).
+    >
+    > Scaling is on by default for quasi-Newton approximations, since they are more sensitive to poor scaling, and off by default for the exact Hessian.
+
+ * `gmax::T = T(100)`: target infinity norm for the scaled gradient and Jacobian rows.
+    > If `nlp_scaling_method != "gradient-based"`, this parameter is ignored.
+
 ## quasi-Newton Approximations
 
  * `qn_hessian_approximation::String = "exact"`: Quasi-Newton approximation for the Hessian of the Lagrangian.
