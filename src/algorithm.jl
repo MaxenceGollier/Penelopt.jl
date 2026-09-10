@@ -333,7 +333,6 @@ function SolverCore.solve!(
 
   infeasible = false
   not_desc = false
-  n_iter_since_decrease = 0
   primal_decrease = false
   first_increase = true
 
@@ -477,10 +476,7 @@ function SolverCore.solve!(
 
     # Check whether the primal feasibility has decreased. If not, increase the penalty parameter more aggressively.
     if primal_feas > primal_ktol && hx_prev < hx
-      n_iter_since_decrease += 1
       τmin *= 10
-    else
-      n_iter_since_decrease = 0
     end
 
     solved = dual_feas ≤ dual_tol && primal_feas ≤ primal_tol
