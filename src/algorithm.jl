@@ -511,14 +511,12 @@ function SolverCore.solve!(
     set_iter!(stats, stats.iter + 1)
     rem_eval = max_eval - neval_obj(nlp)
     set_time!(stats, time() - start_time)
-    set_objective!(stats, scaling_model === nothing ? fx : unscale_objective(scaling_model, fx))
+    set_objective!(stats, unscale_objective(scaling_model, fx))
     set_residuals!(stats, primal_feas, dual_feas)
-    if scaling_model === nothing
-      set_constraint_multipliers!(stats, solver.y)
-    else
-      unscale_multipliers!(solver.y_report, scaling_model, solver.y)
-      set_constraint_multipliers!(stats, solver.y_report)
-    end
+
+    unscale_multipliers!(solver.y_report, scaling_model, solver.y)
+    set_constraint_multipliers!(stats, solver.y_report)
+
     set_solver_specific!(stats, :n_fact, solver.substats.solver_specific[:n_fact])
 
     set_status!(

@@ -187,6 +187,9 @@ result into the preallocated `y_out` instead of returning a new vector.
 unscale_multipliers!(y_out::AbstractVector, nlp::ScaledModel, y_scaled::AbstractVector) =
   (y_out .= (y_scaled .* nlp.d_c) ./ nlp.d_f)
 
+unscale_multipliers!(y_out::AbstractVector, nlp::AbstractNLPModel, y_scaled::AbstractVector) =
+  (y_out .= y_scaled)  # no-op fallback
+
 """
     scale_multipliers(nlp::ScaledModel, y)
 
