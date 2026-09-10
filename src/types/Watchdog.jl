@@ -188,7 +188,8 @@ function check_watchdog!(
   opt_measure = dot(v, v)
 
   achieve_reduction =
-    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*opt_measure)
+    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*opt_measure) ||
+    (stats.dual_feas < (1-η0)*checkpoint.dual_feas)
   max_iter = stats.iter - checkpoint.iter > watchdog_max_iter
 
   if !is_active(checkpoint)
@@ -219,7 +220,8 @@ function check_watchdog!(
   opt_measure = dot(v, v)
 
   achieve_reduction =
-    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*opt_measure)
+    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*opt_measure) ||
+    (stats.dual_feas < (1-η0)*checkpoint.dual_feas)
   max_iter = stats.iter - checkpoint.iter > watchdog_max_iter
 
   if !is_active(checkpoint)
@@ -248,7 +250,8 @@ function check_watchdog!(
   opt_measure = checkpoint.σk^2*norm(s)^2
 
   achieve_reduction =
-    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*opt_measure)
+    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*opt_measure) ||
+    (stats.dual_feas < (1-η0)*checkpoint.dual_feas)
   max_iter = stats.iter - checkpoint.iter > watchdog_max_iter
 
   if !is_active(checkpoint)
