@@ -14,18 +14,11 @@
   f_scaled(x) = d_f * f(x)
   c_scaled(x) = d_c .* c(x)
 
-  # consistent_nlps drives calls on both models and checks their counters
-  # end up equal, so each pair below needs its own fresh, otherwise-unused
-  # models: a ScaledModel's calls also increment the wrapped model's own
-  # counters, so reusing a model across two comparisons throws counters off.
   nlp_scaled = scale_model(ADNLPModel(f, x0, c, lcon, ucon); d_f = d_f, d_c = d_c)
   nlp_scaled_ad = ADNLPModel(f_scaled, x0, c_scaled, d_c .* lcon, d_c .* ucon)
   consistent_nlps([nlp_scaled, nlp_scaled_ad])
 
-  # Default scaling factors leave the problem unchanged. Compare against
-  # scale_model wrapping a *separate* instance: every call consistent_nlps
-  # makes to the wrapper also bumps the wrapped model's own counters, so
-  # wrapping the same instance being compared against would double-count it.
+  # Default scaling factors leave the problem unchanged.
   consistent_nlps([ADNLPModel(f, x0, c, lcon, ucon), scale_model(ADNLPModel(f, x0, c, lcon, ucon))])
 
   # unscale/scale round-trips
