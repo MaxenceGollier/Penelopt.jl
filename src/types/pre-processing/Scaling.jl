@@ -159,6 +159,7 @@ Map an objective value of the *scaled* problem back to the original units.
 """
 unscale_objective(nlp::ScaledModel, f_scaled) = f_scaled / nlp.d_f
 unscale_objective(::AbstractNLPModel, f) = f  # no-op fallback
+unscale_objective(::Nothing, f) = f  # no-op fallback for find_model's "not found"
 
 """
     unscale_constraints(nlp::ScaledModel, c_scaled)
@@ -168,6 +169,7 @@ units.
 """
 unscale_constraints(nlp::ScaledModel, c_scaled::AbstractVector) = c_scaled ./ nlp.d_c
 unscale_constraints(::AbstractNLPModel, c) = c  # no-op fallback
+unscale_constraints(::Nothing, c) = c  # no-op fallback for find_model's "not found"
 
 """
     unscale_multipliers(nlp::ScaledModel, y_scaled)
@@ -177,6 +179,7 @@ the original problem: `y = y_scaled .* d_c ./ d_f`.
 """
 unscale_multipliers(nlp::ScaledModel, y_scaled::AbstractVector) = (y_scaled .* nlp.d_c) ./ nlp.d_f
 unscale_multipliers(::AbstractNLPModel, y) = y  # no-op fallback
+unscale_multipliers(::Nothing, y) = y  # no-op fallback for find_model's "not found"
 
 """
     unscale_multipliers!(y_out, nlp::ScaledModel, y_scaled)
@@ -190,6 +193,9 @@ unscale_multipliers!(y_out::AbstractVector, nlp::ScaledModel, y_scaled::Abstract
 unscale_multipliers!(y_out::AbstractVector, nlp::AbstractNLPModel, y_scaled::AbstractVector) =
   (y_out .= y_scaled)  # no-op fallback
 
+unscale_multipliers!(y_out::AbstractVector, ::Nothing, y_scaled::AbstractVector) =
+  (y_out .= y_scaled)  # no-op fallback for find_model's "not found"
+
 """
     scale_multipliers(nlp::ScaledModel, y)
 
@@ -199,6 +205,7 @@ the scaled problem's stationarity condition expects:
 """
 scale_multipliers(nlp::ScaledModel, y::AbstractVector) = (y .* nlp.d_f) ./ nlp.d_c
 scale_multipliers(::AbstractNLPModel, y) = y  # no-op fallback
+scale_multipliers(::Nothing, y) = y  # no-op fallback for find_model's "not found"
 
 # ------------------------------------------------------------------------
 # NLPModels API
