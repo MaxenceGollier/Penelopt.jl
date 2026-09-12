@@ -86,7 +86,7 @@ function SolverCore.solve!(
   η2::T = T(0.1),
   γ::T = T(3),
   watchdog_max_iter::Int = 10,
-  watchdog_η0::T = √eps(T),
+  watchdog_η0::T = eps(T),
   tiny_step_tol::T = eps(T),
   nmax_tiny_step::Int = 2,
   is_shifted::Bool = false,
