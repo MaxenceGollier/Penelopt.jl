@@ -177,18 +177,9 @@ function check_watchdog!(
   watchdog_max_iter,
   η0,
 ) where {T,V}
-  s, v = checkpoint.s, checkpoint.v
-  H = mk.model.data.H
-  (m, n) = size(H)
-  Hcp = Symmetric(SparseMatrixCOO(m, n, H.rows, H.cols, checkpoint.Hkvals), :L)
-
-  s .= xk .- checkpoint.xk
-  v .= s
-  mul!(v, Hcp, s, one(T), checkpoint.σk) 
-  opt_measure = dot(v, v)
 
   achieve_reduction =
-    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*opt_measure) ||
+    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*checkpoint.dual_feas^2) ||
     (stats.dual_feas < (1-η0)*checkpoint.dual_feas)
   max_iter = stats.iter - checkpoint.iter > watchdog_max_iter
 
@@ -212,15 +203,9 @@ function check_watchdog!(
   watchdog_max_iter,
   η0,
 ) where {T,V,HV<:CompactBFGS}
-  s, v = checkpoint.s, checkpoint.v
-
-  s .= xk .- checkpoint.xk
-  v .= s
-  mul!(v, checkpoint.Hkvals, s, one(T), checkpoint.σk) 
-  opt_measure = dot(v, v)
 
   achieve_reduction =
-    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*opt_measure) ||
+    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*checkpoint.dual_feas^2) ||
     (stats.dual_feas < (1-η0)*checkpoint.dual_feas)
   max_iter = stats.iter - checkpoint.iter > watchdog_max_iter
 
@@ -244,13 +229,9 @@ function check_watchdog!(
   watchdog_max_iter,
   η0,
 ) where {T,V,HV<:Nothing}
-  s, v = checkpoint.s, checkpoint.v
-
-  s .= xk .- checkpoint.xk
-  opt_measure = checkpoint.σk^2*norm(s)^2
 
   achieve_reduction =
-    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*opt_measure) ||
+    (checkpoint.fk + checkpoint.hk - stats.objective > 1/2*η0*checkpoint.dual_feas^2) ||
     (stats.dual_feas < (1-η0)*checkpoint.dual_feas)
   max_iter = stats.iter - checkpoint.iter > watchdog_max_iter
 
