@@ -11,13 +11,7 @@ so that the *scaled* problem
     subject to d_c .* lcon <= d_c .* c(x) <= d_c .* ucon
 
 is exposed through the ordinary NLPModels.jl API (obj, grad!, cons!,
-jac_coord!, hess_coord!, jprod!, jtprod!, hprod!, ...), so any solver that
-accepts an `AbstractNLPModel` can use it directly, with no other changes.
-
-Variable bounds and the initial point `x0` are left untouched: this file
-only implements *objective/constraint* scaling, not variable scaling. It
-composes cleanly with `remove_fixed_variables.jl` -- scale first or after,
-in either order.
+jac_coord!, hess_coord!, jprod!, jtprod!, hprod!, ...).
 
     julia> nlp = MyNLPModel(...)
     julia> nlp_free  = remove_fixed_variables(nlp)      # optional
