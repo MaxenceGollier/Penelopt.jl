@@ -28,7 +28,7 @@ function certify_local_infeasibility(
 
   # r₀ = c(x̄), so the F(x) - r = 0 block is satisfied at x0
   x0 = vcat(xbar, cons(nlp, xbar))
-  stats = ipopt(model, x0 = x0, tol = tol, print_level = 0)
+  stats = ipopt(model, x0 = x0, tol = tol, print_level = 0, max_time = BENCHMARK_MAX_TIME)
 
   if stats.status != :first_order
     @warn "Local infeasibility check for $(nlp.meta.name) was inconclusive (inner IPOPT solve terminated with status $(stats.status))"
