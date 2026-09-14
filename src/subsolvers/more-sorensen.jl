@@ -91,10 +91,18 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   σmax::T = 1 / eps(T)^(0.8),
   accept_descent::Bool = true, # Whether we accept inexact steps that decrease the quadratic model.
   ηC::T = eps(T), # Cauchy decrease acceptance constant, see up_lb_is_pos_def fallback below.
+  _restart::Bool = false, # Internal flag only: true when this call is a recursive continuation.
 ) where {T,V,M,H,P}
-  start_time = time()
-  set_time!(stats, 0.0)
-  set_iter!(stats, 0)
+  if !_restart
+    set_time!(stats, 0.0)
+    set_iter!(stats, 0)
+    if print_level > 0
+      @info separator(type = :ms_loop)
+      @info header_message(type = :ms_loop)
+      @info separator(type = :ms_loop)
+    end
+  end
+  start_time = time() - stats.elapsed_time
 
   n = reg_nlp.model.meta.nvar
   m = length(reg_nlp.h.b)
@@ -115,13 +123,6 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     reg_nlp.model.data.σ,
     α,
   )
-
-  if print_level > 0
-    @info introduction_message(solver, Δ)
-    @info separator(type = :ms_loop)
-    @info header_message(type = :ms_loop)
-    @info separator(type = :ms_loop)
-  end
 
   αmin = αmin1
 
@@ -223,8 +224,12 @@ function SolverCore.solve!( #TODO add verbose and kwargs
       print_level > 0 && @info conclusion_message(solver, stats)
       return
     end
-    solve!(solver, reg_nlp, stats)
-    return
+    return solve!(
+      solver, reg_nlp, stats;
+      x, print_level, verbose, atol, max_time, max_iter,
+      μα, μσ, α0, αmin1, αmin2, σmax, accept_descent, ηC,
+      _restart = true,
+    )
   end
 
   # [ H + σI Aᵀ][x'] = -[0]
@@ -281,7 +286,12 @@ function SolverCore.solve!( #TODO add verbose and kwargs
         print_level > 0 && @info conclusion_message(solver, stats)
         return
       end
-      solve!(solver, reg_nlp, stats)
+      return solve!(
+        solver, reg_nlp, stats;
+        x, print_level, verbose, atol, max_time, max_iter,
+        μα, μσ, α0, αmin1, αmin2, σmax, accept_descent, ηC,
+        _restart = true,
+      )
     end
 
     # [ H + σI  Aᵀ ][x'] = -[0]
@@ -325,7 +335,12 @@ function SolverCore.solve!( #TODO add verbose and kwargs
       print_level > 0 && @info conclusion_message(solver, stats)
       return
     end
-    solve!(solver, reg_nlp, stats)
+    return solve!(
+      solver, reg_nlp, stats;
+      x, print_level, verbose, atol, max_time, max_iter,
+      μα, μσ, α0, αmin1, αmin2, σmax, accept_descent, ηC,
+      _restart = true,
+    )
   end
 end
 
