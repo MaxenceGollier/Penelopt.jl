@@ -227,7 +227,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     return solve!(
       solver, reg_nlp, stats;
       x, print_level, verbose, atol, max_time, max_iter,
-      μα, μσ, α0, αmin1, αmin2, σmax, accept_descent, ηC,
+      μα, μσ, α0 = αmin, αmin1, αmin2, σmax, accept_descent, ηC,
       _restart = true,
     )
   end
@@ -289,7 +289,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
       return solve!(
         solver, reg_nlp, stats;
         x, print_level, verbose, atol, max_time, max_iter,
-        μα, μσ, α0, αmin1, αmin2, σmax, accept_descent, ηC,
+        μα, μσ, α0 = αmin, αmin1, αmin2, σmax, accept_descent, ηC,
         _restart = true,
       )
     end
@@ -338,7 +338,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     return solve!(
       solver, reg_nlp, stats;
       x, print_level, verbose, atol, max_time, max_iter,
-      μα, μσ, α0, αmin1, αmin2, σmax, accept_descent, ηC,
+      μα, μσ, α0 = αmin, αmin1, αmin2, σmax, accept_descent, ηC,
       _restart = true,
     )
   end
