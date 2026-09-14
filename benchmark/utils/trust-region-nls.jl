@@ -22,7 +22,7 @@ function TrustRegionNLS(nlp::AbstractNLPModel, xbar::AbstractVector, Δ::Real)
   feas_nls = FeasibilityResidual(nlp)
   n = nlp.meta.nvar
   Jxbar = jac(nlp, xbar)
-  Hxbar = LinearAlgebra.tril(2 .* (Jxbar' * Jxbar))
+  Hxbar = LinearAlgebra.tril(Jxbar' * Jxbar)
   Hxbar_rows, Hxbar_cols, Hxbar_vals = findnz(Hxbar)
 
   meta = NLPModelMeta(
