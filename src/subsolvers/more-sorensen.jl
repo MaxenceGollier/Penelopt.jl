@@ -90,41 +90,32 @@ function factor_and_solve!(solver_workspace, u1, x1)
 end
 
 """
-    escalate_and_resolve!(solver, reg_nlp, stats, αmin, failure_status; μσ, σmax, print_level, kwargs...)
+    escalate_and_resolve!(solver, reg_nlp, stats, αmin, failure_status, opts)
 
-Multiply the primal regularization `reg_nlp.model.data.σ` by `μσ` and either
-report failure — setting `stats.status` to `failure_status` — if `σ` has reached `σmax`, 
-or restart the Moré-Sorensen iteration with the new `σ`.
-`kwargs` are forwarded to the recursive `solve!` call.
+Multiply the primal regularization `reg_nlp.model.data.σ` by `opts.μσ` and
+either report failure — setting `stats.status` to `failure_status` — if `σ`
+has reached `opts.σmax`, or restart the Moré-Sorensen iteration with the new
+`σ`. `opts` is the `NamedTuple` of tuning parameters built once at the top
+of `solve!` (everything but `α0`/`_restart`, which vary across restarts) and
+is forwarded as-is to the recursive `solve!` call, only initializing the
+dual regularization at `αmin` (the smallest value already known to work for
+the current system) instead of retrying it from `0`.
 """
 function escalate_and_resolve!(
   solver::MoreSorensenSolver{T,V},
   reg_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
   stats::GenericExecutionStats,
   αmin::T,
-  failure_status::Symbol;
-  μσ::T,
-  σmax::T,
-  print_level::Int,
-  kwargs...,
+  failure_status::Symbol,
+  opts::NamedTuple,
 ) where {T,V,M,H,P}
-  reg_nlp.model.data.σ *= μσ
-  if reg_nlp.model.data.σ >= σmax
+  reg_nlp.model.data.σ *= opts.μσ
+  if reg_nlp.model.data.σ >= opts.σmax
     set_status!(stats, failure_status)
-    print_level > 0 && @info conclusion_message(solver, stats)
+    opts.print_level > 0 && @info conclusion_message(solver, stats)
     return
   end
-  return solve!(
-    solver,
-    reg_nlp,
-    stats;
-    print_level = print_level,
-    μσ = μσ,
-    σmax = σmax,
-    α0 = αmin,
-    _restart = true,
-    kwargs...,
-  )
+  return solve!(solver, reg_nlp, stats; opts..., α0 = αmin, _restart = true)
 end
 
 function SolverCore.solve!( #TODO add verbose and kwargs
@@ -157,6 +148,13 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     end
   end
   start_time = time() - stats.elapsed_time
+
+  # Bundled once so the escalation call sites below stay short: everything
+  # solve! was called with, except α0/_restart which change across restarts.
+  opts = (;
+    x, print_level, verbose, atol, max_time, max_iter,
+    μα, μσ, αmin1, αmin2, σmax, accept_descent, ηC,
+  )
 
   n = reg_nlp.model.meta.nvar
   m = length(reg_nlp.h.b)
@@ -257,26 +255,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     # Neither positive-definiteness of H + σI, nor (when applicable) the
     # Cauchy decrease condition, could certify x1: increase σ and re-solve
     # instead of accepting it here.
-    return escalate_and_resolve!(
-      solver,
-      reg_nlp,
-      stats,
-      αmin,
-      :exception;
-      print_level,
-      μσ,
-      σmax,
-      x,
-      verbose,
-      atol,
-      max_time,
-      max_iter,
-      μα,
-      αmin1,
-      αmin2,
-      accept_descent,
-      ηC,
-    )
+    return escalate_and_resolve!(solver, reg_nlp, stats, αmin, :exception, opts)
   end
 
   # [ H + σI Aᵀ][x'] = -[0]
@@ -327,26 +306,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     # Check whether the matrix still has the correct inertia. (We may have failed to detect earlier)
     npos, nzero, nneg = get_inertia(solver_workspace)
     if npos < n
-      return escalate_and_resolve!(
-        solver,
-        reg_nlp,
-        stats,
-        αmin,
-        :exception;
-        print_level,
-        μσ,
-        σmax,
-        x,
-        verbose,
-        atol,
-        max_time,
-        max_iter,
-        μα,
-        αmin1,
-        αmin2,
-        accept_descent,
-        ηC,
-      )
+      return escalate_and_resolve!(solver, reg_nlp, stats, αmin, :exception, opts)
     end
 
     # [ H + σI  Aᵀ ][x'] = -[0]
@@ -384,26 +344,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   stats.elapsed_time >= max_time && set_status!(stats, :max_time)
   !check_descent(reg_nlp, @view x1[1:n]) && set_status!(stats, :not_desc)
   if !check_descent(reg_nlp, @view x1[1:n])
-    return escalate_and_resolve!(
-      solver,
-      reg_nlp,
-      stats,
-      αmin,
-      :not_desc;
-      print_level,
-      μσ,
-      σmax,
-      x,
-      verbose,
-      atol,
-      max_time,
-      max_iter,
-      μα,
-      αmin1,
-      αmin2,
-      accept_descent,
-      ηC,
-    )
+    return escalate_and_resolve!(solver, reg_nlp, stats, αmin, :not_desc, opts)
   end
 end
 
