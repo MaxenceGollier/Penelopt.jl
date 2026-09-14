@@ -101,6 +101,7 @@ For the inner loop logger, the logger prints the following columns:
 * `pfeas`, `dfeas`: as above.
 * `σ`: current R2N quadratic regularization parameter.
 * `ρ`: ratio of actual to first-order predicted decrease for the last step.
+*  An iteration type symbol: `w` (active watchdog), `↗` (step rejected, `σ` increased), `=` (step accepted, `σ` unchanged), `↘` (step accepted, `σ` decreased).
 * `‖x‖`: norm of the current inner iterate.
 * `‖s‖`: norm of the last computed step.
 

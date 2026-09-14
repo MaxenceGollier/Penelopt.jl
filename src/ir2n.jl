@@ -156,7 +156,7 @@ function SolverCore.solve!(
       optimal = solved,
       max_eval = max_eval,
       max_time = max_time,
-      max_iter = max_iter,
+      max_iter = max_iter - 1,
     ),
   )
 
@@ -166,7 +166,15 @@ function SolverCore.solve!(
     @info separator(type = :inner_loop)
     @info header_message(type = :inner_loop)
     @info separator(type = :inner_loop)
-    @info log_iteration(solver, nlp, stats; type = :inner_loop)
+    @info log_iteration(
+      solver,
+      nlp,
+      stats;
+      type = :inner_loop,
+      η1 = η1,
+      η2 = η2,
+      active_watchdog = is_active(watchdog_checkpoint),
+    )
   end
 
   callback(reg_nlp, solver, stats)
@@ -317,7 +325,7 @@ function SolverCore.solve!(
         unbounded = fk < - 1 / eps(T),
         max_eval = max_eval,
         max_time = max_time,
-        max_iter = max_iter,
+        max_iter = max_iter - 1,
         small_step = n_tiny_step > nmax_tiny_step,
       ),
     )
@@ -329,7 +337,15 @@ function SolverCore.solve!(
         @info header_message(type = :inner_loop)
         @info separator(type = :inner_loop)
       end
-      @info log_iteration(solver, nlp, stats; type = :inner_loop)
+      @info log_iteration(
+        solver,
+        nlp,
+        stats;
+        type = :inner_loop,
+        η1 = η1,
+        η2 = η2,
+        active_watchdog = is_active(watchdog_checkpoint),
+      )
     end
 
     callback(reg_nlp, solver, stats)
