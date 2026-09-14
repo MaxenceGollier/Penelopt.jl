@@ -3,22 +3,19 @@ using NLPModels, NLPModelsModifiers, LinearAlgebra, SparseArrays
 import NLPModels: increment!
 
 # ------------------------------------------------------------------------- #
-# min_x 1/2 ||c(x)||² s.t. ||J(x̄)(x - x̄)|| ≤ Δ
+# min_x 1/2 ||c(x)||² s.t. ||J(x̄)(x - x̄)||² ≤ Δ²
 # ------------------------------------------------------------------------- #
-mutable struct TrustRegionNLS{S<:AbstractNLSModel} <:
-               AbstractNLSModel{Float64,Vector{Float64}}
-  meta::NLPModelMeta{Float64,Vector{Float64}}
-  nls_meta::NLSMeta{Float64,Vector{Float64}}
+mutable struct TrustRegionNLS{T,V,S<:AbstractNLSModel,M} <: AbstractNLSModel{T,V}
+  meta::NLPModelMeta{T,V}
+  nls_meta::NLSMeta{T,V}
   counters::NLSCounters
   feas_nls::S
-  xbar::Vector{Float64}
-  Jxbar::Any
-  # constant Hessian of the constraint, 2 J(x̄)ᵀJ(x̄), lower-triangular COO -
-  # kept sparse: densifying is O(n²) and OOMs on large CUTEst problems.
+  xbar::V
+  Jxbar::M
   Hxbar_rows::Vector{Int}
   Hxbar_cols::Vector{Int}
-  Hxbar_vals::Vector{Float64}
-  Δ::Float64
+  Hxbar_vals::V
+  Δ::T
 end
 
 function TrustRegionNLS(nlp::AbstractNLPModel, xbar::AbstractVector, Δ::Real)
@@ -35,7 +32,7 @@ function TrustRegionNLS(nlp::AbstractNLPModel, xbar::AbstractVector, Δ::Real)
     uvar = feas_nls.meta.uvar,
     ncon = 1,
     lcon = [-Inf],
-    ucon = [Δ^2], # constraint is stored in its squared form, see cons!
+    ucon = [Δ^2/2], # constraint is stored in its squared form, see cons!
     nnzj = n,
     nnzh = length(Hxbar_vals),
     name = "TrustRegionNLS($(nlp.meta.name))",
@@ -89,7 +86,7 @@ NLPModels.hess_coord_residual!(
   vals::AbstractVector,
 ) = hess_coord_residual!(M.feas_nls, x, v, vals)
 
-# --- our one extra general constraint: ||J(x̄)(x - x̄)||² ≤ Δ² ---
+# --- one extra general constraint: ||J(x̄)(x - x̄)||²/2 ≤ Δ²/2 ---
 #
 # FeasibilityFormNLS calls the *_nln variants directly, not cons!/jac_*!.
 # Hessian isn't split this way, so hess_structure!/hess_coord! stay unsuffixed.
@@ -97,7 +94,7 @@ function NLPModels.cons_nln!(M::TrustRegionNLS, x::AbstractVector, c::AbstractVe
   increment!(M, :neval_cons_nln)
   # squared form keeps the constraint gradient smooth at x = x̄ (start point)
   Jd = M.Jxbar * (x - M.xbar)
-  c[1] = dot(Jd, Jd)
+  c[1] = dot(Jd, Jd) / 2
   return c
 end
 
@@ -119,7 +116,7 @@ function NLPModels.jac_nln_coord!(
 )
   increment!(M, :neval_jac_nln)
   Jd = M.Jxbar * (x - M.xbar)
-  vals .= 2 .* (M.Jxbar' * Jd)
+  vals .= (M.Jxbar' * Jd)
   return vals
 end
 
@@ -135,14 +132,13 @@ end
 
 function NLPModels.hess_coord!(
   M::TrustRegionNLS,
-  x::AbstractVector,
-  y::AbstractVector,
-  vals::AbstractVector;
-  obj_weight = 1.0,
-)
-  # obj_weight always 0 here (FeasibilityFormNLS's own objective is 1/2||r||²)
+  x::AbstractVector{T},
+  y::AbstractVector{T},
+  vals::AbstractVector{T};
+  obj_weight = one(T),
+) where {T}
   increment!(M, :neval_hess)
-  yc = length(y) > 0 ? y[1] : 0.0
+  yc = length(y) > 0 ? y[1] : zero(T)
   vals .= yc .* M.Hxbar_vals
   return vals
 end
