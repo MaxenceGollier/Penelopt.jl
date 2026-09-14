@@ -93,8 +93,8 @@ end
     escalate_and_resolve!(solver, reg_nlp, stats, αmin, failure_status; μσ, σmax, print_level, kwargs...)
 
 Multiply the primal regularization `reg_nlp.model.data.σ` by `μσ` and either
-report failure — setting `stats.status` to `failure_status` — if `σ` has reached `σmax`, or restart the Moré-Sorensen
-iteration with the new `σ`.
+report failure — setting `stats.status` to `failure_status` — if `σ` has reached `σmax`, 
+or restart the Moré-Sorensen iteration with the new `σ`.
 `kwargs` are forwarded to the recursive `solve!` call.
 """
 function escalate_and_resolve!(
@@ -115,8 +115,15 @@ function escalate_and_resolve!(
     return
   end
   return solve!(
-    solver, reg_nlp, stats;
-    print_level = print_level, μσ = μσ, σmax = σmax, α0 = αmin, _restart = true, kwargs...,
+    solver,
+    reg_nlp,
+    stats;
+    print_level = print_level,
+    μσ = μσ,
+    σmax = σmax,
+    α0 = αmin,
+    _restart = true,
+    kwargs...,
   )
 end
 
@@ -251,9 +258,24 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     # Cauchy decrease condition, could certify x1: increase σ and re-solve
     # instead of accepting it here.
     return escalate_and_resolve!(
-      solver, reg_nlp, stats, αmin, :exception;
-      print_level, μσ, σmax,
-      x, verbose, atol, max_time, max_iter, μα, αmin1, αmin2, accept_descent, ηC,
+      solver,
+      reg_nlp,
+      stats,
+      αmin,
+      :exception;
+      print_level,
+      μσ,
+      σmax,
+      x,
+      verbose,
+      atol,
+      max_time,
+      max_iter,
+      μα,
+      αmin1,
+      αmin2,
+      accept_descent,
+      ηC,
     )
   end
 
@@ -306,9 +328,24 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     npos, nzero, nneg = get_inertia(solver_workspace)
     if npos < n
       return escalate_and_resolve!(
-        solver, reg_nlp, stats, αmin, :exception;
-        print_level, μσ, σmax,
-        x, verbose, atol, max_time, max_iter, μα, αmin1, αmin2, accept_descent, ηC,
+        solver,
+        reg_nlp,
+        stats,
+        αmin,
+        :exception;
+        print_level,
+        μσ,
+        σmax,
+        x,
+        verbose,
+        atol,
+        max_time,
+        max_iter,
+        μα,
+        αmin1,
+        αmin2,
+        accept_descent,
+        ηC,
       )
     end
 
@@ -348,9 +385,24 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   !check_descent(reg_nlp, @view x1[1:n]) && set_status!(stats, :not_desc)
   if !check_descent(reg_nlp, @view x1[1:n])
     return escalate_and_resolve!(
-      solver, reg_nlp, stats, αmin, :not_desc;
-      print_level, μσ, σmax,
-      x, verbose, atol, max_time, max_iter, μα, αmin1, αmin2, accept_descent, ηC,
+      solver,
+      reg_nlp,
+      stats,
+      αmin,
+      :not_desc;
+      print_level,
+      μσ,
+      σmax,
+      x,
+      verbose,
+      atol,
+      max_time,
+      max_iter,
+      μα,
+      αmin1,
+      αmin2,
+      accept_descent,
+      ηC,
     )
   end
 end

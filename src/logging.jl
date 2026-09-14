@@ -172,7 +172,15 @@ function step_trend(ρk, η1, η2, active_watchdog)
   return '↘'
 end
 
-function log_iteration(solver, nlp, stats; type = :outer_loop, η1 = nothing, η2 = nothing, active_watchdog = nothing)
+function log_iteration(
+  solver,
+  nlp,
+  stats;
+  type = :outer_loop,
+  η1 = nothing,
+  η2 = nothing,
+  active_watchdog = nothing,
+)
   if type == :outer_loop
     return @sprintf(
       "%-7d%-7d%-+16.7e%-12.2e%-12.2e%-12.2e%-12.2e%-12.2e%-12.2e",
@@ -187,7 +195,9 @@ function log_iteration(solver, nlp, stats; type = :outer_loop, η1 = nothing, η
       norm(solver.x),
     )
   elseif type == :inner_loop
-    trend = stats.iter == 0 ? "" : step_trend(stats.solver_specific[:rho], η1, η2, active_watchdog)
+    trend =
+      stats.iter == 0 ? "" :
+      step_trend(stats.solver_specific[:rho], η1, η2, active_watchdog)
     return @sprintf(
       "      | %-7d%-7d%-+16.7e%-12.2e%-12.2e%-12.2e%-+12.2e%-6s%-12.2e%-12.2e",
       stats.iter,
