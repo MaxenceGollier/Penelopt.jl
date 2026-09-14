@@ -46,19 +46,11 @@ function introduction_message(
   )
 end
 
-function introduction_message(solver::MoreSorensenSolver, Δ)
-  return separator(type = :ms_loop) * @sprintf(
-    "\n                  |  Computing step ( H + σI    Jᵀ )(s) = -(∇f)
-           |                 ( J        -αI )(y) = -(c ), with ‖y‖ ≤ %-3.2e...",
-    Δ
-  )
-end
-
-
 const W_ITER = 7
 const W_LARGE = 16
 const W_MED = 12
 const W_SMALL = 8
+const W_ARROW = 4
 
 const FMT_OBJ = "%+-16.7e"
 const FMT_MED = "%-12.2e"
@@ -99,7 +91,7 @@ function header_message(; type = :outer_loop)
     )
   elseif type == :inner_loop
     return @sprintf(
-      "      | %-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s",
+      "      | %-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s",
       W_ITER,
       "Iter",
       W_ITER,
@@ -114,6 +106,8 @@ function header_message(; type = :outer_loop)
       "σ",
       W_MED,
       "ρ",
+      W_ARROW,
+      "",
       W_MED,
       "‖x‖",
       W_MED,
@@ -165,7 +159,20 @@ function log_ms_iteration(stats, σ, α, norm_y, Δ, npos, nzero, nneg, lin_stat
   )
 end
 
-function log_iteration(solver, nlp, stats; type = :outer_loop)
+"""
+    step_trend(ρk, η1, η2, active_watchdog)
+
+Return a short arrow summarizing how the regularization parameter `σ` was
+updated in response to `ρk`.
+"""
+function step_trend(ρk, η1, η2, active_watchdog)
+  active_watchdog && return "w"
+  (ρk == Inf || ρk < η1) && return "↗"
+  ρk < η2 && return "="
+  return "↘"
+end
+
+function log_iteration(solver, nlp, stats; type = :outer_loop, η1 = nothing, η2 = nothing, active_watchdog = nothing)
   if type == :outer_loop
     return @sprintf(
       "%-7d%-7d%-+16.7e%-12.2e%-12.2e%-12.2e%-12.2e%-12.2e%-12.2e",
@@ -180,8 +187,9 @@ function log_iteration(solver, nlp, stats; type = :outer_loop)
       norm(solver.x),
     )
   elseif type == :inner_loop
+    trend = stats.iter == 0 ? "" : step_trend(stats.solver_specific[:rho], η1, η2, active_watchdog)
     return @sprintf(
-      "      | %-7d%-7d%-+16.7e%-12.2e%-12.2e%-12.2e%-+12.2e%-12.2e%-12.2e",
+      "      | %-7d%-7d%-+16.7e%-12.2e%-12.2e%-12.2e%-+12.2e%-4s%-12.2e%-12.2e",
       stats.iter,
       max(solver.substats.iter, 0),
       stats.objective,
@@ -189,6 +197,7 @@ function log_iteration(solver, nlp, stats; type = :outer_loop)
       stats.dual_feas,
       stats.solver_specific[:sigma],
       stats.solver_specific[:rho],
+      trend,
       norm(solver.xk),
       norm(solver.s),
     )

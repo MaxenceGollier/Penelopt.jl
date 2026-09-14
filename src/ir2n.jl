@@ -166,7 +166,7 @@ function SolverCore.solve!(
     @info separator(type = :inner_loop)
     @info header_message(type = :inner_loop)
     @info separator(type = :inner_loop)
-    @info log_iteration(solver, nlp, stats; type = :inner_loop)
+    @info log_iteration(solver, nlp, stats; type = :inner_loop, η1 = η1, η2 = η2, active_watchdog = is_active(watchdog_checkpoint))
   end
 
   callback(reg_nlp, solver, stats)
@@ -329,7 +329,7 @@ function SolverCore.solve!(
         @info header_message(type = :inner_loop)
         @info separator(type = :inner_loop)
       end
-      @info log_iteration(solver, nlp, stats; type = :inner_loop)
+      @info log_iteration(solver, nlp, stats; type = :inner_loop, η1 = η1, η2 = η2, active_watchdog = is_active(watchdog_checkpoint))
     end
 
     callback(reg_nlp, solver, stats)
