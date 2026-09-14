@@ -156,7 +156,7 @@ function SolverCore.solve!(
       optimal = solved,
       max_eval = max_eval,
       max_time = max_time,
-      max_iter = max_iter,
+      max_iter = max_iter - 1,
     ),
   )
 
@@ -317,7 +317,7 @@ function SolverCore.solve!(
         unbounded = fk < - 1 / eps(T),
         max_eval = max_eval,
         max_time = max_time,
-        max_iter = max_iter,
+        max_iter = max_iter - 1,
         small_step = n_tiny_step > nmax_tiny_step,
       ),
     )
