@@ -79,12 +79,14 @@ and whose constraints are `d_c .* c(x)`. `d_f` must be a positive scalar and
 
 If `get_ncon(nlp) == 0`, `d_c` may be passed as an empty vector.
 """
-function scale_model(nlp::AbstractNLPModel{T,S}; d_f::T = one(T), d_c::S = ones(get_ncon(nlp))) where {T,S}
+function scale_model(
+  nlp::AbstractNLPModel{T,S};
+  d_f::T = one(T),
+  d_c::S = ones(get_ncon(nlp)),
+) where {T,S}
   ncon = get_ncon(nlp)
   length(d_c) == ncon || throw(
-    DimensionMismatch(
-      "length(d_c) = $(length(d_c)) does not match get_ncon(nlp) = $ncon",
-    ),
+    DimensionMismatch("length(d_c) = $(length(d_c)) does not match get_ncon(nlp) = $ncon"),
   )
   d_f > 0 || throw(ArgumentError("d_f must be positive, got $d_f"))
   ncon > 0 && any(d_c .<= 0) && throw(ArgumentError("every entry of d_c must be positive"))
@@ -126,22 +128,32 @@ end
 Recompute `nlp`'s gradient-based scaling factors from the gradient `gk` and
 constraint Jacobian `Ak` of the underlying problem, and update `nlp` in place.
 """
-function update_scaling!(nlp::ScaledModel{T}, gk::AbstractVector, Ak::SparseMatrixCOO; gmax::T) where {T}
+function update_scaling!(
+  nlp::ScaledModel{T},
+  gk::AbstractVector,
+  Ak::SparseMatrixCOO;
+  gmax::T,
+) where {T}
   nlp.d_f = min(one(T), gmax / norm(gk, Inf))
   nlp.d_c .= 1
-  for idx in 1:nnz(Ak)
+  for idx = 1:nnz(Ak)
     i, j, val = Ak.rows[idx], Ak.cols[idx], Ak.vals[idx]
     nlp.d_c[i] = abs(val) > 0 ? min(nlp.d_c[i], gmax / abs(val)) : nlp.d_c[i]
   end
   return nlp
 end
 
-function update_scaling!(nlp::ScaledModel{T}, gk::AbstractVector, Ak::SparseMatrixCSC; gmax::T) where {T}
+function update_scaling!(
+  nlp::ScaledModel{T},
+  gk::AbstractVector,
+  Ak::SparseMatrixCSC;
+  gmax::T,
+) where {T}
   nlp.d_f = min(one(T), gmax / norm(gk, Inf))
   nlp.d_c .= 1
   rows = rowvals(Ak)
   vals = nonzeros(Ak)
-  for j in 1:size(Ak, 2)
+  for j = 1:size(Ak, 2)
     for idx in nzrange(Ak, j)
       i, val = rows[idx], vals[idx]
       nlp.d_c[i] = abs(val) > 0 ? min(nlp.d_c[i], gmax / abs(val)) : nlp.d_c[i]
@@ -177,7 +189,8 @@ unscale_constraints(::Nothing, c) = c  # no-op fallback for find_model's "not fo
 Map Lagrange multipliers of the *scaled* problem back to the multipliers of
 the original problem: `y = y_scaled .* d_c ./ d_f`.
 """
-unscale_multipliers(nlp::ScaledModel, y_scaled::AbstractVector) = (y_scaled .* nlp.d_c) ./ nlp.d_f
+unscale_multipliers(nlp::ScaledModel, y_scaled::AbstractVector) =
+  (y_scaled .* nlp.d_c) ./ nlp.d_f
 unscale_multipliers(::AbstractNLPModel, y) = y  # no-op fallback
 unscale_multipliers(::Nothing, y) = y  # no-op fallback for find_model's "not found"
 
@@ -190,8 +203,11 @@ result into the preallocated `y_out` instead of returning a new vector.
 unscale_multipliers!(y_out::AbstractVector, nlp::ScaledModel, y_scaled::AbstractVector) =
   (y_out .= (y_scaled .* nlp.d_c) ./ nlp.d_f)
 
-unscale_multipliers!(y_out::AbstractVector, nlp::AbstractNLPModel, y_scaled::AbstractVector) =
-  (y_out .= y_scaled)  # no-op fallback
+unscale_multipliers!(
+  y_out::AbstractVector,
+  nlp::AbstractNLPModel,
+  y_scaled::AbstractVector,
+) = (y_out .= y_scaled)  # no-op fallback
 
 unscale_multipliers!(y_out::AbstractVector, ::Nothing, y_scaled::AbstractVector) =
   (y_out .= y_scaled)  # no-op fallback for find_model's "not found"
@@ -230,7 +246,11 @@ function NLPModels.cons!(nlp::ScaledModel, x::AbstractVector, c::AbstractVector)
   return c
 end
 
-function NLPModels.jac_structure!(nlp::ScaledModel, rows::AbstractVector, cols::AbstractVector)
+function NLPModels.jac_structure!(
+  nlp::ScaledModel,
+  rows::AbstractVector,
+  cols::AbstractVector,
+)
   NLPModels.jac_structure!(nlp.model, rows, cols)
   return rows, cols
 end
@@ -268,7 +288,11 @@ function NLPModels.jtprod!(
   return Jtv
 end
 
-function NLPModels.hess_structure!(nlp::ScaledModel, rows::AbstractVector, cols::AbstractVector)
+function NLPModels.hess_structure!(
+  nlp::ScaledModel,
+  rows::AbstractVector,
+  cols::AbstractVector,
+)
   NLPModels.hess_structure!(nlp.model, rows, cols)
   return rows, cols
 end

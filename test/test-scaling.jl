@@ -19,7 +19,10 @@
   consistent_nlps([nlp_scaled, nlp_scaled_ad])
 
   # Default scaling factors leave the problem unchanged.
-  consistent_nlps([ADNLPModel(f, x0, c, lcon, ucon), scale_model(ADNLPModel(f, x0, c, lcon, ucon))])
+  consistent_nlps([
+    ADNLPModel(f, x0, c, lcon, ucon),
+    scale_model(ADNLPModel(f, x0, c, lcon, ucon)),
+  ])
 
   # unscale/scale round-trips
   nlp = ADNLPModel(f, x0, c, lcon, ucon)
