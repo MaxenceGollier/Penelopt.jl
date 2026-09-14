@@ -50,7 +50,7 @@ const W_ITER = 7
 const W_LARGE = 16
 const W_MED = 12
 const W_SMALL = 8
-const W_ARROW = 4
+const W_ARROW = 6
 
 const FMT_OBJ = "%+-16.7e"
 const FMT_MED = "%-12.2e"
@@ -107,7 +107,7 @@ function header_message(; type = :outer_loop)
       W_MED,
       "ρ",
       W_ARROW,
-      "",
+      "Type",
       W_MED,
       "‖x‖",
       W_MED,
@@ -166,10 +166,10 @@ Return a short arrow summarizing how the regularization parameter `σ` was
 updated in response to `ρk`.
 """
 function step_trend(ρk, η1, η2, active_watchdog)
-  active_watchdog && return "w"
-  (ρk == Inf || ρk < η1) && return "↗"
-  ρk < η2 && return "="
-  return "↘"
+  active_watchdog && return 'w'
+  (ρk == Inf || ρk < η1) && return '↗'
+  ρk < η2 && return '='
+  return '↘'
 end
 
 function log_iteration(solver, nlp, stats; type = :outer_loop, η1 = nothing, η2 = nothing, active_watchdog = nothing)
@@ -189,7 +189,7 @@ function log_iteration(solver, nlp, stats; type = :outer_loop, η1 = nothing, η
   elseif type == :inner_loop
     trend = stats.iter == 0 ? "" : step_trend(stats.solver_specific[:rho], η1, η2, active_watchdog)
     return @sprintf(
-      "      | %-7d%-7d%-+16.7e%-12.2e%-12.2e%-12.2e%-+12.2e%-4s%-12.2e%-12.2e",
+      "      | %-7d%-7d%-+16.7e%-12.2e%-12.2e%-12.2e%-+12.2e%-6s%-12.2e%-12.2e",
       stats.iter,
       max(solver.substats.iter, 0),
       stats.objective,
