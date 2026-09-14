@@ -15,8 +15,8 @@ function NullHessianModel(nlp::AbstractNLPModel{T,S}) where {T,S}
   return NullHessianModel(nlp.meta, nlp, coo_spzeros(T, nlp.meta.nvar, nlp.meta.nvar))
 end
 
-get_op(nlp::NullHessianModel) = nlp.op
-get_model(nlp::NullHessianModel) = nlp.model
+NLPModelsModifiers.get_op(nlp::NullHessianModel) = nlp.op
+NLPModelsModifiers.get_model(nlp::NullHessianModel) = nlp.model
 @default_counters NullHessianModel model
 
 # Hessian API 
