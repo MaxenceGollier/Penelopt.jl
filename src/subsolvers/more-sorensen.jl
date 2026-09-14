@@ -73,6 +73,53 @@ function MoreSorensenSolver(
   return MoreSorensenSolver(u1, u2, x1, x2, H, workspace)
 end
 
+"""
+    factor_and_solve!(solver_workspace, u1, x1)
+
+Factorize the system currently held in `solver_workspace`, solve it for the
+right-hand side `u1`, store the resulting primal-dual solution in `x1`, and
+return `(npos, nzero, nneg, status)`: the observed inertia of the factorized
+system and the status reported by the linear solver.
+"""
+function factor_and_solve!(solver_workspace, u1, x1)
+  solve_system!(solver_workspace, u1)
+  get_solution!(x1, solver_workspace)
+  npos, nzero, nneg = get_inertia(solver_workspace)
+  status = get_status(solver_workspace)
+  return npos, nzero, nneg, status
+end
+
+"""
+    escalate_and_resolve!(solver, reg_nlp, stats, αmin, failure_status; μσ, σmax, print_level, kwargs...)
+
+Multiply the primal regularization `reg_nlp.model.data.σ` by `μσ` and either
+report failure — setting `stats.status` to `failure_status` — if `σ` has reached `σmax`, or restart the Moré-Sorensen
+iteration with the new `σ`.
+`kwargs` are forwarded to the recursive `solve!` call.
+"""
+function escalate_and_resolve!(
+  solver::MoreSorensenSolver{T,V},
+  reg_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
+  stats::GenericExecutionStats,
+  αmin::T,
+  failure_status::Symbol;
+  μσ::T,
+  σmax::T,
+  print_level::Int,
+  kwargs...,
+) where {T,V,M,H,P}
+  reg_nlp.model.data.σ *= μσ
+  if reg_nlp.model.data.σ >= σmax
+    set_status!(stats, failure_status)
+    print_level > 0 && @info conclusion_message(solver, stats)
+    return
+  end
+  return solve!(
+    solver, reg_nlp, stats;
+    print_level = print_level, μσ = μσ, σmax = σmax, α0 = αmin, _restart = true, kwargs...,
+  )
+end
+
 function SolverCore.solve!( #TODO add verbose and kwargs
   solver::MoreSorensenSolver{T,V},
   reg_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
@@ -128,29 +175,20 @@ function SolverCore.solve!( #TODO add verbose and kwargs
 
   # [ H + σI Aᵀ][x] = -[∇f]
   # [   A    0 ][y] = -[c] 
-  solve_system!(solver_workspace, u1)
-  get_solution!(x1, solver_workspace)
-  npos, nzero, nneg = get_inertia(solver_workspace)
-  status = get_status(solver_workspace)
+  npos, nzero, nneg, status = factor_and_solve!(solver_workspace, u1, x1)
 
   # Get correct inertia
   # If the factorization/solver failed, it in indicates we should add a minimal regularization too.
   if nneg < m || status == :failed
     α = αmin
     set_dual_inertia!(solver_workspace, α)
-    solve_system!(solver_workspace, u1)
-    get_solution!(x1, solver_workspace)
-    npos, nzero, nneg = get_inertia(solver_workspace)
-    status = get_status(solver_workspace)
+    npos, nzero, nneg, status = factor_and_solve!(solver_workspace, u1, x1)
 
     if nneg < m || status == :failed
       αmin = αmin2
       α = αmin
       set_dual_inertia!(solver_workspace, α)
-      solve_system!(solver_workspace, u1)
-      get_solution!(x1, solver_workspace)
-      npos, nzero, nneg = get_inertia(solver_workspace)
-      status = get_status(solver_workspace)
+      npos, nzero, nneg, status = factor_and_solve!(solver_workspace, u1, x1)
     end
   end
 
@@ -160,10 +198,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
 
     # [ H + σI Aᵀ][x] = -[∇f]
     # [   A    0 ][y] = -[c] 
-    solve_system!(solver_workspace, u1)
-    get_solution!(x1, solver_workspace)
-    npos, nzero, nneg = get_inertia(solver_workspace)
-    status = get_status(solver_workspace)
+    npos, nzero, nneg, status = factor_and_solve!(solver_workspace, u1, x1)
   end
 
   # Solve with H = 0 instead.
@@ -173,10 +208,7 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     update_workspace!(solver_workspace, reg_nlp.h.A, reg_nlp.model.data.σ, α)
     # [ σI Aᵀ][x] = -[∇f]
     # [ A  0 ][y] = -[c] 
-    solve_system!(solver_workspace, u1)
-    get_solution!(x1, solver_workspace)
-    npos, nzero, nneg = get_inertia(solver_workspace)
-    status = get_status(solver_workspace)
+    npos, nzero, nneg, status = factor_and_solve!(solver_workspace, u1, x1)
   end
 
   if (npos < n || status == :failed)
@@ -218,17 +250,10 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     # Neither positive-definiteness of H + σI, nor (when applicable) the
     # Cauchy decrease condition, could certify x1: increase σ and re-solve
     # instead of accepting it here.
-    reg_nlp.model.data.σ *= μσ
-    if reg_nlp.model.data.σ >= σmax
-      set_status!(stats, :exception)
-      print_level > 0 && @info conclusion_message(solver, stats)
-      return
-    end
-    return solve!(
-      solver, reg_nlp, stats;
-      x, print_level, verbose, atol, max_time, max_iter,
-      μα, μσ, α0 = αmin, αmin1, αmin2, σmax, accept_descent, ηC,
-      _restart = true,
+    return escalate_and_resolve!(
+      solver, reg_nlp, stats, αmin, :exception;
+      print_level, μσ, σmax,
+      x, verbose, atol, max_time, max_iter, μα, αmin1, αmin2, accept_descent, ηC,
     )
   end
 
@@ -280,17 +305,10 @@ function SolverCore.solve!( #TODO add verbose and kwargs
     # Check whether the matrix still has the correct inertia. (We may have failed to detect earlier)
     npos, nzero, nneg = get_inertia(solver_workspace)
     if npos < n
-      reg_nlp.model.data.σ *= μσ
-      if reg_nlp.model.data.σ >= σmax
-        set_status!(stats, :exception)
-        print_level > 0 && @info conclusion_message(solver, stats)
-        return
-      end
-      return solve!(
-        solver, reg_nlp, stats;
-        x, print_level, verbose, atol, max_time, max_iter,
-        μα, μσ, α0 = αmin, αmin1, αmin2, σmax, accept_descent, ηC,
-        _restart = true,
+      return escalate_and_resolve!(
+        solver, reg_nlp, stats, αmin, :exception;
+        print_level, μσ, σmax,
+        x, verbose, atol, max_time, max_iter, μα, αmin1, αmin2, accept_descent, ηC,
       )
     end
 
@@ -329,17 +347,10 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   stats.elapsed_time >= max_time && set_status!(stats, :max_time)
   !check_descent(reg_nlp, @view x1[1:n]) && set_status!(stats, :not_desc)
   if !check_descent(reg_nlp, @view x1[1:n])
-    reg_nlp.model.data.σ *= μσ
-    if reg_nlp.model.data.σ >= σmax
-      set_status!(stats, :not_desc)
-      print_level > 0 && @info conclusion_message(solver, stats)
-      return
-    end
-    return solve!(
-      solver, reg_nlp, stats;
-      x, print_level, verbose, atol, max_time, max_iter,
-      μα, μσ, α0 = αmin, αmin1, αmin2, σmax, accept_descent, ηC,
-      _restart = true,
+    return escalate_and_resolve!(
+      solver, reg_nlp, stats, αmin, :not_desc;
+      print_level, μσ, σmax,
+      x, verbose, atol, max_time, max_iter, μα, αmin1, αmin2, accept_descent, ηC,
     )
   end
 end
