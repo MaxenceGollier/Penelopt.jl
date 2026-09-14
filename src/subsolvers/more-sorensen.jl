@@ -152,8 +152,19 @@ function SolverCore.solve!( #TODO add verbose and kwargs
   # Bundled once so the escalation call sites below stay short: everything
   # solve! was called with, except α0/_restart which change across restarts.
   opts = (;
-    x, print_level, verbose, atol, max_time, max_iter,
-    μα, μσ, αmin1, αmin2, σmax, accept_descent, ηC,
+    x,
+    print_level,
+    verbose,
+    atol,
+    max_time,
+    max_iter,
+    μα,
+    μσ,
+    αmin1,
+    αmin2,
+    σmax,
+    accept_descent,
+    ηC,
   )
 
   n = reg_nlp.model.meta.nvar
