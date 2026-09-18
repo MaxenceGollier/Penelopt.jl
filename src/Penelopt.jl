@@ -56,7 +56,9 @@ include("linear_algebra/construct_workspace.jl")
 include("linear_algebra/mumps.jl")
 include("linear_algebra/lapack.jl")
 
+include("types/barrier/LogBarrier.jl")
 include("types/PenalizedProblem.jl")
+include("types/BarrierPenalizedProblem.jl")
 include("types/ShiftedPenalizedProblem.jl")
 include("types/Watchdog.jl")
 

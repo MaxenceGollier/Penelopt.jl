@@ -1,0 +1,120 @@
+export BarrierPenalizedProblem, set_barrier!
+
+"""
+    LogBarrierModel(nlp, μ) <: AbstractNLPModel
+
+Wraps `nlp` and adds the log barrier of its bounds to the objective: `f(x) + ϕ(x)`.
+The bounds are removed from the `meta` and the Hessian gets `diag(∇²ϕ)` appended
+to its structure (duplicate entries are summed).
+"""
+struct LogBarrierModel{
+  T,
+  S,
+  M<:AbstractNLPModel{T,S},
+  B<:LogBarrier{T},
+  Meta<:AbstractNLPModelMeta{T,S},
+} <: AbstractNLPModel{T,S}
+  meta::Meta
+  counters::Counters
+  model::M
+  ϕ::B
+end
+
+function LogBarrierModel(nlp::AbstractNLPModel{T,S}, μ) where {T,S}
+  n, x0 = get_nvar(nlp), get_x0(nlp)
+  ϕ = LogBarrier(T(μ), copy(get_lvar(nlp)), copy(get_uvar(nlp)))
+  meta = NLPModelMeta(
+    n;
+    x0 = x0,
+    lvar = fill!(similar(x0), T(-Inf)),
+    uvar = fill!(similar(x0), T(Inf)),
+    ncon = get_ncon(nlp),
+    y0 = get_y0(nlp),
+    lcon = get_lcon(nlp),
+    ucon = get_ucon(nlp),
+    nnzj = get_nnzj(nlp.meta),
+    nnzh = get_nnzh(nlp.meta) + n,
+    lin = nlp.meta.lin,
+    minimize = nlp.meta.minimize,
+    islp = false,
+    name = string(nlp.meta.name, " (log barrier)"),
+  )
+  return LogBarrierModel(meta, Counters(), nlp, ϕ)
+end
+
+"""
+    BarrierPenalizedProblem(nlp, μ)
+
+Given `min f(x) s.t. c(x) = 0, l ≤ x ≤ u`, construct the penalized barrier problem
+
+    minimize f(x) + μϕ(x) + τ‖c(x)‖₂,
+
+where `ϕ` is the log barrier of the bounds. Returns an `L2PenalizedProblem`
+whose smooth part is a `LogBarrierModel`.
+"""
+BarrierPenalizedProblem(nlp::AbstractNLPModel, μ) = L2PenalizedProblem(LogBarrierModel(nlp, μ))
+
+set_barrier!(nlp::L2PenalizedProblem{T,S,<:LogBarrierModel}, μ) where {T,S} =
+  (nlp.model.ϕ.μ = μ)
+
+# NLPModels API
+function NLPModels.obj(nlp::LogBarrierModel, x::AbstractVector)
+  NLPModels.increment!(nlp, :neval_obj)
+  return obj(nlp.model, x) + nlp.ϕ(x)
+end
+
+function NLPModels.grad!(nlp::LogBarrierModel, x::AbstractVector, g::AbstractVector)
+  NLPModels.increment!(nlp, :neval_grad)
+  grad!(nlp.model, x, g)
+  return add_grad!(g, nlp.ϕ, x)
+end
+
+function NLPModels.cons!(nlp::LogBarrierModel, x::AbstractVector, c::AbstractVector)
+  NLPModels.increment!(nlp, :neval_cons)
+  return cons!(nlp.model, x, c)
+end
+
+function NLPModels.jac_structure!(nlp::LogBarrierModel, rows::AbstractVector, cols::AbstractVector)
+  jac_structure!(nlp.model, rows, cols)
+  return rows, cols
+end
+
+function NLPModels.jac_coord!(nlp::LogBarrierModel, x::AbstractVector, vals::AbstractVector)
+  NLPModels.increment!(nlp, :neval_jac)
+  return jac_coord!(nlp.model, x, vals)
+end
+
+function NLPModels.hess_structure!(nlp::LogBarrierModel, rows::AbstractVector, cols::AbstractVector)
+  k = get_nnzh(nlp.model)
+  hess_structure!(nlp.model, view(rows, 1:k), view(cols, 1:k))
+  rows[(k+1):end] .= 1:get_nvar(nlp)
+  cols[(k+1):end] .= 1:get_nvar(nlp)
+  return rows, cols
+end
+
+function NLPModels.hess_coord!(
+  nlp::LogBarrierModel{T},
+  x::AbstractVector,
+  vals::AbstractVector;
+  obj_weight = one(T),
+) where {T}
+  NLPModels.increment!(nlp, :neval_hess)
+  k = get_nnzh(nlp.model)
+  hess_coord!(nlp.model, x, view(vals, 1:k); obj_weight)
+  hess_diag!(view(vals, (k+1):length(vals)), nlp.ϕ, x, obj_weight)
+  return vals
+end
+
+function NLPModels.hess_coord!(
+  nlp::LogBarrierModel{T},
+  x::AbstractVector,
+  y::AbstractVector,
+  vals::AbstractVector;
+  obj_weight = one(T),
+) where {T}
+  NLPModels.increment!(nlp, :neval_hess)
+  k = get_nnzh(nlp.model)
+  hess_coord!(nlp.model, x, y, view(vals, 1:k); obj_weight)
+  hess_diag!(view(vals, (k+1):length(vals)), nlp.ϕ, x, obj_weight)
+  return vals
+end
