@@ -21,23 +21,15 @@ struct LogBarrierModel{
 end
 
 function LogBarrierModel(nlp::AbstractNLPModel{T,S}, μ) where {T,S}
-  n, x0 = get_nvar(nlp), get_x0(nlp)
+  n = get_nvar(nlp)
   ϕ = LogBarrier(T(μ), copy(get_lvar(nlp)), copy(get_uvar(nlp)))
   meta = NLPModelMeta(
-    n;
-    x0 = x0,
-    lvar = fill!(similar(x0), T(-Inf)),
-    uvar = fill!(similar(x0), T(Inf)),
-    ncon = get_ncon(nlp),
-    y0 = get_y0(nlp),
-    lcon = get_lcon(nlp),
-    ucon = get_ucon(nlp),
-    nnzj = get_nnzj(nlp.meta),
-    nnzh = get_nnzh(nlp.meta) + n,
-    lin = nlp.meta.lin,
-    minimize = nlp.meta.minimize,
+    nlp.meta;
+    lvar = fill!(similar(get_lvar(nlp)), T(-Inf)),
+    uvar = fill!(similar(get_uvar(nlp)), T(Inf)),
+    nnzh = get_nnzh(nlp) + n,
     islp = false,
-    name = string(nlp.meta.name, " (log barrier)"),
+    name = string(get_name(nlp), " (log barrier)"),
   )
   return LogBarrierModel(meta, Counters(), nlp, ϕ)
 end
