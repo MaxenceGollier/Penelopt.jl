@@ -27,7 +27,7 @@ end
 
 function (ϕ::LogBarrier)(x)
   val = zero(eltype(x))
-  for i in eachindex(x, ϕ.l, ϕ.u)
+  for i in eachindex(x)
     val += logterm(ϕ.u[i], ϕ.u[i] - x[i]) + logterm(ϕ.l[i], x[i] - ϕ.l[i])
   end
   return ϕ.μ * val
@@ -35,7 +35,7 @@ end
 
 "`g += ∇ϕ(x)`"
 function add_grad!(g, ϕ::LogBarrier, x)
-  for i in eachindex(g, x, ϕ.l, ϕ.u)
+  for i in eachindex(g)
     g[i] += ϕ.μ * (invd(ϕ.u[i], ϕ.u[i] - x[i]) - invd(ϕ.l[i], x[i] - ϕ.l[i]))
   end
   return g
@@ -43,7 +43,7 @@ end
 
 "`h = α * diag(∇²ϕ(x))`"
 function hess_diag!(h, ϕ::LogBarrier, x, α = one(ϕ.μ))
-  for i in eachindex(h, x, ϕ.l, ϕ.u)
+  for i in eachindex(h)
     h[i] = α * ϕ.μ * (invd(ϕ.u[i], ϕ.u[i] - x[i])^2 + invd(ϕ.l[i], x[i] - ϕ.l[i])^2)
   end
   return h
