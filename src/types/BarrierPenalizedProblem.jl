@@ -22,7 +22,7 @@ end
 
 function LogBarrierModel(nlp::AbstractNLPModel{T,S}, μ) where {T,S}
   n = get_nvar(nlp)
-  ϕ = LogBarrier(T(μ), copy(get_lvar(nlp)), copy(get_uvar(nlp)))
+  ϕ = LogBarrier(T(μ), get_lvar(nlp), get_uvar(nlp))
   meta = NLPModelMeta(
     nlp.meta;
     lvar = fill!(similar(get_lvar(nlp)), T(-Inf)),
