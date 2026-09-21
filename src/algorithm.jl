@@ -288,6 +288,11 @@ function SolverCore.solve!(
   x = solver.x .= x
   y = solver.y
 
+  barrier = find_model(LogBarrierModel, nlp)
+  if barrier !== nothing && !isinterior(barrier.ϕ, x)
+    error("L2Penalty: the initial point must lie strictly inside the bounds.")
+  end
+
   shift!(ψ, x)
   fx = obj(nlp, x)
   hx = norm(ψ.b)

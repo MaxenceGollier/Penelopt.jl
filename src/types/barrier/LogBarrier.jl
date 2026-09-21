@@ -48,3 +48,5 @@ function hess_diag!(h, ϕ::LogBarrier, x, α = one(ϕ.μ))
   end
   return h
 end
+
+isinterior(ϕ::LogBarrier, x) = all(i -> ϕ.l[i] < x[i] < ϕ.u[i], eachindex(x))

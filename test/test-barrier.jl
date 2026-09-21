@@ -20,6 +20,7 @@
   @test Matrix(hess(bnlp, x, y)) ≈ Matrix(hess(ref, x, y))
   @test Matrix(hess(bnlp, x, y, obj_weight = 2.0)) ≈ Matrix(hess(ref, x, y, obj_weight = 2.0))
   @test obj(bnlp, [1.5, 0.5, 0.7]) == Inf
+  @test Penelopt.isinterior(bnlp.ϕ, x) && !Penelopt.isinterior(bnlp.ϕ, [1.0, 0.5, 0.7])
 
   @test Penelopt.get_model(bnlp) === nlp
   @test add_log_barrier(bnlp; μ) === bnlp
