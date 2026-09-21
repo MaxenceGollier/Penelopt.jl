@@ -120,6 +120,7 @@ For advanced usage, first define a solver "L2PenaltySolver" to preallocate the m
 - `max_decreas_iter::Int = 10`: maximum number of iteration where ‖c(xₖ)‖₂ does not decrease before calling the problem locally infeasible;
 - `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
 - `sub_verbose::Int = 0`: if > 0, display subsolver iteration details every `verbose` iteration;
+- `μ::Real = 0.1`: barrier parameter used for the bound constraints `l ≤ x ≤ u`, if any (only with `qn_hessian_approximation = "exact"`);
 - `τ::T = T(100)`: initial penalty parameter;
 - `β1::T = T(1)`: minimal penalty parameter increase,
 - `β3::T = 1/τ`: initial regularization parameter σ₀ = β3/τₖ at each iteration;
@@ -163,22 +164,22 @@ function L2Penalty(
   qn_mem::Int = 6,
   qn_scaling::Bool = true,
   qn_max_skip::Int = 2,
+  μ::Real = 0.1,
   kwargs...,
 ) where {T<:Real,V}
 
   # Check problem formulation
-  has_bounds = any(eachindex(nlp.meta.lvar)) do i
-    l = nlp.meta.lvar[i]
-    u = nlp.meta.uvar[i]
-    l != -Inf && u != Inf && l != u
-  end
-
-  if !equality_constrained(nlp) || has_bounds
+  if !equality_constrained(nlp)
     error("L2Penalty: This algorithm only works for equality contrained problems.")
   end
 
   # Preprocessing
   preprocessed_nlp = nlp |> remove_fixed_variables |> remove_constraint_shift |> scale_model
+  preprocessed_nlp = add_log_barrier(preprocessed_nlp; μ)
+
+  if preprocessed_nlp isa LogBarrierModel && qn_hessian_approximation != "exact"
+    error("L2Penalty: bound constraints require `qn_hessian_approximation = \"exact\"`.")
+  end
 
   if qn_hessian_approximation == "bfgs"
     preprocessed_nlp = CompactBFGSModel(

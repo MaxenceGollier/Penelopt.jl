@@ -11,7 +11,7 @@
 
   nlp = ADNLPModel(f, x, l, u, c, [0.0], [0.0])
   ref = ADNLPModel(x -> f(x) + ϕ(x), x, c, [0.0], [0.0])
-  bnlp = Penelopt.LogBarrierModel(nlp, μ)
+  bnlp = LogBarrierModel(nlp; μ)
 
   @test all(==(-Inf), bnlp.meta.lvar) && all(==(Inf), bnlp.meta.uvar)
   @test obj(bnlp, x) ≈ obj(ref, x)
@@ -21,7 +21,11 @@
   @test Matrix(hess(bnlp, x, y, obj_weight = 2.0)) ≈ Matrix(hess(ref, x, y, obj_weight = 2.0))
   @test obj(bnlp, [1.5, 0.5, 0.7]) == Inf
 
-  pb = BarrierPenalizedProblem(nlp, μ)
+  @test Penelopt.get_model(bnlp) === nlp
+  @test add_log_barrier(bnlp; μ) === bnlp
+  @test add_log_barrier(nlp; μ) isa LogBarrierModel
+
+  pb = BarrierPenalizedProblem(nlp; μ)
   set_barrier!(pb, 1.0)
   @test pb.model.ϕ.μ == 1.0
 

@@ -1,7 +1,7 @@
-export BarrierPenalizedProblem, set_barrier!
+export BarrierPenalizedProblem, LogBarrierModel, add_log_barrier, set_barrier!
 
 """
-    LogBarrierModel(nlp, μ) <: AbstractNLPModel
+    LogBarrierModel(nlp; μ) <: AbstractNLPModel
 
 Wraps `nlp` and adds the log barrier of its bounds to the objective: `f(x) + ϕ(x)`.
 The bounds are removed from the `meta` and the Hessian gets `diag(∇²ϕ)` appended
@@ -20,7 +20,7 @@ struct LogBarrierModel{
   ϕ::B
 end
 
-function LogBarrierModel(nlp::AbstractNLPModel{T,S}, μ) where {T,S}
+function LogBarrierModel(nlp::AbstractNLPModel{T,S}; μ) where {T,S}
   n = get_nvar(nlp)
   ϕ = LogBarrier(T(μ), get_lvar(nlp), get_uvar(nlp))
   meta = NLPModelMeta(
@@ -34,8 +34,17 @@ function LogBarrierModel(nlp::AbstractNLPModel{T,S}, μ) where {T,S}
   return LogBarrierModel(meta, Counters(), nlp, ϕ)
 end
 
+get_model(nlp::LogBarrierModel) = nlp.model
+
 """
-    BarrierPenalizedProblem(nlp, μ)
+    add_log_barrier(nlp; μ)
+
+Return `LogBarrierModel(nlp; μ)` if `nlp` has bounds, and `nlp` otherwise.
+"""
+add_log_barrier(nlp::AbstractNLPModel; μ) = has_bounds(nlp) ? LogBarrierModel(nlp; μ) : nlp
+
+"""
+    BarrierPenalizedProblem(nlp; μ)
 
 Given `min f(x) s.t. c(x) = 0, l ≤ x ≤ u`, construct the penalized barrier problem
 
@@ -44,7 +53,7 @@ Given `min f(x) s.t. c(x) = 0, l ≤ x ≤ u`, construct the penalized barrier p
 where `ϕ` is the log barrier of the bounds. Returns an `L2PenalizedProblem`
 whose smooth part is a `LogBarrierModel`.
 """
-BarrierPenalizedProblem(nlp::AbstractNLPModel, μ) = L2PenalizedProblem(LogBarrierModel(nlp, μ))
+BarrierPenalizedProblem(nlp::AbstractNLPModel; μ) = L2PenalizedProblem(LogBarrierModel(nlp; μ))
 
 set_barrier!(nlp::L2PenalizedProblem{T,S,<:LogBarrierModel}, μ) where {T,S} =
   (nlp.model.ϕ.μ = μ)
