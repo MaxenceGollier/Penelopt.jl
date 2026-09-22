@@ -193,16 +193,15 @@ function check_descent(
   return ψ0 - obj(φ, s) - ψ(s) >= 0
 end
 
-function reset!(
-  shifted_penalty_nlp::ShiftedL2PenalizedProblem,
-)
-  nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
-  φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
+function reset!(shifted_penalty_nlp::ShiftedL2PenalizedProblem)
+  parent = shifted_penalty_nlp.parent
+  isnothing(parent) && return shifted_penalty_nlp
+  φ = shifted_penalty_nlp.model
 
-  if !isnothing(find_model(CompactBFGSModel, shifted_penalty_nlp.parent)) 
-    x_prev = shifted_penalty_nlp._qn_x_prev .= 0
-
+  if !isnothing(find_model(CompactBFGSModel, parent.model))
+    shifted_penalty_nlp._qn_x_prev .= 0
     LinearOperators.reset!(φ.data.H)
     shifted_penalty_nlp._is_first_shift = true
   end
+  return shifted_penalty_nlp
 end
