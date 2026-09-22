@@ -269,20 +269,16 @@ function check_descent(
   return ψ0 - obj(φ, s) - ψ(s) >= 0
 end
 
-# TODO: rework with new API.
-function reset!(shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P}) where {T,V,M,H,P} end
-
 function reset!(
-  shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
-) where {T,V,M,H,O<:QuasiNewtonModel,P<:L2PenalizedProblem{T,V,O}}
+  shifted_penalty_nlp::ShiftedL2PenalizedProblem,
+)
   nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
   φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
-  x_prev = shifted_penalty_nlp._qn_x_prev .= 0
 
-  LinearOperators.reset!(φ.data.H)
-  shifted_penalty_nlp._is_first_shift = true
+  if !isnothing(find_model(CompactBFGSModel, shifted_penalty_nlp.parent)) 
+     x_prev = shifted_penalty_nlp._qn_x_prev .= 0
+
+    LinearOperators.reset!(φ.data.H)
+    shifted_penalty_nlp._is_first_shift = true
+  end
 end
-
-function reset!(
-  shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
-) where {T,V,M,H,O<:NullHessianModel,P<:L2PenalizedProblem{T,V,O}} end
