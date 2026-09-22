@@ -200,7 +200,7 @@ function reset!(
   φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
 
   if !isnothing(find_model(CompactBFGSModel, shifted_penalty_nlp.parent)) 
-     x_prev = shifted_penalty_nlp._qn_x_prev .= 0
+    x_prev = shifted_penalty_nlp._qn_x_prev .= 0
 
     LinearOperators.reset!(φ.data.H)
     shifted_penalty_nlp._is_first_shift = true

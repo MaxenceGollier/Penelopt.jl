@@ -174,7 +174,7 @@ function L2Penalty(
   end
 
   # Preprocessing
-  preprocessed_nlp = nlp |> remove_fixed_variables |> remove_constraint_shift |> scale_model
+  preprocessed_nlp = nlp |> remove_fixed_variables |> remove_constraint_shift |> scale_model |> add_log_barrier
 
   if qn_hessian_approximation == "bfgs"
     preprocessed_nlp = CompactBFGSModel(
@@ -185,12 +185,6 @@ function L2Penalty(
     )
   elseif qn_hessian_approximation == "null"
     preprocessed_nlp = NullHessianModel(preprocessed_nlp)
-  end
-
-  preprocessed_nlp = add_log_barrier(preprocessed_nlp; μ)
-
-  if preprocessed_nlp isa LogBarrierModel && qn_hessian_approximation != "exact"
-    error("L2Penalty: bound constraints require `qn_hessian_approximation = \"exact\"`.")
   end
 
   # Preallocation
