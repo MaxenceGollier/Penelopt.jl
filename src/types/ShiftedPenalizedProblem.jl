@@ -111,36 +111,32 @@ function shifted(
   return ShiftedL2PenalizedProblem(penalty_nlp, x; ∇f = ∇f, y = y)
 end
 
+# TODO: Move to QuadraticModels.jl ?
 function shift!(
-  shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
+  φ::QuadraticModel{T,V,M},
+  nlp::AbstractNLPModel{T,V},
   x::V;
   ∇f::VN1 = nothing,
   y::VN2 = nothing,
-  J::Ma = nothing,
-  c::VN3 = nothing,
-) where {
-  T,
-  V,
-  M,
-  H,
-  O<:NullHessianModel,
-  P<:L2PenalizedProblem{T,V,O},
-  VN1<:Union{Nothing,V},
-  VN2<:Union{Nothing,V},
-  VN3<:Union{Nothing,V},
-  Ma<:Union{Nothing,AbstractMatrix{T}},
-}
-  nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
-  φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
-
+) where {T,V,M <: SparseMatrixCOO,VN1<:Union{Nothing,V},VN2<:Union{Nothing,V}}
   g = φ.data.c
   isnothing(∇f) ? grad!(nlp, x, g) : (g .= ∇f)
-
-  shift!(ψ, x, J = J, c = c)
+  isnothing(y) ? hess_coord!(nlp, x, φ.data.H.vals) : hess_coord!(nlp, x, y, φ.data.H.vals)
 end
 
 function shift!(
-  shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
+  φ::QuadraticModel{T,V,M},
+  nlp::AbstractNLPModel{T,V},
+  x::V;
+  ∇f::VN1 = nothing,
+  y::VN2 = nothing,
+) where {T,V,M,VN1<:Union{Nothing,V},VN2<:Union{Nothing,V}}
+  g = φ.data.c
+  isnothing(∇f) ? grad!(nlp, x, g) : (g .= ∇f)
+end
+
+function _pre_shift_cb!(
+  shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V},
   x::V;
   ∇f::VN1 = nothing,
   y::VN2 = nothing,
@@ -149,10 +145,6 @@ function shift!(
 ) where {
   T,
   V,
-  M,
-  H,
-  O<:QuasiNewtonModel,
-  P<:L2PenalizedProblem{T,V,O},
   VN1<:Union{Nothing,V},
   VN2<:Union{Nothing,V},
   VN3<:Union{Nothing,V},
@@ -163,38 +155,28 @@ function shift!(
   qn_y, qn_x_prev = shifted_penalty_nlp._qn_y, shifted_penalty_nlp._qn_x_prev
   is_first_shift = shifted_penalty_nlp._is_first_shift
 
-  qn_s = qn_x_prev
-  g, B = φ.data.c, φ.data.H
+  # BarrierModel pre shift callback.
+  barrier_nlp = find_model(LogBarrierModel, shifted_penalty_nlp.parent)
+  if !isnothing(barrier_nlp)
+    update_multipliers!(barrier_nlp.ϕ, x)
+  end
 
-  if !is_first_shift
-    qn_y .= g
-    if !isnothing(y)
-      mul!(qn_y, ψ.A', y, -one(T), -one(T)) # y = - g_prev - J(x)_prev^T λ
+  # CompactBFGSModel pre shift callback.
+  if !isnothing(find_model(CompactBFGSModel, shifted_penalty_nlp.parent)) 
+    qn_s = qn_x_prev
+    g, B = φ.data.c, φ.data.H
+    if !is_first_shift
+      qn_y .= g
+      if !isnothing(y)
+        mul!(qn_y, ψ.A', y, -one(T), -one(T)) # y = - g_prev - J(x)_prev^T λ
+      end
     end
   end
 
-  isnothing(∇f) ? grad!(nlp, x, g) : (g .= ∇f)
-  shift!(ψ, x, J = J, c = c)
-
-  # Update the approximation.
-  if !is_first_shift
-    @. qn_y .+= g
-    if !isnothing(y)
-      mul!(qn_y, ψ.A', y, one(T), one(T)) # y = y + J(x)^T λ 
-    end
-
-    qn_s .= x .- qn_x_prev
-
-    push!(B, qn_s, qn_y)
-  else
-    shifted_penalty_nlp._is_first_shift = false
-  end
-
-  qn_x_prev .= x
 end
 
-function shift!(
-  shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P},
+function _post_shift_cb!(
+  shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V},
   x::V;
   ∇f::VN1 = nothing,
   y::VN2 = nothing,
@@ -203,9 +185,43 @@ function shift!(
 ) where {
   T,
   V,
-  M,
-  H,
-  P,
+  VN1<:Union{Nothing,V},
+  VN2<:Union{Nothing,V},
+  VN3<:Union{Nothing,V},
+  Ma<:Union{Nothing,AbstractMatrix{T}},
+}
+  nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
+  φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
+  qn_y, qn_x_prev = shifted_penalty_nlp._qn_y, shifted_penalty_nlp._qn_x_prev
+  is_first_shift = shifted_penalty_nlp._is_first_shift
+
+  # CompactBFGSModel post shift callback.
+  if !isnothing(find_model(CompactBFGSModel, shifted_penalty_nlp.parent)) 
+    if !is_first_shift
+      @. qn_y .+= g
+      if !isnothing(y)
+        mul!(qn_y, ψ.A', y, one(T), one(T)) # y = y + J(x)^T λ 
+      end
+      qn_s .= x .- qn_x_prev
+      push!(B, qn_s, qn_y)
+    else
+      shifted_penalty_nlp._is_first_shift = false
+    end
+    qn_x_prev .= x
+  end
+
+end
+
+function shift!(
+  shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V},
+  x::V;
+  ∇f::VN1 = nothing,
+  y::VN2 = nothing,
+  J::Ma = nothing,
+  c::VN3 = nothing,
+) where {
+  T,
+  V,
   VN1<:Union{Nothing,V},
   VN2<:Union{Nothing,V},
   VN3<:Union{Nothing,V},
@@ -214,16 +230,26 @@ function shift!(
   nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
   φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
 
-  g = φ.data.c
-  isnothing(∇f) ? grad!(nlp, x, g) : (g .= ∇f)
+  _pre_shift_cb!(
+    shifted_penalty_nlp,
+    x;
+    ∇f = ∇f,
+    y = y,
+    J = J,
+    c = c,
+  )
 
-  if isnothing(y)
-    hess_coord!(nlp, x, φ.data.H.vals)
-  else
-    hess_coord!(nlp, x, y, φ.data.H.vals)
-  end
-
+  shift!(φ, nlp, x, ∇f = ∇f, y = y)
   shift!(ψ, x, J = J, c = c)
+
+  _post_shift_cb!(
+    shifted_penalty_nlp,
+    x;
+    ∇f = ∇f,
+    y = y,
+    J = J,
+    c = c,
+  )
 end
 
 # Miscellaneous
@@ -243,6 +269,7 @@ function check_descent(
   return ψ0 - obj(φ, s) - ψ(s) >= 0
 end
 
+# TODO: rework with new API.
 function reset!(shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V,M,H,P}) where {T,V,M,H,P} end
 
 function reset!(

@@ -263,7 +263,7 @@ function SolverCore.solve!(
       σk = max(σk / γ, σmin)
     end
 
-    if ρk < η1 || ρk == Inf
+    if ρk < η1 || ρk == Inf || isnan(ρk)
       if first_increase && ρk < 0
         σk = max(sqrt(stats.dual_feas), σk * γ)
         first_increase = false
