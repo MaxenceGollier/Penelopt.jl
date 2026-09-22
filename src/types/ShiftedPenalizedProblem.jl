@@ -183,6 +183,8 @@ function _post_shift_cb!(
 
   # CompactBFGSModel post shift callback.
   if !isnothing(find_model(CompactBFGSModel, shifted_penalty_nlp.parent)) 
+    qn_s = qn_x_prev
+    g, B = φ.data.c, φ.data.H
     if !is_first_shift
       @. qn_y .+= g
       if !isnothing(y)
