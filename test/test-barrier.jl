@@ -15,8 +15,14 @@
 
   @test all(==(-Inf), bnlp.meta.lvar) && all(==(Inf), bnlp.meta.uvar)
   @test obj(bnlp, x) ≈ obj(ref, x)
-  @test grad(bnlp, x) ≈ grad(ref, x)
   @test cons(bnlp, x) ≈ cons(ref, x)
+
+  # The barrier multipliers z_l = μ/(x-l), z_u = μ/(u-x) are not computed by the
+  # NLPModels API; they must be updated at x before evaluating derivatives.
+  Penelopt.update_multipliers!(bnlp.ϕ, x)
+  @test bnlp.ϕ.z_l ≈ [0.0, μ / 0.5, μ / 0.6]
+  @test bnlp.ϕ.z_u ≈ [μ / 0.8, 0.0, μ / 1.3]
+  @test grad(bnlp, x) ≈ grad(ref, x)
   @test Matrix(hess(bnlp, x, y)) ≈ Matrix(hess(ref, x, y))
   @test Matrix(hess(bnlp, x, y, obj_weight = 2.0)) ≈ Matrix(hess(ref, x, y, obj_weight = 2.0))
   @test obj(bnlp, [1.5, 0.5, 0.7]) == Inf
