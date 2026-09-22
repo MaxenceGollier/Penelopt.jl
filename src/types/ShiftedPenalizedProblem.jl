@@ -132,8 +132,8 @@ end
 _pre_shift!(nlp::LogBarrierModel, shifted_nlp, x; kwargs...) = update_multipliers!(nlp.ϕ, x)
 
 # Post shift callbacks
-post_shift!(::AbstractNLPModel, shifted_nlp, x; kwargs...) = nothing
-function post_shift!(::CompactBFGSModel, shifted_nlp, x; y = nothing, kwargs...)
+_post_shift!(::AbstractNLPModel, shifted_nlp, x; kwargs...) = nothing
+function _post_shift!(::CompactBFGSModel, shifted_nlp, x; y = nothing, kwargs...)
   φ, ψ = shifted_nlp.model, shifted_nlp.h
   qn_y, qn_x_prev = shifted_nlp._qn_y, shifted_nlp._qn_x_prev
 
