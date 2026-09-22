@@ -40,74 +40,59 @@ function ShiftedL2PenalizedProblem(
   penalty_nlp::L2PenalizedProblem{T,V,M},
   x::V;
   ∇f::VN1 = nothing,
-) where {T,V,M<:QuasiNewtonModel{T,V},VN1<:Union{Nothing,V}}
-
-  nlp, h = penalty_nlp.model, penalty_nlp.h
-
-  ∇f = isnothing(∇f) ? grad(nlp, x) : ∇f
-  B = get_op(nlp)
-  φ = QuadraticModel(∇f, B, x0 = x, regularize = true)
-
-  ψ = shifted(h, x)
-
-  return ShiftedL2PenalizedProblem(
-    φ,
-    ψ,
-    penalty_nlp,
-    penalty_nlp.meta,
-    similar(∇f),
-    zero(∇f),
-    true,
-  )
-end
-
-function ShiftedL2PenalizedProblem(
-  penalty_nlp::L2PenalizedProblem{T,V,M},
-  x::V;
-  ∇f::VN1 = nothing,
   y::VN2 = nothing,
-) where {T,V,M,VN1<:Union{Nothing,V},VN2<:Union{Nothing,V}}
+) where {T,V,M<:QuasiNewtonModel{T,V},VN1<:Union{Nothing,V}, VN2<:Union{Nothing,V}}
 
   nlp, h = penalty_nlp.model, penalty_nlp.h
-  n = length(x)
-
   ∇f = isnothing(∇f) ? grad(nlp, x) : ∇f
-  y = isnothing(y) ? zeros(T, nlp.meta.ncon) : y
-
-  Bi, Bj = hess_structure(nlp)
-  Bv = hess_coord(nlp, x, y)
-  B = SparseMatrixCOO(n, n, Bi, Bj, Bv)
-
-  φ = QuadraticModel(∇f, B, x0 = x, regularize = true)
-
   ψ = shifted(h, x)
 
-  return ShiftedL2PenalizedProblem(
-    φ,
-    ψ,
-    penalty_nlp,
-    penalty_nlp.meta,
-    nothing,
-    nothing,
-    true,
-  )
+  # Quasi-Newton Constructor
+  if !isnothing(find_model(QuasiNewtonModel, nlp))
+    B = get_op(nlp)
+    φ = QuadraticModel(∇f, B, x0 = x, regularize = true)
+
+    return ShiftedL2PenalizedProblem(
+      φ,
+      ψ,
+      penalty_nlp,
+      penalty_nlp.meta,
+      similar(∇f),
+      zero(∇f),
+      true,
+    )
+  # Full Hessian Constructor
+  else
+    n = length(x)
+    y = isnothing(y) ? zeros(T, nlp.meta.ncon) : y
+
+    Bi, Bj = hess_structure(nlp)
+    Bv = hess_coord(nlp, x, y)
+    B = SparseMatrixCOO(n, n, Bi, Bj, Bv)
+
+    φ = QuadraticModel(∇f, B, x0 = x, regularize = true)
+
+    ψ = shifted(h, x)
+
+    return ShiftedL2PenalizedProblem(
+      φ,
+      ψ,
+      penalty_nlp,
+      penalty_nlp.meta,
+      nothing,
+      nothing,
+      true,
+    )
+  end
 end
 
 # ShiftedProximalOperators API
 function shifted(
-  penalty_nlp::L2PenalizedProblem{T,V,M},
-  x::V;
-  ∇f::VN1 = nothing,
-) where {T,V,M<:QuasiNewtonModel{T,V},VN1<:Union{Nothing,V}}
-  return ShiftedL2PenalizedProblem(penalty_nlp, x; ∇f = ∇f)
-end
-
-function shifted(
-  penalty_nlp::L2PenalizedProblem{T,V,M},
+  penalty_nlp::L2PenalizedProblem{T,V},
   x::V;
   ∇f::VN1 = nothing,
   y::VN2 = nothing,
-) where {T,V,M,VN1<:Union{Nothing,V},VN2<:Union{Nothing,V}}
+) where {T,V,VN1<:Union{Nothing,V}, VN2<:Union{Nothing,V}}
   return ShiftedL2PenalizedProblem(penalty_nlp, x; ∇f = ∇f, y = y)
 end
 
@@ -135,6 +120,7 @@ function shift!(
   isnothing(∇f) ? grad!(nlp, x, g) : (g .= ∇f)
 end
 
+# A callback that specifies specific actions to be taken before a shift is performed on the shifted penalty problem.
 function _pre_shift_cb!(
   shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V},
   x::V;
@@ -175,6 +161,7 @@ function _pre_shift_cb!(
 
 end
 
+# A callback that specifies specific actions to be taken after a shift is performed on the shifted penalty problem.
 function _post_shift_cb!(
   shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V},
   x::V;
