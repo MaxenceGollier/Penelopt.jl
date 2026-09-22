@@ -37,11 +37,11 @@ mutable struct ShiftedL2PenalizedProblem{
 end
 
 function ShiftedL2PenalizedProblem(
-  penalty_nlp::L2PenalizedProblem{T,V,M},
+  penalty_nlp::L2PenalizedProblem{T,V},
   x::V;
   ∇f::VN1 = nothing,
   y::VN2 = nothing,
-) where {T,V,M<:QuasiNewtonModel{T,V},VN1<:Union{Nothing,V}, VN2<:Union{Nothing,V}}
+) where {T,V,VN1<:Union{Nothing,V}, VN2<:Union{Nothing,V}}
 
   nlp, h = penalty_nlp.model, penalty_nlp.h
   ∇f = isnothing(∇f) ? grad(nlp, x) : ∇f
@@ -61,8 +61,7 @@ function ShiftedL2PenalizedProblem(
       zero(∇f),
       true,
     )
-  # Full Hessian Constructor
-  else
+  else # Full Hessian Constructor
     n = length(x)
     y = isnothing(y) ? zeros(T, nlp.meta.ncon) : y
 
