@@ -119,85 +119,35 @@ function shift!(
   isnothing(∇f) ? grad!(nlp, x, g) : (g .= ∇f)
 end
 
-# A callback that specifies specific actions to be taken before a shift is performed on the shifted penalty problem.
-function _pre_shift_cb!(
-  shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V},
-  x::V;
-  ∇f::VN1 = nothing,
-  y::VN2 = nothing,
-  J::Ma = nothing,
-  c::VN3 = nothing,
-) where {
-  T,
-  V,
-  VN1<:Union{Nothing,V},
-  VN2<:Union{Nothing,V},
-  VN3<:Union{Nothing,V},
-  Ma<:Union{Nothing,AbstractMatrix{T}},
-}
-  nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
-  φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
-  qn_y, qn_x_prev = shifted_penalty_nlp._qn_y, shifted_penalty_nlp._qn_x_prev
-  is_first_shift = shifted_penalty_nlp._is_first_shift
-
-  # BarrierModel pre shift callback.
-  barrier_nlp = find_model(LogBarrierModel, shifted_penalty_nlp.parent)
-  if !isnothing(barrier_nlp)
-    update_multipliers!(barrier_nlp.ϕ, x)
-  end
-
-  # CompactBFGSModel pre shift callback.
-  if !isnothing(find_model(CompactBFGSModel, shifted_penalty_nlp.parent)) 
-    qn_s = qn_x_prev
-    g, B = φ.data.c, φ.data.H
-    if !is_first_shift
-      qn_y .= g
-      if !isnothing(y)
-        mul!(qn_y, ψ.A', y, -one(T), -one(T)) # y = - g_prev - J(x)_prev^T λ
-      end
-    end
-  end
-
+# Pre shift callbacks
+_pre_shift!(::AbstractNLPModel, shifted_nlp, x; kwargs...) = nothing
+function _pre_shift!(::CompactBFGSModel, shifted_nlp, x; y = nothing, kwargs...)
+  shifted_nlp._is_first_shift && return
+  φ, ψ = shifted_nlp.model, shifted_nlp.h
+  qn_y = shifted_nlp._qn_y
+  qn_y .= φ.data.c                                          # g_prev = ∇f(x_prev)
+  isnothing(y) || mul!(qn_y, ψ.A', y, -one(eltype(qn_y)), -one(eltype(qn_y)))
+  # qn_y = -(g_prev + J(x_prev)ᵀ y)
 end
+_pre_shift!(nlp::LogBarrierModel, shifted_nlp, x; kwargs...) = update_multipliers!(nlp.ϕ, x)
 
-# A callback that specifies specific actions to be taken after a shift is performed on the shifted penalty problem.
-function _post_shift_cb!(
-  shifted_penalty_nlp::ShiftedL2PenalizedProblem{T,V},
-  x::V;
-  ∇f::VN1 = nothing,
-  y::VN2 = nothing,
-  J::Ma = nothing,
-  c::VN3 = nothing,
-) where {
-  T,
-  V,
-  VN1<:Union{Nothing,V},
-  VN2<:Union{Nothing,V},
-  VN3<:Union{Nothing,V},
-  Ma<:Union{Nothing,AbstractMatrix{T}},
-}
-  nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
-  φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
-  qn_y, qn_x_prev = shifted_penalty_nlp._qn_y, shifted_penalty_nlp._qn_x_prev
-  is_first_shift = shifted_penalty_nlp._is_first_shift
+# Post shift callbacks
+post_shift!(::AbstractNLPModel, shifted_nlp, x; kwargs...) = nothing
+function post_shift!(::CompactBFGSModel, shifted_nlp, x; y = nothing, kwargs...)
+  φ, ψ = shifted_nlp.model, shifted_nlp.h
+  qn_y, qn_x_prev = shifted_nlp._qn_y, shifted_nlp._qn_x_prev
 
-  # CompactBFGSModel post shift callback.
-  if !isnothing(find_model(CompactBFGSModel, shifted_penalty_nlp.parent)) 
-    qn_s = qn_x_prev
-    g, B = φ.data.c, φ.data.H
-    if !is_first_shift
-      @. qn_y .+= g
-      if !isnothing(y)
-        mul!(qn_y, ψ.A', y, one(T), one(T)) # y = y + J(x)^T λ 
-      end
-      qn_s .= x .- qn_x_prev
-      push!(B, qn_s, qn_y)
-    else
-      shifted_penalty_nlp._is_first_shift = false
-    end
-    qn_x_prev .= x
+  if shifted_nlp._is_first_shift
+    shifted_nlp._is_first_shift = false
+  else
+    qn_y .+= φ.data.c                                       # += g_new
+    isnothing(y) || mul!(qn_y, ψ.A', y, one(eltype(qn_y)), one(eltype(qn_y)))
+    # qn_y = g_new - g_prev - J(x_prev)ᵀy + J(x)ᵀy
+    qn_s = qn_x_prev            # reuse x_prev's storage as scratch, it's about to be overwritten
+    qn_s .= x .- qn_s
+    push!(φ.data.H, qn_s, qn_y)
   end
-
+  qn_x_prev .= x
 end
 
 function shift!(
@@ -218,26 +168,12 @@ function shift!(
   nlp, h = shifted_penalty_nlp.parent.model, shifted_penalty_nlp.parent.h
   φ, ψ = shifted_penalty_nlp.model, shifted_penalty_nlp.h
 
-  _pre_shift_cb!(
-    shifted_penalty_nlp,
-    x;
-    ∇f = ∇f,
-    y = y,
-    J = J,
-    c = c,
-  )
+  foreach(layer -> _pre_shift!(layer, shifted_penalty_nlp, x; ∇f = ∇f, y = y, J = J, c = c), layers(nlp))
 
   shift!(φ, nlp, x, ∇f = ∇f, y = y)
   shift!(ψ, x, J = J, c = c)
 
-  _post_shift_cb!(
-    shifted_penalty_nlp,
-    x;
-    ∇f = ∇f,
-    y = y,
-    J = J,
-    c = c,
-  )
+  foreach(layer -> _post_shift!(layer, shifted_penalty_nlp, x; ∇f = ∇f, y = y, J = J, c = c), layers(nlp))
 end
 
 # Miscellaneous
