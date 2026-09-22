@@ -41,7 +41,7 @@ get_model(nlp::LogBarrierModel) = nlp.model
 
 Return `LogBarrierModel(nlp; μ)` if `nlp` has bounds, and `nlp` otherwise.
 """
-add_log_barrier(nlp::AbstractNLPModel; μ) = has_bounds(nlp) ? LogBarrierModel(nlp; μ) : nlp
+add_log_barrier(nlp::AbstractNLPModel{T,V}; μ = one(T)) where{T,V} = has_bounds(nlp) ? LogBarrierModel(nlp; μ) : nlp
 
 """
     BarrierPenalizedProblem(nlp; μ)
