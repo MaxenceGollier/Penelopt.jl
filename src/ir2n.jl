@@ -14,6 +14,8 @@ mutable struct PenaltyR2NSolver{
   dual_res::V
   xkn::V
   s::V
+  s_z_l::V
+  s_z_u::V
   m_fh_hist::V
   subsolver::ST
   subpb::PB
@@ -44,12 +46,18 @@ function PenaltyR2NSolver(
 
   checkpoint = watchdog_checkpoint(subpb; m_monotone = m_monotone)
 
+  barrier = find_model(LogBarrierModel, penalty_nlp.model)
+  s_z_l = isnothing(barrier) ? T[] : similar(barrier.ϕ.z_l) 
+  s_z_u = isnothing(barrier) ? T[] : similar(barrier.ϕ.z_u)
+
   return PenaltyR2NSolver{T,V,typeof(subsolver),typeof(subpb),typeof(checkpoint)}(
     xk,
     y,
     dual_res,
     xkn,
     s,
+    s_z_l,
+    s_z_u,
     m_fh_hist,
     subsolver,
     subpb,
@@ -109,7 +117,7 @@ function SolverCore.solve!(
 
   # Retrieve workspace
   nlp, h = reg_nlp.model, reg_nlp.h
-  mk = solver.subpb
+  mk, barrier = solver.subpb, get_barrier(find_model(LogBarrierModel, nlp))
   φ, ψ = mk.model, mk.h
 
   xk = solver.xk .= x
@@ -120,6 +128,8 @@ function SolverCore.solve!(
   ∇fk = solver.subpb.model.data.c
   xkn = solver.xkn
   s, y, dual_res = solver.s, solver.y, solver.dual_res
+  s_z_l, s_z_u = solver.s_z_l, solver.s_z_u
+  z_l, z_u = get_z_l(barrier, T), get_z_u(barrier, T)
   m_fh_hist = solver.m_fh_hist
   watchdog_checkpoint = solver.checkpoint
 
@@ -236,6 +246,19 @@ function SolverCore.solve!(
     )
     get_primal_dual_sol!(s, y, solver.subsolver)
     σk = solver.subpb.model.data.σ
+
+    get_z_l_step!(s_z_l, barrier, xk, s)
+    get_z_u_step!(s_z_u, barrier, xk, s)
+
+    truncate_to_boundary!(
+      s,
+      s_z_l,
+      s_z_u,
+      xk,
+      z_l,
+      z_u,
+      barrier,
+    )
 
     # Step acceptance
     xkn .= xk .+ s

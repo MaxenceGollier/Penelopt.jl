@@ -35,6 +35,8 @@ function LogBarrierModel(nlp::AbstractNLPModel{T,S}; μ) where {T,S}
 end
 
 get_model(nlp::LogBarrierModel) = nlp.model
+get_barrier(nlp::LogBarrierModel) = nlp.ϕ
+get_barrier(::Nothing) = nothing
 
 """
     add_log_barrier(nlp; μ)
@@ -54,9 +56,6 @@ where `ϕ` is the log barrier of the bounds. Returns an `L2PenalizedProblem`
 whose smooth part is a `LogBarrierModel`.
 """
 BarrierPenalizedProblem(nlp::AbstractNLPModel; μ) = L2PenalizedProblem(LogBarrierModel(nlp; μ))
-
-set_barrier!(nlp::L2PenalizedProblem{T,S,<:LogBarrierModel}, μ) where {T,S} =
-  (nlp.model.ϕ.μ = μ)
 
 # NLPModels API
 function NLPModels.obj(nlp::LogBarrierModel, x::AbstractVector)
