@@ -36,20 +36,9 @@ function (ϕ::LogBarrier)(x)
   return ϕ.μ * val
 end
 
-"`z_l[i], z_u[i] = μ / (x[i]-l[i]), μ / (u[i]-x[i])`"
-function update_multipliers!(ϕ::LogBarrier, x)
-  for i in eachindex(x)
-    ϕ.z_l[i] = ϕ.μ * invd(ϕ.l[i], x[i] - ϕ.l[i])
-    ϕ.z_u[i] = ϕ.μ * invd(ϕ.u[i], ϕ.u[i] - x[i])
-  end
-  return ϕ
-end
-
-# Needs to be called after `update_multipliers!`.
-"`g += z_u - z_l`"
 function add_grad!(g, ϕ::LogBarrier, x)
   for i in eachindex(g)
-    g[i] += ϕ.z_u[i] - ϕ.z_l[i]
+    g[i] += ϕ.μ * invd(ϕ.l[i], x[i] - ϕ.l[i]) - ϕ.μ * invd(ϕ.u[i], ϕ.u[i] - x[i])
   end
   return g
 end

@@ -129,7 +129,6 @@ function _pre_shift!(::CompactBFGSModel, shifted_nlp, x; y = nothing, kwargs...)
   isnothing(y) || mul!(qn_y, ψ.A', y, -one(eltype(qn_y)), -one(eltype(qn_y)))
   # qn_y = -(g_prev + J(x_prev)ᵀ y)
 end
-_pre_shift!(nlp::LogBarrierModel, shifted_nlp, x; kwargs...) = update_multipliers!(nlp.ϕ, x)
 
 # Post shift callbacks
 _post_shift!(::AbstractNLPModel, shifted_nlp, x; kwargs...) = nothing
