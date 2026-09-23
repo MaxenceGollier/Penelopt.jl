@@ -206,7 +206,7 @@ end
 
 function add_grad!(g, ϕ::LogBarrier, x)
   for i in eachindex(g)
-    g[i] += ϕ.μ * invd(ϕ.l[i], x[i] - ϕ.l[i]) - ϕ.μ * invd(ϕ.u[i], ϕ.u[i] - x[i])
+    g[i] += ϕ.μ * invd(ϕ.u[i], ϕ.u[i] - x[i]) - ϕ.μ * invd(ϕ.l[i], x[i] - ϕ.l[i])
   end
   return g
 end

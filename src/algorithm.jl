@@ -467,7 +467,7 @@ function SolverCore.solve!(
       get_z_u(barrier, T),
     )
 
-    if primal_feas > primal_ktol || (dual_ktol ≤ dual_tol && primal_feas > primal_tol) || compl_feas > compl_tol
+    if primal_feas > primal_ktol || (dual_ktol ≤ dual_tol && (primal_feas > primal_tol || compl_feas > compl_tol))
       # Update penalty parameter
       τ₊ = max(τ + τmin, norm(y, 1))
       if extrapolate!(x, solver, τ₊, τ)
