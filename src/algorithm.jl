@@ -516,7 +516,7 @@ function SolverCore.solve!(
 
     if compl_feas > compl_tol
       # Update barrier parameter
-      update_barrier!(barrier, x, μ)
+      update_barrier!(barrier, x, compl_tol)
       set_fraction_to_boundary!(barrier)
       compl_ktol = compute_compl_ktol(barrier, κε)
     end
