@@ -53,6 +53,7 @@ function L2PenaltySolver(
   set_solver_specific!(substats, :rho, T(0))
   set_solver_specific!(substats, :smooth_obj, T(0))
   set_solver_specific!(substats, :nonsmooth_obj, T(0))
+  set_solver_specific!(substats, :compl_error, T(0))
 
   return L2PenaltySolver(
     x,
