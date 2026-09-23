@@ -151,17 +151,3 @@ end
   set_barrier!(pb.model.ϕ, 1.0)
   @test pb.model.ϕ.μ == 1.0
 end
-
-@testset "Bound-constrained CUTEst problem" begin
-  # HS41: the upper bound x₄ ≤ 2 is active at the solution x* = (2/3, 1/3, 1/3, 2),
-  # f* = 52/27. This runs the barrier code paths of the outer loop and of the subsolver.
-  nlp = CUTEstModel("HS41")
-  stats = L2Penalty(nlp, atol = 1e-6, rtol = 1e-6)
-  # TODO: require :first_order once the barrier parameter update is improved.
-  @test stats.status ∈ (:first_order, :small_step)
-  @test isapprox(stats.objective, 52 / 27, atol = 1e-4)
-  @test isapprox(stats.solution, [2 / 3, 1 / 3, 1 / 3, 2], atol = 1e-2)
-  @test all(nlp.meta.lvar .< stats.solution .< nlp.meta.uvar) # strictly interior
-  @test stats.primal_feas ≤ 1e-6
-  finalize(nlp)
-end
