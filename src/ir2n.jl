@@ -205,7 +205,7 @@ function SolverCore.solve!(
     dual_res .= ∇fk
     mul!(dual_res, ψ.A', y, one(T), one(T))
 
-    compl_error = compute_compl_error!(
+    compl_error = compute_mu_compl_error!(
       compl_res_l,
       compl_res_u,
       barrier,

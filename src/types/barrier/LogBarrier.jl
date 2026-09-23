@@ -105,7 +105,7 @@ end
 
 update_barrier!(::Nothing, x, tol; kwargs...) = nothing
 
-function compute_compl_error!(
+function compute_mu_compl_error!(
   compl_res_l,
   compl_res_u,
   ϕ::LogBarrier,
@@ -119,6 +119,21 @@ function compute_compl_error!(
   return max(norm(compl_res_l, Inf), norm(compl_res_u, Inf))
 end
 
+function compute_compl_error!(
+  compl_res_l,
+  compl_res_u,
+  ϕ::LogBarrier,
+  xk,
+  z_l,
+  z_u,
+)
+  compl_res_l .= z_l .* (xk .- ϕ.l)
+  compl_res_u .= z_u .* (ϕ.u .- xk)
+
+  return max(norm(compl_res_l, Inf), norm(compl_res_u, Inf))
+end
+
+compute_mu_compl_error!(compl_res_l, compl_res_u, ϕ::Nothing, xk, z_l, z_u,) = zero(eltype(xk))
 compute_compl_error!(compl_res_l, compl_res_u, ϕ::Nothing, xk, z_l, z_u,) = zero(eltype(xk))
 
 function set_barrier!(::Nothing) end
