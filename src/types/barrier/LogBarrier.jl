@@ -84,6 +84,27 @@ end
 
 push_to_interior!(::Nothing, x; kwargs...) = x
 
+@doc raw"""
+    update_barrier!(ϕ::LogBarrier, x, tol; κμ = 0.2, θμ = 1.5)
+
+Decrease the barrier parameter (Wächter & Biegler, eq. (7)):
+
+```math
+μ_{j+1} = \max\left\{\frac{ε_{\mathrm{tol}}}{10}, \min\{κ_μ μ_j, μ_j^{θ_μ}\}\right\},
+```
+with `κμ ∈ (0, 1)` and `θμ ∈ (1, 2)`, then update the fraction to the boundary
+`τ = max(τmin, 1 - μ)`. Returns the new `μ`.
+"""
+function update_barrier!(ϕ::LogBarrier{T}, x, tol; κμ = T(0.2), θμ = T(1.5)) where {T}
+  @assert 0 < κμ < 1 && 1 < θμ < 2 "Need 0 < κμ < 1 and 1 < θμ < 2."
+  μ = ϕ.μ
+  ϕ.μ = max(tol / 10, min(κμ * μ, μ^θμ))
+  set_fraction_to_boundary!(ϕ)
+  return ϕ.μ
+end
+
+update_barrier!(::Nothing, x, tol; kwargs...) = nothing
+
 function compute_compl_error!(
   compl_res_l,
   compl_res_u,

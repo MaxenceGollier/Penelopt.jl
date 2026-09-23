@@ -514,6 +514,11 @@ function SolverCore.solve!(
       first_increase = false
     end
 
+    # Update barrier parameter
+    update_barrier!(barrier, x, μ)
+    set_fraction_to_boundary!(barrier)
+    compl_ktol = compute_compl_ktol(barrier, κε)
+
     # Check whether the primal feasibility has decreased. If not, increase the penalty parameter more aggressively.
     if primal_feas > primal_ktol && hx_prev < hx
       τmin *= 10
