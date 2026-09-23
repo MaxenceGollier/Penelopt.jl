@@ -467,7 +467,7 @@ function SolverCore.solve!(
       get_z_u(barrier, T),
     )
 
-    if primal_feas > primal_ktol || (dual_ktol ≤ dual_tol && primal_feas > primal_tol)
+    if primal_feas > primal_ktol || (dual_ktol ≤ dual_tol && primal_feas > primal_tol) || compl_feas > compl_tol
       # Update penalty parameter
       τ₊ = max(τ + τmin, norm(y, 1))
       if extrapolate!(x, solver, τ₊, τ)
@@ -514,15 +514,19 @@ function SolverCore.solve!(
       first_increase = false
     end
 
-    # Update barrier parameter
-    update_barrier!(barrier, x, μ)
-    set_fraction_to_boundary!(barrier)
-    compl_ktol = compute_compl_ktol(barrier, κε)
+    if compl_feas > compl_tol
+      # Update barrier parameter
+      update_barrier!(barrier, x, μ)
+      set_fraction_to_boundary!(barrier)
+      compl_ktol = compute_compl_ktol(barrier, κε)
+    end
 
     # Check whether the primal feasibility has decreased. If not, increase the penalty parameter more aggressively.
     if primal_feas > primal_ktol && hx_prev < hx
       τmin *= 10
     end
+
+    set_solver_specific!(solver.substats, :compl_error, compl_feas)
 
     solved = dual_feas ≤ dual_tol && primal_feas ≤ primal_tol && compl_feas ≤ compl_tol
 
