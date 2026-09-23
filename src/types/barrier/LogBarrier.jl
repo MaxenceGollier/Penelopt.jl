@@ -36,11 +36,80 @@ function set_fraction_to_boundary!(ϕ::LogBarrier)
   ϕ.τ = max(ϕ.τmin, 1 - ϕ.μ)
 end
 
+function initialize_multipliers!(::Nothing) end
+function initialize_multipliers!(ϕ::LogBarrier)
+  for i in eachindex(ϕ.l)
+    l, u = ϕ.l[i], ϕ.u[i]
+    if isfinite(l)
+      ϕ.z_l[i] = 1
+    else
+      ϕ.z_l[i] = 0
+    end
+    if isfinite(u)
+      ϕ.z_u[i] = 1
+    else
+      ϕ.z_u[i] = 0
+    end
+  end
+end
+
+@doc raw"""
+    push_to_interior!(ϕ::LogBarrier, x; κ1 = 1e-2, κ2 = 1e-2)
+
+Move `x` sufficiently far from the bounds so that it is strictly feasible (Wächter & Biegler, §3.6).
+
+- One-sided lower bound: `x ← max(x, l + κ1 max(1, |l|))`.
+- One-sided upper bound: `x ← min(x, u - κ1 max(1, |u|))`.
+- Two-sided bounds: `x` is projected onto `[l + p_l, u - p_u]` with
+  `p_l = min(κ1 max(1, |l|), κ2 (u - l))` and `p_u = min(κ1 max(1, |u|), κ2 (u - l))`.
+
+Requires `κ1 > 0` and `0 < κ2 < 1/2`. Free variables are left unchanged.
+"""
+function push_to_interior!(ϕ::LogBarrier{T}, x; κ1 = T(1e-2), κ2 = T(1e-2)) where {T}
+  @assert κ1 > 0 && 0 < κ2 < 1 / 2 "Need κ1 > 0 and 0 < κ2 < 1/2."
+  for i in eachindex(x)
+    l, u = ϕ.l[i], ϕ.u[i]
+    if isfinite(l) && isfinite(u)
+      p_l = min(κ1 * max(one(T), abs(l)), κ2 * (u - l))
+      p_u = min(κ1 * max(one(T), abs(u)), κ2 * (u - l))
+      x[i] = clamp(x[i], l + p_l, u - p_u)
+    elseif isfinite(l)
+      x[i] = max(x[i], l + κ1 * max(one(T), abs(l)))
+    elseif isfinite(u)
+      x[i] = min(x[i], u - κ1 * max(one(T), abs(u)))
+    end
+  end
+  return x
+end
+
+push_to_interior!(::Nothing, x; kwargs...) = x
+
+function compute_compl_error!(
+  compl_res_l,
+  compl_res_u,
+  ϕ::LogBarrier,
+  xk,
+  z_l,
+  z_u,
+)
+  compl_res_l .= z_l .* (xk .- ϕ.l) .- ϕ.μ
+  compl_res_u .= z_u .* (ϕ.u .- xk) .- ϕ.μ
+
+  return max(norm(compl_res_l, Inf), norm(compl_res_u, Inf))
+end
+
+compute_compl_error!(compl_res_l, compl_res_u, ϕ::Nothing, xk, z_l, z_u,) = zero(eltype(xk))
+
 function set_barrier!(::Nothing) end
 function set_barrier!(ϕ::LogBarrier, μ) where {T,S}
   ϕ.μ = μ
   set_fraction_to_boundary!(ϕ)
 end
+
+function compute_compl_ktol(ϕ::LogBarrier, κε)
+  return κε * ϕ.μ
+end
+compute_compl_ktol(ϕ::Nothing, κε) = one(κε)
 
 @doc raw"""
     truncate_to_boundary!(s, s_z, xk, zk_L, zk_U, ϕ::LogBarrier)

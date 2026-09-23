@@ -12,6 +12,8 @@ mutable struct PenaltyR2NSolver{
   xk::V
   y::V
   dual_res::V
+  compl_res_l::V
+  compl_res_u::V
   xkn::V
   s::V
   s_z_l::V
@@ -49,11 +51,15 @@ function PenaltyR2NSolver(
   barrier = find_model(LogBarrierModel, penalty_nlp.model)
   s_z_l = isnothing(barrier) ? T[] : similar(barrier.ϕ.z_l) 
   s_z_u = isnothing(barrier) ? T[] : similar(barrier.ϕ.z_u)
+  compl_res_l = isnothing(barrier) ? T[] : similar(barrier.ϕ.z_l)
+  compl_res_u = isnothing(barrier) ? T[] : similar(barrier.ϕ.z_u)
 
   return PenaltyR2NSolver{T,V,typeof(subsolver),typeof(subpb),typeof(checkpoint)}(
     xk,
     y,
     dual_res,
+    compl_res_l,
+    compl_res_u,
     xkn,
     s,
     s_z_l,
@@ -82,6 +88,7 @@ function SolverCore.solve!(
   x::V = reg_nlp.model.meta.x0,
   atol::T = √eps(T),
   rtol::T = √eps(T),
+  compl_atol::T = √eps(T),
   print_level::Int = 0,
   verbose::Int = 0,
   max_iter::Int = 1000,
@@ -128,6 +135,7 @@ function SolverCore.solve!(
   ∇fk = solver.subpb.model.data.c
   xkn = solver.xkn
   s, y, dual_res = solver.s, solver.y, solver.dual_res
+  compl_res_l, compl_res_u = solver.compl_res_l, solver.compl_res_u
   s_z_l, s_z_u = solver.s_z_l, solver.s_z_u
   z_l, z_u = get_z_l(barrier, T), get_z_u(barrier, T)
   m_fh_hist = solver.m_fh_hist
@@ -196,9 +204,19 @@ function SolverCore.solve!(
     # Check stopping criteria
     dual_res .= ∇fk
     mul!(dual_res, ψ.A', y, one(T), one(T))
+
+    compl_error = compute_compl_error!(
+      compl_res_l,
+      compl_res_u,
+      barrier,
+      xk,
+      z_l,
+      z_u,
+    )
+
     set_primal_residual!(stats, norm(ψ.b, Inf))
     set_dual_residual!(stats, norm(dual_res, Inf))
-    solved = stats.dual_feas ≤ atol
+    solved = stats.dual_feas ≤ atol && compl_error ≤ compl_atol
 
     if stats.iter == 0
       atol += stats.dual_feas * rtol
@@ -274,6 +292,10 @@ function SolverCore.solve!(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
+
+      #update bound multipliers
+      z_l .+= s_z_l
+      z_u .+= s_z_u
 
       #update functions
       fk, hk = fkn, hkn
