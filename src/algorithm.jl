@@ -464,7 +464,11 @@ function SolverCore.solve!(
       x,
     )
 
-    if primal_feas > primal_ktol || (dual_ktol ≤ dual_tol && (primal_feas > primal_tol || compl_feas > compl_tol))
+    dual_ktol_prev = dual_ktol
+
+    # Complementarity is driven by the barrier parameter below, not by the penalty parameter.
+    tightened = false
+    if primal_feas > primal_ktol || (dual_ktol ≤ dual_tol && primal_feas > primal_tol)
       # Update penalty parameter
       τ₊ = max(τ + τmin, norm(y, 1))
       if extrapolate!(x, solver, τ₊, τ)
@@ -509,13 +513,33 @@ function SolverCore.solve!(
 
       # Subsolver: Desactivate the aggressive regularization parameter update if sigma is too small
       first_increase = false
+      tightened = true
+
+      # With bounds, the iterate can be feasible while ‖y‖ ≥ τ, in which case the ℓ₂ penalty
+      # is not exact and the next barrier subproblem may leave the feasible set.
+      if !isnothing(barrier) && norm(y) ≥ τ
+        τ = max(τ + τmin, norm(y, 1))
+        set_penalty!(mk, τ)
+        set_solver_specific!(solver.substats, :tau, τ)
+      end
     end
 
     if compl_feas > compl_tol
-      # Update barrier parameter
+      # Update barrier parameter (also updates the fraction to the boundary)
       update_barrier!(barrier, x, compl_tol)
-      set_fraction_to_boundary!(barrier)
       compl_ktol = compute_compl_ktol(barrier, κε)
+
+      # f + μϕ changed: re-evaluate it and rebuild the model at x, otherwise the next
+      # subproblem starts from the previous μ's objective value, gradient and Hessian.
+      fx = obj(nlp, x)
+      set_solver_specific!(solver.substats, :smooth_obj, fx)
+      shift!(mk, x, y = y, J = ψ.A, c = ψ.b)
+
+      # Solve the next barrier subproblem only to accuracy κε μ (Wächter & Biegler, §2.1).
+      if tightened
+        dual_ktol = compute_barrier_dual_ktol(barrier, κε, dual_ktol_prev, dual_tol)
+        set_solver_specific!(solver.substats, :dual_ktol, dual_ktol)
+      end
     end
 
     # Check whether the primal feasibility has decreased. If not, increase the penalty parameter more aggressively.
