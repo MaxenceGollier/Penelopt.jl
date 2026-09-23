@@ -105,36 +105,51 @@ end
 
 update_barrier!(::Nothing, x, tol; kwargs...) = nothing
 
-function compute_mu_compl_error!(
-  compl_res_l,
-  compl_res_u,
-  ϕ::LogBarrier,
-  xk,
-  z_l,
-  z_u,
-)
-  compl_res_l .= z_l .* (xk .- ϕ.l) .- ϕ.μ
-  compl_res_u .= z_u .* (ϕ.u .- xk) .- ϕ.μ
+@doc raw"""
+    compute_mu_compl_error!(compl_res_l, compl_res_u, ϕ::LogBarrier, xk)
 
+Perturbed complementarity error `max(‖Z_l (x - l) - μe‖∞, ‖Z_u (u - x) - μe‖∞)`,
+using the bound multipliers stored in `ϕ`. Entries for infinite bounds are set to zero.
+"""
+function compute_mu_compl_error!(compl_res_l, compl_res_u, ϕ::LogBarrier, xk)
+  _compl_residual!(compl_res_l, compl_res_u, ϕ, xk, ϕ.μ)
   return max(norm(compl_res_l, Inf), norm(compl_res_u, Inf))
 end
 
-function compute_compl_error!(
-  compl_res_l,
-  compl_res_u,
-  ϕ::LogBarrier,
-  xk,
-  z_l,
-  z_u,
-)
-  compl_res_l .= z_l .* (xk .- ϕ.l)
-  compl_res_u .= z_u .* (ϕ.u .- xk)
+@doc raw"""
+    compute_compl_error!(compl_res_l, compl_res_u, ϕ::LogBarrier, xk)
 
+Complementarity error `max(‖Z_l (x - l)‖∞, ‖Z_u (u - x)‖∞)`, using the bound multipliers
+stored in `ϕ`. Entries for infinite bounds are set to zero.
+"""
+function compute_compl_error!(compl_res_l, compl_res_u, ϕ::LogBarrier{T}, xk) where {T}
+  _compl_residual!(compl_res_l, compl_res_u, ϕ, xk, zero(T))
   return max(norm(compl_res_l, Inf), norm(compl_res_u, Inf))
 end
 
-compute_mu_compl_error!(compl_res_l, compl_res_u, ϕ::Nothing, xk, z_l, z_u,) = zero(eltype(xk))
-compute_compl_error!(compl_res_l, compl_res_u, ϕ::Nothing, xk, z_l, z_u,) = zero(eltype(xk))
+function _compl_residual!(compl_res_l, compl_res_u, ϕ::LogBarrier, xk, μ)
+  for i in eachindex(xk)
+    l, u = ϕ.l[i], ϕ.u[i]
+    compl_res_l[i] = isfinite(l) ? ϕ.z_l[i] * (xk[i] - l) - μ : zero(μ)
+    compl_res_u[i] = isfinite(u) ? ϕ.z_u[i] * (u - xk[i]) - μ : zero(μ)
+  end
+  return compl_res_l, compl_res_u
+end
+
+compute_mu_compl_error!(compl_res_l, compl_res_u, ::Nothing, xk) = zero(eltype(xk))
+compute_compl_error!(compl_res_l, compl_res_u, ::Nothing, xk) = zero(eltype(xk))
+
+"""
+    update_multipliers!(ϕ, s_z_l, s_z_u)
+
+Take the (already truncated) step on the bound multipliers stored in `ϕ`.
+"""
+function update_multipliers!(ϕ::LogBarrier, s_z_l, s_z_u)
+  ϕ.z_l .+= s_z_l
+  ϕ.z_u .+= s_z_u
+  return ϕ
+end
+update_multipliers!(::Nothing, s_z_l, s_z_u) = nothing
 
 function set_barrier!(::Nothing) end
 function set_barrier!(ϕ::LogBarrier, μ) where {T,S}
@@ -148,7 +163,7 @@ end
 compute_compl_ktol(ϕ::Nothing, κε) = one(κε)
 
 @doc raw"""
-    truncate_to_boundary!(s, s_z, xk, zk_L, zk_U, ϕ::LogBarrier)
+    truncate_to_boundary!(s, s_z_l, s_z_u, xk, ϕ::LogBarrier)
 
 Apply the fraction-to-the-boundary rule (Wächter & Biegler, eq. (15)) so that the next
 iterate stays strictly inside the bounds, and the bound multipliers stay strictly positive.
@@ -161,19 +176,12 @@ and, separately, the largest dual step `α_z ∈ (0, 1]` so that
 
     zk_L + α_z s_z_l ≥ (1 - τ) zk_L   and   zk_U + α_z s_z_u ≥ (1 - τ) zk_U,
 
-where `τ = ϕ.τ`. Then `s` is scaled in place by `α` and `s_z = (s_z_l, s_z_u)` is scaled
-in place by `α_z`. Infinite bounds are ignored. Returns `(α, α_z)`.
+where `τ = ϕ.τ`, `zk_L = ϕ.z_l` and `zk_U = ϕ.z_u`. Then `s` is scaled in place by `α`
+and `s_z = (s_z_l, s_z_u)` is scaled in place by `α_z`. Infinite bounds are ignored. Returns `(α, α_z)`.
 """
-function truncate_to_boundary!(
-  s,
-  s_z_l,
-  s_z_u,
-  xk,
-  zk_L,
-  zk_U,
-  ϕ::LogBarrier{T},
-) where {T}
+function truncate_to_boundary!(s, s_z_l, s_z_u, xk, ϕ::LogBarrier{T}) where {T}
   τ = ϕ.τ
+  zk_L, zk_U = ϕ.z_l, ϕ.z_u
   α = one(T)
   α_z = one(T)
 
@@ -209,7 +217,7 @@ function truncate_to_boundary!(
   return α, α_z
 end
 
-truncate_to_boundary!(s, s_z_l, s_z_u, xk, zk_L, zk_U, ::Nothing,) = (one(eltype(s)), one(eltype(s)))
+truncate_to_boundary!(s, s_z_l, s_z_u, xk, ::Nothing) = (one(eltype(s)), one(eltype(s)))
 
 function (ϕ::LogBarrier)(x)
   val = zero(eltype(x))
@@ -284,11 +292,5 @@ function get_z_u_step!(s_z_u, ϕ::LogBarrier, x, s_x)
   end
   return s_z_u
 end
-
-get_z_l(::Nothing, T::Type) = T[]
-get_z_u(::Nothing, T::Type) = T[]
-
-get_z_l(ϕ::LogBarrier, T::Type) = ϕ.z_l
-get_z_u(ϕ::LogBarrier, T::Type) = ϕ.z_u
 
 isinterior(ϕ::LogBarrier, x) = all(i -> ϕ.l[i] < x[i] < ϕ.u[i], eachindex(x))

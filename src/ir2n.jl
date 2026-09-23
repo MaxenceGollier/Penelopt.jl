@@ -137,7 +137,6 @@ function SolverCore.solve!(
   s, y, dual_res = solver.s, solver.y, solver.dual_res
   compl_res_l, compl_res_u = solver.compl_res_l, solver.compl_res_u
   s_z_l, s_z_u = solver.s_z_l, solver.s_z_u
-  z_l, z_u = get_z_l(barrier, T), get_z_u(barrier, T)
   m_fh_hist = solver.m_fh_hist
   watchdog_checkpoint = solver.checkpoint
 
@@ -210,8 +209,6 @@ function SolverCore.solve!(
       compl_res_u,
       barrier,
       xk,
-      z_l,
-      z_u,
     )
 
     set_primal_residual!(stats, norm(ψ.b, Inf))
@@ -273,8 +270,6 @@ function SolverCore.solve!(
       s_z_l,
       s_z_u,
       xk,
-      z_l,
-      z_u,
       barrier,
     )
 
@@ -294,8 +289,7 @@ function SolverCore.solve!(
       xk .= xkn
 
       #update bound multipliers
-      z_l .+= s_z_l
-      z_u .+= s_z_u
+      update_multipliers!(barrier, s_z_l, s_z_u)
 
       #update functions
       fk, hk = fkn, hkn

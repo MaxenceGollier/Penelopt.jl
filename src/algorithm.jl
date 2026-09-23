@@ -319,8 +319,6 @@ function SolverCore.solve!(
       solver.subsolver.compl_res_u,
       barrier,
       x,
-      get_z_l(barrier, T),
-      get_z_u(barrier, T),
     )
 
   primal_tol = max(primal_inf_atol, atol) + max(primal_inf_rtol, rtol) * primal_feas
@@ -464,8 +462,6 @@ function SolverCore.solve!(
       solver.subsolver.compl_res_u,
       barrier,
       x,
-      get_z_l(barrier, T),
-      get_z_u(barrier, T),
     )
 
     if primal_feas > primal_ktol || (dual_ktol ≤ dual_tol && (primal_feas > primal_tol || compl_feas > compl_tol))
