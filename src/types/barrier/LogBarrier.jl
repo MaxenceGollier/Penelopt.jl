@@ -163,17 +163,6 @@ end
 compute_compl_ktol(ϕ::Nothing, κε) = one(κε)
 
 @doc raw"""
-    compute_barrier_dual_ktol(ϕ::LogBarrier, κε, dual_ktol, dual_tol)
-
-Dual tolerance for the next barrier subproblem, `max(dual_tol, min(dual_ktol, κε μ))`:
-barrier subproblems only need to be solved to accuracy `κε μ` (Wächter & Biegler, §2.1),
-and the tolerance never increases from one outer iteration to the next.
-"""
-compute_barrier_dual_ktol(ϕ::LogBarrier, κε, dual_ktol, dual_tol) =
-  max(dual_tol, min(dual_ktol, κε * ϕ.μ))
-compute_barrier_dual_ktol(::Nothing, κε, dual_ktol, dual_tol) = dual_ktol
-
-@doc raw"""
     truncate_to_boundary!(s, s_z_l, s_z_u, xk, ϕ::LogBarrier)
 
 Apply the fraction-to-the-boundary rule (Wächter & Biegler, eq. (15)) so that the next
